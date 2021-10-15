@@ -58,14 +58,6 @@ test = {i: [] for i in range(10)}
 for index, (pixels,label) in enumerate(d_test):
     test[label].append(index)    
 
-# domain decision
-if args.domains == 'binary':
-    source_domain = 0
-    target_domain = 1
-else:
-    raise ValueError('No multisource yet')
-
-
 if args.nn_style == 'CNN':
     nchannels = 1
     nclasses = 10
@@ -75,6 +67,18 @@ if args.nn_style == 'CNN':
 else:
     raise TypeError('Only CNN at the moment')    
 
+# domain decision
+if args.domains == 'binary':
+    source_domain = 0
+    target_domain = 1
+    
+    source_train = len(d_train)/2
+    target_train = len(d_train)/2
+    
+    
+    
+else:
+    raise ValueError('No multisource yet')
 
 
 
