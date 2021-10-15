@@ -37,7 +37,7 @@ else:
 if args.data_style == 'mnist':
     trans_mnist = transforms.Compose([transforms.ToTensor(),\
                                       transforms.Normalize((0.1307,),(0.3081,))])
-    d_train = torchvision.datasets.MNIST('./data/mnist/',train=True,download=True,\
+    d_train = torchvision.datasets.MNIST('./data/mnist/',train=True,download=False,\
                                          transform=trans_mnist)
     d_test = torchvision.datasets.MNIST('./data/mnist/',train=False,download=False,\
                                         transform=trans_mnist)
@@ -61,9 +61,9 @@ for index, (pixels,label) in enumerate(d_test):
 if args.nn_style == 'CNN':
     nchannels = 1
     nclasses = 10
-    DANN_F = DANN_CNN_F(nchannels)
-    DANN_C = DANN_CNN_C(nclasses)
-    DANN_D = DANN_CNN_D()
+    DANN_F = DANN_CNN_F(nchannels).to(device)
+    DANN_C = DANN_CNN_C(nclasses).to(device)
+    DANN_D = DANN_CNN_D().to(device)
 else:
     raise TypeError('Only CNN at the moment')    
 
@@ -73,16 +73,16 @@ if args.domains == 'binary':
     target_domain = 1
     
     source_train = len(d_train)/2
-    target_train = len(d_train)/2
-    
-    
+    target_train = len(d_train)/2    
     
 else:
     raise ValueError('No multisource yet')
 
+## how would we do the batch assignments?
+# and the batch splitting?
 
-
-
+# td = DataLoader(segmentdataset(d_train,range(len(d_train))),batch_size=args.bs,shuffle=True)
+td = DataLoader(segmentdataset(d_train,range(1000)),batch_size=args.bs,shuffle=True)
 
 
 
