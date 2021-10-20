@@ -74,3 +74,46 @@ def test_img2(net_g, datatest,bs,indexes,device=torch.device('cpu')):
     accuracy = 100*correct.item() / len(data_loader.dataset)
     return accuracy, test_loss
 
+
+def test_img3(net_f, net_c, datatest,bs,indexes,device=torch.device('cpu')):
+    net_f.eval()
+    net_c.eval()
+    # testing
+    test_loss = 0
+    correct = 0
+    data_loader = DataLoader(datatest, batch_size= bs)
+    #DataLoader(segmentdataset(datatest,indexes),batch_size=bs,shuffle=True)
+    
+    # print('currently on cpu')
+    # print('line 56 testing.py')
+    
+    for idx, (data, target) in enumerate(data_loader):
+        data = data.to(device)
+        target = target.to(device)
+        
+        # data = data.to(torch.device('cpu'))
+        # target = target.to(torch.device('cpu'))
+        
+        log_probs = net_c(net_f(data))
+        # sum up batch loss
+        test_loss += F.cross_entropy(log_probs, target, reduction='sum').item()
+        # get the index of the max log-probability
+        y_pred = log_probs.data.max(1, keepdim=True)[1]
+        correct += y_pred.eq(target.data.view_as(y_pred)).long().cpu().sum()
+
+    test_loss /= len(data_loader.dataset)
+    accuracy = 100*correct.item() / len(data_loader.dataset)
+    return accuracy, test_loss
+
+
+
+
+
+
+
+
+
+
+
+
+

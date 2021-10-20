@@ -19,7 +19,7 @@ import pickle
 from utils.tf_parser import tf_parser
 from utils.neural_nets import DANN_CNN_F, DANN_CNN_C, \
     GradReverse, grad_reverse, DANN_CNN_D, Update_DANN_class, segmentdataset
-from utils.testing import test_img, test_img2
+from utils.testing import test_img3
 
 
 args = tf_parser()
@@ -116,11 +116,17 @@ for t_epoch in range(args.time):
         #     break
     
     print(w_c['fc3.bias'])
-    print('round '+str(ind_datum))        
+    print('t_epoch '+str(ind_datum))        
+    
+    ## test accuracy
+    acc,loss = test_img3(DANN_F,DANN_C, d_test,bs=10,indexes=range(len(d_test)),device=device)
+    
     
     if t_epoch >= 3:
         print('completed')
         break
+
+
 
 
 
