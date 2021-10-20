@@ -211,8 +211,8 @@ class Update_DANN_class(object):
             batch_loss = []
             
             # for batch_indx,(images,labels) in enumerate(self.ldr_train):
-            images = self.ldr_train[0].to(self.device)
-            labels = self.ldr_train[1].to(self.device)
+            images = self.ldr_train[1][0].to(self.device)
+            labels = self.ldr_train[1][1].to(self.device)
 
             net_f.zero_grad()
             net_c.zero_grad()

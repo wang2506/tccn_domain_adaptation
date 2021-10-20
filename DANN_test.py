@@ -104,8 +104,7 @@ for t_epoch in range(args.time):
         
         # DANN_domain = Update_DANN_domain(device,bs=args.bs)
         
-        _,w,loss = DANN_class.train(net=DANN_F)
-    
+        _,w_f,_,w_c,loss = DANN_class.train(net_f=DANN_F,net_c=DANN_C)
     print('completed')
     break
 

@@ -20,7 +20,7 @@ def tf_parser():
                         choices=['iid','mild','extreme'],\
                         help='non-iid severity')
     
-    parser.add_argument('--comp',type=str,default='gpu',\
+    parser.add_argument('--comp',type=str,default='cpu',\
                         choices=['gpu','cpu'],\
                         help='gpu or cpu')
     parser.add_argument('--gpu_num',type=str,default='0',\
