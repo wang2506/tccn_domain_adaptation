@@ -204,7 +204,7 @@ class Update_DANN_class(object):
         net_f.train()
         net_c.train()
         f_optimizer = torch.optim.SGD(net_f.parameters(),lr=self.lr)
-        c_optimizer = torch.optim.SGD(net_c.parameters(),lf=self.lr)
+        c_optimizer = torch.optim.SGD(net_c.parameters(),lr=self.lr)
         
         epoch_loss = []
         for epoch in range(self.epochs):
