@@ -116,11 +116,11 @@ for t_epoch in range(args.time):
         #     break
     
     print(w_c['fc3.bias'])
-    print('t_epoch '+str(ind_datum))        
+    print('t_epoch '+str(t_epoch))        
     
     ## test accuracy
     acc,loss = test_img3(DANN_F,DANN_C, d_test,bs=10,indexes=range(len(d_test)),device=device)
-    
+    print('current acc: '+str(acc))
     
     if t_epoch >= 3:
         print('completed')
