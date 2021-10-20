@@ -220,7 +220,7 @@ class Update_DANN_class(object):
             log_probs = net_c(net_f(images))
             # log_probs = net(images)
             loss = self.loss_func(log_probs,labels)
-            loss.backward(retain_variables=True)
+            loss.backward(retain_graph=True)
             f_optimizer.step()
             c_optimizer.step()
             
