@@ -109,14 +109,18 @@ for t_epoch in range(args.time):
         DANN_F.load_state_dict(w_f)
         DANN_C.load_state_dict(w_c)
         
-        print(w_c['fc3.bias'])
-        print('round '+str(ind_datum))
+        # print(w_c['fc0.bias'])
+        # print('round '+str(ind_datum))
         
-        if ind_datum >= 3:
-            break
-        
-    print('completed')
-    break
+        # if ind_datum >= 3:
+        #     break
+    
+    print(w_c['fc0.bias'])
+    print('round '+str(ind_datum))        
+    
+    if t_epoch >= 3:
+        print('completed')
+        break
 
 
 
