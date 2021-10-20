@@ -106,8 +106,15 @@ for t_epoch in range(args.time):
         
         _,w_f,_,w_c,loss = DANN_class.train(net_f=DANN_F,net_c=DANN_C)
         
+        DANN_F.load_state_dict(w_f)
+        DANN_C.load_state_dict(w_c)
+        
         print(w_c)
         print('round '+str(ind_datum))
+        
+        if ind_datum >= 3:
+            break
+        
     print('completed')
     break
 
