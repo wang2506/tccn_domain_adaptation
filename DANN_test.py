@@ -37,14 +37,14 @@ else:
 if args.data_style == 'mnist':
     trans_mnist = transforms.Compose([transforms.ToTensor(),\
                                       transforms.Normalize((0.1307,),(0.3081,))])
-    d_train = torchvision.datasets.MNIST('./data/mnist/',train=True,download=False,\
+    d_train = torchvision.datasets.MNIST('./data/mnist/',train=True,download=True,\
                                          transform=trans_mnist)
-    d_test = torchvision.datasets.MNIST('./data/mnist/',train=False,download=False,\
+    d_test = torchvision.datasets.MNIST('./data/mnist/',train=False,download=True,\
                                         transform=trans_mnist)
 elif args.data_style == 'fmnist':
-    d_train = torchvision.datasets.FashionMNIST('./data/fmnist/',train=True,download=False,\
+    d_train = torchvision.datasets.FashionMNIST('./data/fmnist/',train=True,download=True,\
                                     transform=transforms.ToTensor())
-    d_test = torchvision.datasets.FashionMNIST('./data/fmnist/',train=False,download=False,\
+    d_test = torchvision.datasets.FashionMNIST('./data/fmnist/',train=False,download=True,\
                                     transform=transforms.ToTensor())        
 else:
     raise ValueError('Unsupported training/testing data')
@@ -91,7 +91,7 @@ else:
 #                 # dataset=dataset_train,indexes=l_dataset)
 #     # _,w,loss,temp_org_fl,temp_psl = local_obj.train(net=loc_model.to(device))
 #     _,w,loss = local_obj.train(net=loc_model.to(device))
-    
+
 #     return w,loss
 
 for t_epoch in range(args.time):
