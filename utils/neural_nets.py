@@ -190,6 +190,47 @@ class LocalUpdate(object):
         
         return net,net.state_dict(),(sum(batch_loss)/len(batch_loss))
 
+class Update_DANN_class(object):
+    def __init__(self,device,bs,lr,epochs,ldr_train):#,dataset=None,indexes=None):
+        self.device = device
+        self.bs = bs
+        self.lr = lr
+        self.epochs = epochs
+        self.ldr_train = ldr_train
+        self.loss_func = nn.CrossEntropyLoss()
+        
+        
+    def train(self,net_f,net_c):
+        net_f.train()
+        net_c.train()
+        f_optimizer = torch.optim.SGD(net_f.parameters(),lr=self.lr)
+        c_optimizer = torch.optim.SGD(net_c.parameters(),lf=self.lr)
+        
+        epoch_loss = []
+        for epoch in range(self.epochs):
+            batch_loss = []
+            
+            # for batch_indx,(images,labels) in enumerate(self.ldr_train):
+            images = self.ldr_train[0].to(self.device)
+            labels = self.ldr_train[1].to(self.device)
+
+            net_f.zero_grad()
+            net_c.zero_grad()
+            
+            log_probs = net_c(net_f(images))
+            # log_probs = net(images)
+            loss = self.loss_func(log_probs,labels)
+            loss.backward(retain_variables=True)
+            f_optimizer.step()
+            c_optimizer.step()
+            
+            batch_loss.append(loss.item())
+            
+            epoch_loss.append(sum(batch_loss)/len(batch_loss))
+        
+        return net_f,net_f.state_dict(),net_c,net_c.state_dict(),(sum(batch_loss)/len(batch_loss))
+
+
 def mod_fl_agg(local_w,data_qtys,epochs_vect,lr,global_w):
     tot_data_qty = sum(data_qtys)
     

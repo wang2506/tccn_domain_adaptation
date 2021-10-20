@@ -18,7 +18,7 @@ import pickle
 
 from utils.tf_parser import tf_parser
 from utils.neural_nets import DANN_CNN_F, DANN_CNN_C, \
-    GradReverse, grad_reverse, DANN_CNN_D, LocalUpdate, segmentdataset
+    GradReverse, grad_reverse, DANN_CNN_D, Update_DANN_class, segmentdataset
 from utils.testing import test_img, test_img2
 
 
@@ -82,8 +82,32 @@ else:
 # and the batch splitting?
 
 # td = DataLoader(segmentdataset(d_train,range(len(d_train))),batch_size=args.bs,shuffle=True)
-td = DataLoader(segmentdataset(d_train,range(1000)),batch_size=args.bs,shuffle=True)
 
+# def run_one_iter(loc_model,ep_len,bs,lr_val,l_dataset,\
+#     device=device,dataset_train=d_train):
+    
+#     local_obj = LocalUpdate_DANN(device,bs=bs,lr=lr_val,epochs=ep_len,\
+#                 ldr_train=l_dataset)
+#                 # dataset=dataset_train,indexes=l_dataset)
+#     # _,w,loss,temp_org_fl,temp_psl = local_obj.train(net=loc_model.to(device))
+#     _,w,loss = local_obj.train(net=loc_model.to(device))
+    
+#     return w,loss
+
+for t_epoch in range(args.time):
+    temp_source = DataLoader(segmentdataset(d_train,range(1000)),batch_size=args.bs,shuffle=True)
+    temp_target = DataLoader(segmentdataset(d_train,range(1000)),batch_size=args.bs,shuffle=True)
+    
+    for ind_datum,t_datum in enumerate(temp_source):
+        DANN_class = Update_DANN_class(device,bs=args.bs,lr=args.lr,epochs=1,\
+                    ldr_train=[ind_datum,t_datum])
+        
+        # DANN_domain = Update_DANN_domain(device,bs=args.bs)
+        
+        _,w,loss = DANN_class.train(net=DANN_F)
+    
+    print('completed')
+    break
 
 
 
