@@ -109,7 +109,7 @@ for t_epoch in range(args.time):
         DANN_F.load_state_dict(w_f)
         DANN_C.load_state_dict(w_c)
         
-        print(w_c)
+        print(w_c['fc3.weight'])
         print('round '+str(ind_datum))
         
         if ind_datum >= 3:
