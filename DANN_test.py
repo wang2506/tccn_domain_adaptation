@@ -103,12 +103,15 @@ for t_epoch in range(args.time):
                     ldr_train=[ind_datum,t_datum])
         
         # DANN_domain = Update_DANN_domain(device,bs=args.bs)
+        # DANN_D
         
-        _,w_f,_,w_c,loss = DANN_class.train(net_f=DANN_F,net_c=DANN_C)
+        # _,w_f,_,w_c,loss = DANN_class.train(net_f=DANN_F,net_c=DANN_C)
+        w_f,w_c,w_d,loss = DANN_class.train(net_f=DANN_F,net_c=DANN_C,net_d=DANN_D)
         
         DANN_F.load_state_dict(w_f)
         DANN_C.load_state_dict(w_c)
         
+        # DANN_D.load_state_dict(w_d)
         # print(w_c['fc3.bias'])
         # print('round '+str(ind_datum))
         

@@ -200,11 +200,14 @@ class Update_DANN_class(object):
         self.loss_func = nn.CrossEntropyLoss()
         
         
-    def train(self,net_f,net_c):
+    def train(self,net_f,net_c,net_d):
         net_f.train()
         net_c.train()
+        net_d.train()
+        
         f_optimizer = torch.optim.SGD(net_f.parameters(),lr=self.lr)
         c_optimizer = torch.optim.SGD(net_c.parameters(),lr=self.lr)
+        d_optimizer = torch.optim.SGD(net_d.parameters(),lr=self.lr)
         
         epoch_loss = []
         for epoch in range(self.epochs):
