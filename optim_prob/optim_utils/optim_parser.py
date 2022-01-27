@@ -25,6 +25,8 @@ def optim_parser():
 
 
     ## optimization constants
+    parser.add_argument('--approx_iters',type=int,default=5,\
+                        help='posynomial approximation iterations')
     parser.add_argument('--l_delta',type=float,default=1e-2,\
                         help='probabiliy 1-\delta term, accuracy metric')
     # parser.add_argument('--params_dim',type=int,default=1e3,\

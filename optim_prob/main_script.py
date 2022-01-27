@@ -88,9 +88,19 @@ sqrt_t = [3*np.sqrt(np.log(2/args.l_delta)/(2*all_u_qtys[i])) for i in range(arg
 sqrt_alld = sqrt_s+sqrt_t
 
 # %% objective fxn - term 1 [source error]
-s_err = 1e-6
-for i in range(args.t_devices):
-    s_err += (1-psi[i])*(hat_ep_alld[i]+2*rad_alld[i]+sqrt_alld[i])
+def s_err_calc(psi,rads=rad_alld,sqrts=sqrt_alld,hat_ep=hat_ep_alld,args=args):
+    s_err = 1e-6
+    for i in range(args.t_devices):
+        s_err += (1-psi[i])*(hat_ep[i]+2*rads[i]+sqrts[i])
+        
+    return s_err
+
+s_err = s_err_calc(psi)
+
+# needs a posynomial approximation
+chi = cp.Variable(args.t_devices,pos=True)
+
+psi_init = 0.5*np.ones(args.t_devices)
 
 
 # %% objective fxn - term 2 [target error]
@@ -105,7 +115,6 @@ for j in range(args.t_devices):
         else:
             raise TypeError('no work atm')
         
-    
     t_err += psi[j]*temp_calc
 
 
@@ -123,11 +132,32 @@ for i in range(args.t_devices):
 constraints.extend(con_alpha)
 
 
-# %% combine and run
-t_sum = phi_s*s_err + phi_t*t_err
+# %% posynomial approximation fxn
+def posy_init(iter_num,cp_vars,args=args):
+    ## iter_num - iteration number
+    ## cp_vars - dict of optimization variables on which to perform posynomial approximation
+    
+    if iter_num == 0:
+        psi_init = 0.5*np.ones(args.t_devices)
+        chi_init = 10*np.ones(args.t_devices)
 
-prob = cp.Problem(cp.Minimize(t_err),constraints=constraints)
-prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
+    else:
+        psi_init = cp_vars['psi'].value
+        chi_init = cp_vars['chi'].value
+
+    return psi_init,chi_init
+
+# %% combine and run
+
+for c_iter in range(args.approx_iters):
+    t_dict = {'psi':psi,'chi':chi}
+    psi_init,chi_init = posy_init(c_iter,t_dict)
+    
+    t_sum = phi_s*s_err + phi_t*t_err
+    
+    # prob = cp.Problem(cp.Minimize(t_err),constraints=constraints)
+    prob = cp.Problem(cp.Minimize(s_err))
+    prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
 
 
 
