@@ -23,6 +23,13 @@ def optim_parser():
     parser.add_argument('--avg_lqty_u',type=int,default=200,\
                         help='avg unlabelled qty at labelled devices')
 
+    ## scaling
+    parser.add_argument('--phi_s',type=float,default=0.5,\
+                        help='scaling the source errors')
+    parser.add_argument('--phi_t',type=float,default=0.5,\
+                        help='scaling the target errors')
+    parser.add_argument('--phi_e',type=float,default=0.0,\
+                        help='scaling the energy term')
 
     ## optimization constants
     parser.add_argument('--approx_iters',type=int,default=5,\
