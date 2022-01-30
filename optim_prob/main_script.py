@@ -167,7 +167,7 @@ for c_iter in range(args.approx_iters):
     psi_init,chi_init = posy_init(c_iter,t_dict)
     
     
-
+    
     t_sum = phi_s*s_err + phi_t*t_err
     
     # prob = cp.Problem(cp.Minimize(t_err),constraints=constraints)
