@@ -144,24 +144,25 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                 chi_scale[j].append(t_chi_scale)     
                 chi_scale_init[j].append(t_chi_scale_init)
             chi_scale[j] = np.array(chi_scale[j])
+            chi_scale_init[j] = np.array(chi_scale_init[j])
             
-            temp_chi_init = np.divide(chi_init[:][j],chi_scale[j])
-            # chi_init_lists.append(temp_chi_init)
-            chi[:,j] = cp.multiply(chi[:,j],cp.power(cp.hstack(chi_scale[j]),-1))
+            temp_chi_init = np.divide(chi_init[:][j],chi_scale_init[j])
+            # chi[:,j] = cp.multiply(chi[:,j],cp.power(cp.hstack(chi_scale[j]),-1))
+            temp_chi = cp.multiply(chi[:,j],cp.power(cp.hstack(chi_scale[j]),-1))
             ovr_init = psi_init + temp_chi_init #chi_init[:,j]
             
             err_denoms[j] = []
             for i in range(args.t_devices):
                 err_denom = cp.power(psi[i]*ovr_init[i]/psi_init[i],\
                                      psi_init[i]/ovr_init[i])
-                err_denom *= cp.power(chi[i,j]*ovr_init[i]/chi_init[i,j],\
-                                     temp_chi_init[i,j]/ovr_init[i])
+                err_denom *= cp.power(temp_chi[i]*ovr_init[i]/temp_chi_init[i],\
+                                     temp_chi_init[i]/ovr_init[i])
                 err_denoms[j].append(err_denom)
-                
-            return err_denoms,chi_scale,chi_scale_init
+            
+        return err_denoms,chi_scale,chi_scale_init
     else:
         raise TypeError('Wrong error type')
-    
+
 ## auxiliary variables
 chi_s = cp.Variable(args.t_devices,pos=True) 
 chi_t = cp.Variable((args.t_devices,args.t_devices),pos=True)
@@ -186,6 +187,14 @@ con_psi = []
 for i in range(args.t_devices):
     con_psi.append(psi[i] <= 1)
 constraints.extend(con_psi)
+
+# all target/source prevention constraints
+con_prev = []
+for j in range(args.t_devices):
+    con_prev.append(cp.sum(alpha[:,j]) <= 1e-3+psi[j]) # this needs another posynomial approximation
+    # for i in range(args.t_devices):
+    #     con_prev.append((1+psi[i]-psi[j])*alpha[i,j] <= 1e-3)
+constraints.extend(con_prev)
 
 # fxn to repeat build source constraints
 def build_posy_cons(denoms,args=args):
@@ -226,14 +235,22 @@ for c_iter in range(args.approx_iters):
     # target error term
     t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,psi_init,err_type='t',\
                         alpha_init=alpha_init)
-    t_posy_con = build_posy_cons(t_denoms)
-    t_err = phi_t*cp.sum(chi_t)
+    t_posy_cons = []
+    for key_td,list_td in t_denoms.items():
+        t_posy_con = build_posy_cons(list_td)
+        t_posy_cons.extend(t_posy_con)
     
-    posy_con = s_posy_con + t_posy_con
+    for j in range(args.t_devices):
+        if j == 0:
+            t_err = psi[j]*cp.sum(chi_t[:,j])
+        else:
+            t_err += psi[j]*cp.sum(chi_t[:,j])
+    
+    posy_con = s_posy_con + t_posy_cons
     net_con = constraints+posy_con
     # net_con = constraints+s_posy_con
     
-    obj_fxn = 1e-6+s_err#+t_err
+    obj_fxn = s_err+t_err
     prob = cp.Problem(cp.Minimize(obj_fxn),constraints=net_con)
     prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
     
