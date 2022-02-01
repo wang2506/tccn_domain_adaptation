@@ -52,7 +52,6 @@ def optim_parser():
     parser.add_argument('--div_flag',type=bool,default=False,\
                         help='estimate divergence yes or no')
     
-        
     # parser
     args = parser.parse_args()
     

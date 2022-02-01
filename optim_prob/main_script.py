@@ -179,6 +179,7 @@ con_alpha = []
 for i in range(args.t_devices):
     for j in range(args.t_devices):
         con_alpha.append(alpha[i,j] <= 1)
+        con_alpha.append(alpha[i,j] >= 1e-6)
     con_alpha.append(cp.sum(alpha[:,i]) <= 1)
 constraints.extend(con_alpha)
 
@@ -189,12 +190,46 @@ for i in range(args.t_devices):
 constraints.extend(con_psi)
 
 # all target/source prevention constraints
+con_test = [cp.sum(psi) >= 1]
+constraints.extend(con_test)
+
+# auxiliary vars for these two constraints
+chi_c1 = cp.Variable(args.t_devices,pos=True)
+chi_c2 = cp.Variable(args.t_devices,pos=True)
+
 con_prev = []
 for j in range(args.t_devices):
-    con_prev.append(cp.sum(alpha[:,j]) <= 1e-3+psi[j]) # this needs another posynomial approximation
-    # for i in range(args.t_devices):
-    #     con_prev.append((1+psi[i]-psi[j])*alpha[i,j] <= 1e-3)
+    con_prev.append(chi_c1[j] <= 1e-6)
+    con_prev.append(chi_c2[j] <= 1e-6)
 constraints.extend(con_prev)
+
+def con_posy_denom_calc(chi,chi_init,psi,psi_init,args=args):
+    t_con_denoms = []
+    ovr_init = np.array(chi_init)+np.array(psi_init)
+    
+    for j in range(args.t_devices):
+        t1_con_denoms = cp.power(chi[j]*ovr_init[j]/chi_init[j], \
+                                 chi_init[j]/ovr_init[j])
+        t2_con_denoms = cp.power(psi[j]*ovr_init[j]/psi_init[j], \
+                                 psi_init[j]/ovr_init[j])
+        t_con_denoms.append(t1_con_denoms*t2_con_denoms)
+    
+    return t_con_denoms
+
+def build_ts_posy_cons(denoms,cp_type,alpha=alpha,psi=psi,args=args):
+    t_con_prev = []
+    if cp_type == 1:
+        for j in range(args.t_devices):
+            for i in range(args.t_devices):
+                t_num = alpha[i,j]*(1+psi[i])
+                t_con_prev.append(t_num/denoms[j] <= 1) 
+    elif cp_type == 2:
+        for j in range(args.t_devices):
+            t_con_prev.append(cp.sum(alpha[:,j])/denoms[j] <= 1)
+    else:
+        raise TypeError('cptype invalid posy con')
+
+    return t_con_prev
 
 # fxn to repeat build source constraints
 def build_posy_cons(denoms,args=args):
@@ -214,18 +249,28 @@ def posy_init(iter_num,cp_vars,args=args):
         chi_s_init = 10*np.ones(args.t_devices)
         chi_t_init = (10*np.ones((args.t_devices,args.t_devices))).tolist()
         alpha_init = 1e-2*np.ones((args.t_devices,args.t_devices))
+        chi_c1 = 9e-4*np.ones(args.t_devices)
+        chi_c2 = 9e-4*np.ones(args.t_devices)
+        
     else:
         psi_init = cp_vars['psi'].value
         chi_s_init = cp_vars['chi_s'].value
         chi_t_init = cp_vars['chi_t'].value
         alpha_init = cp_vars['alpha'].value
+        chi_c1 = cp_vars['chi_c1'].value
+        chi_c2 = cp_vars['chi_c2'].value
 
-    return psi_init,chi_s_init,chi_t_init,alpha_init
+    return psi_init,chi_s_init,chi_t_init,alpha_init,\
+        chi_c1,chi_c2
 
 # %% combine and run
+obj_vals = []
+
 for c_iter in range(args.approx_iters):
-    t_dict = {'psi':psi,'chi_s':chi_s,'chi_t':chi_t,'alpha':alpha}
-    psi_init,chi_s_init,chi_t_init,alpha_init = posy_init(c_iter,t_dict)
+    t_dict = {'psi':psi,'chi_s':chi_s,'chi_t':chi_t,'alpha':alpha,\
+              'chi_c1':chi_c1,'chi_c2':chi_c2}
+    psi_init,chi_s_init,chi_t_init,alpha_init,chi_c1_init,chi_c2_init \
+        = posy_init(c_iter,t_dict)
     
     # source error term
     s_denoms,chi_s_scale = err_calc(psi,chi_s,chi_s_init,psi_init,err_type='s')
@@ -246,9 +291,18 @@ for c_iter in range(args.approx_iters):
         else:
             t_err += psi[j]*cp.sum(chi_t[:,j])
     
+    # build constraint posynomial updates
+    con1_denoms = con_posy_denom_calc(chi_c1,chi_c1_init,psi,psi_init)
+    prev_con1 = build_ts_posy_cons(con1_denoms,cp_type=1)
+    
+    con2_denoms = con_posy_denom_calc(chi_c2,chi_c2_init,psi,psi_init)
+    prev_con2 = build_ts_posy_cons(con2_denoms,cp_type=2)
+    
     posy_con = s_posy_con + t_posy_cons
-    net_con = constraints+posy_con
+    net_con = constraints + posy_con 
     # net_con = constraints+s_posy_con
+    net_con += prev_con1
+    net_con += prev_con2
     
     obj_fxn = s_err+t_err
     prob = cp.Problem(cp.Minimize(obj_fxn),constraints=net_con)
@@ -256,11 +310,12 @@ for c_iter in range(args.approx_iters):
     
     # print checking
     print(prob.value)
+    obj_vals.append(prob.value)
 
 
-
-
-
+# %% saving some results
+# with open(cwd+'/optim_results/obj_val/initial_test','wb') as f:
+#     pk.dump(obj_vals,f)
 
 
 
@@ -322,3 +377,9 @@ for c_iter in range(args.approx_iters):
 #     t_err += psi[j]*temp_calc
 
 
+## non-posynomial two mismatch prevention constraints
+# for j in range(args.t_devices):
+#     # con_prev.append(cp.sum(alpha[:,j]) <= 1e-3+psi[j]) # this needs another posynomial approximation
+#     for i in range(args.t_devices):
+#     #     con_prev.append((1+psi[i]-psi[j])*alpha[i,j] <= 1e-3)
+# constraints.extend(con_prev)
