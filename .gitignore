@@ -4,7 +4,9 @@ __pycache__/
 *$py.class
 
 # custom
-data/
+data/mnist/processed/
+data/mnist/raw
+data/svhn/
 optim_prob/backups/
 
 # C extensions

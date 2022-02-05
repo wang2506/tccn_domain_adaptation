@@ -8,7 +8,17 @@ import argparse
 # %% parser function
 def optim_parser():
     parser = argparse.ArgumentParser()
-    
+    ## code system settings
+    parser.add_argument('--seed',type=int,default=1)    
+    parser.add_argument('--optim_save',type=bool,default=False,\
+                        help='save the run data or not')    
+    parser.add_argument('--div_save',type=int,default=0,\
+                        help='0 false; 1 true')
+    parser.add_argument('--div_comp',type=str,default='gpu',\
+                        choices=['cpu','gpu'])
+    parser.add_argument('--div_gpu_num',type=int,default=0,\
+                        help='based on your devices')
+        
     ## devices and their characteristics    
     parser.add_argument('--t_devices',type=int,default=10,\
                         help='total_networked_devices')
@@ -43,15 +53,27 @@ def optim_parser():
     # parser.add_argument('--gtime',type=int,default=10,\
     #                     help='total num of global iterations') #default=2
     
-    parser.add_argument('--seed',type=int,default=1)
-        
-    parser.add_argument('--save',type=bool,default=False,\
-                        help='save the run data or not')
-    
     ## ablation variables
     parser.add_argument('--div_flag',type=bool,default=False,\
                         help='estimate divergence yes or no')
     
+    ## divergence estimation variables
+    parser.add_argument('--dset_split',type=int,default=0,\
+                        help='whether there are multiple datasets')
+    parser.add_argument('--split_type',type=str,default=None,\
+                        choices=['M+S','M+U','S+U','A'],
+                        help='{M+S:mnist+svhn,'+\
+                        'M+U:mnist+usps,S+U:svhn+usps,A:all}')
+    parser.add_argument('--dset_type',type=str,default='M',\
+                        choices=['M','S','U'],\
+                        help='{M:mnist,S:svhn,U:usps}')
+    
+    parser.add_argument('--label_split',type=int,default=0,\
+                        help='true:1 or false:0')
+    parser.add_argument('--labels_type',type=str,default=None,\
+                        choices=['iid','mild','extreme'],\
+                        help='type of labels assignment')
+        
     # parser
     args = parser.parse_args()
     

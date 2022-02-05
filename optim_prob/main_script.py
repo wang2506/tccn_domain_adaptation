@@ -45,6 +45,15 @@ net_l_qtys = split_lqtys + split_uqtys
 
 data_qty_alld = list(net_l_qtys)+list(all_u_qtys)
 
+with open(cwd+'/data_div/devices'+str(args.t_devices)+\
+          '_seed'+str(args.seed)+'_data_qty','wb') as f:
+    pk.dump(data_qty_alld,f)
+
+## call the source/target divergence finder here
+##
+##
+##
+
 ## epsilon hat - average loss at the devices with labelled data, as measured on their labelled
 hat_ep = [] #sequentially stored
 
@@ -71,7 +80,7 @@ device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
 hat_ep_alld = []
 for i in range(args.t_devices):
     if i < args.l_devices:
-        hat_ep[2] = 80
+        # hat_ep[2] = 80
         hat_ep_alld.append(hat_ep[i]) #*1e3)
     else:
         hat_ep_alld.append(1e2) #np.random.randint(1e2,9e2)) #1e2)
