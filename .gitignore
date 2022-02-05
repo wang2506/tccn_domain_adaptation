@@ -5,6 +5,7 @@ __pycache__/
 
 # custom
 data/
+optim_prob/backups/
 
 # C extensions
 *.so

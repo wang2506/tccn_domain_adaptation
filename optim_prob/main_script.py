@@ -71,9 +71,10 @@ device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
 hat_ep_alld = []
 for i in range(args.t_devices):
     if i < args.l_devices:
-        hat_ep_alld.append(hat_ep[i])
+        hat_ep[2] = 80
+        hat_ep_alld.append(hat_ep[i]) #*1e3)
     else:
-        hat_ep_alld.append(1e2)
+        hat_ep_alld.append(1e2) #np.random.randint(1e2,9e2)) #1e2)
 
 ## empirical hypothesis mismatch error
 ep_mismatch = {}
@@ -123,6 +124,7 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
             err_denoms.append(err_denom)
             
         return err_denoms,chi_scale #chi_scale for debug
+    
     elif err_type == 't':
         chi_scale = {} # need a unique scaling for each i,j pair
         chi_scale_init = {} # for alpha_init
@@ -179,57 +181,143 @@ con_alpha = []
 for i in range(args.t_devices):
     for j in range(args.t_devices):
         con_alpha.append(alpha[i,j] <= 1)
-        con_alpha.append(alpha[i,j] >= 1e-6)
-    con_alpha.append(cp.sum(alpha[:,i]) <= 1)
+        # con_alpha.append(alpha[i,j] >= 1e-3) #1e-3) #1e-6)
+        # con_alpha.append(psi[i]*alpha[i,j] <= 1e-3) #1e-2) #1e-3)
+        con_alpha.append(alpha[i,j] >= 1e-3) #1e-3) #1e-6)
+        con_alpha.append(psi[i]*alpha[i,j] <= 1e-3)
+    con_alpha.append(cp.sum(alpha[:,i]) <= 1+1e-6)
+    # con_alpha.append(psi[i]*cp.sum(alpha[:,i]) <= 1+1e-6)
 constraints.extend(con_alpha)
 
 # psi constraints
 con_psi = []
 for i in range(args.t_devices):
-    con_psi.append(psi[i] <= 1)
+    con_psi.append(psi[i] <= 1+1e-6)
+    con_psi.append(psi[i] >= 1e-6)
 constraints.extend(con_psi)
 
 # all target/source prevention constraints
-con_test = [cp.sum(psi) >= 1]
-constraints.extend(con_test)
+# con_test = [cp.sum(psi) >= 1]
+# constraints.extend(con_test)
 
 # auxiliary vars for these two constraints
-chi_c1 = cp.Variable(args.t_devices,pos=True)
-chi_c2 = cp.Variable(args.t_devices,pos=True)
+chi_c1 = cp.Variable(pos=True) #args.t_devices,pos=True)
+chi_c2 = cp.Variable(pos=True) #(args.t_devices,args.t_devices),pos=True)
+
+# cent_epsilon = 1e-2 #1e-1 #5e-2 #5e-2 #1e-1 #5e-2 #5e-2 #4e-2 #7e-3 #1e-2 #5e-3
+cent_epsilon = 1e-2
 
 con_prev = []
+# con_prev.append(chi_c1 <= 2*cent_epsilon)
+# con_prev.append(chi_c2 <= 2*cent_epsilon)
+# con_prev.append(chi_c1 >= cent_epsilon)
+# con_prev.append(chi_c2 >= cent_epsilon)
 for j in range(args.t_devices):
-    con_prev.append(chi_c1[j] <= 1e-6)
-    con_prev.append(chi_c2[j] <= 1e-6)
+    con_prev.append(chi_c1 <= 1e-4) #1e-3)#1e-6)
+    # con_prev.append(chi_c1 <= 1e-1)
+    con_prev.append(chi_c1 >= 1e-8)
+    # for i in range(args.t_devices):
+    #     # con_prev.append(chi_c2 <= 1e-3) #1e-3)#1e-6)
+    #     con_prev.append(chi_c2 <= 1e-4)
+    #     con_prev.append(chi_c2 >= 1e-8)
+
 constraints.extend(con_prev)
 
-def con_posy_denom_calc(chi,chi_init,psi,psi_init,args=args):
-    t_con_denoms = []
-    ovr_init = np.array(chi_init)+np.array(psi_init)
-    
-    for j in range(args.t_devices):
-        t1_con_denoms = cp.power(chi[j]*ovr_init[j]/chi_init[j], \
-                                 chi_init[j]/ovr_init[j])
-        t2_con_denoms = cp.power(psi[j]*ovr_init[j]/psi_init[j], \
-                                 psi_init[j]/ovr_init[j])
-        t_con_denoms.append(t1_con_denoms*t2_con_denoms)
-    
-    return t_con_denoms
-
-def build_ts_posy_cons(denoms,cp_type,alpha=alpha,psi=psi,args=args):
-    t_con_prev = []
-    if cp_type == 1:
+def con_posy_denom_calc(chi,chi_init,psi,psi_init,alpha,alpha_init,cp_type,\
+                args=args,cp_epsilon=cent_epsilon):    
+    if cp_type == 1: #first constraint, return both pos and neg denoms
+        pos_t_con_denoms = []
+        neg_t_con_denoms = []
+        
+        # ovr_init_pos = np.array(chi_init) + np.array(psi_init) \
+        #     + cp_epsilon*np.ones(args.t_devices)
+        
         for j in range(args.t_devices):
+            cur_init_pos = chi_init + psi_init[j] + cp_epsilon
+            pos_t1_denom = cp.power(chi*cur_init_pos/chi_init, \
+                                  chi_init/cur_init_pos)
+            pos_t2_denom = cp.power(psi[j]*cur_init_pos/psi_init[j], \
+                                  psi_init[j]/cur_init_pos)
+            pos_t3_denom = cp.power(cur_init_pos, \
+                                  cp_epsilon/cur_init_pos)
+            pos_t_con_denoms.append(pos_t1_denom*pos_t2_denom*pos_t3_denom)            
+            
+            
+            # pos_t1_denom = cp.power(chi*ovr_init_pos[j]/chi_init, \
+            #                      chi_init/ovr_init_pos[j])
+            # pos_t2_denom = cp.power(psi[j]*ovr_init_pos[j]/psi_init[j], \
+            #                      psi_init[j]/ovr_init_pos[j])
+            # pos_t3_denom = cp.power(ovr_init_pos[j], \
+            #                      cp_epsilon/ovr_init_pos[j])
+            # pos_t_con_denoms.append(pos_t1_denom*pos_t2_denom*pos_t3_denom)
+            
+            
+            cur_init_neg = np.sum(alpha_init[:,j])+cp_epsilon
+            neg_t_hold = cp.power(cur_init_neg, \
+                                 cp_epsilon/cur_init_neg)
             for i in range(args.t_devices):
-                t_num = alpha[i,j]*(1+psi[i])
-                t_con_prev.append(t_num/denoms[j] <= 1) 
-    elif cp_type == 2:
+                neg_t_hold *= cp.power(alpha[i][j]*cur_init_neg/alpha_init[i][j],\
+                            alpha_init[i][j]/cur_init_neg)
+            neg_t_con_denoms.append(neg_t_hold)
+        
+    elif cp_type == 2: #second constraints, return both pos and neg
+        pos_t_con_denoms = {}
+        neg_t_con_denoms = {}    
+        
+        # t_pos_epsilon = 2e-2 #1e-2
+        
+        for i in range(args.t_devices):
+            pos_t_con_denoms[i] = []
+            neg_t_con_denoms[i] = []
+            for j in range(args.t_devices):
+                cur_init_pos = chi_init + cp_epsilon + \
+                    psi_init[j]*alpha_init[i][j]          
+                pos_t1_denom = cp.power(chi*cur_init_pos/chi_init, \
+                                 chi_init/cur_init_pos)
+                pos_t2_denom = cp.power(psi[j]*alpha[i][j]*cur_init_pos \
+                                / (psi_init[j]*alpha_init[i][j]), \
+                                 (psi_init[j]*alpha_init[i][j])/cur_init_pos)
+                pos_t3_denom = cp.power(cur_init_pos, \
+                                  cp_epsilon/cur_init_pos)              
+                pos_t_con_denoms[i].append(pos_t1_denom*pos_t2_denom*pos_t3_denom)          
+                
+                cur_init_neg = (1+psi_init[i])*alpha_init[i][j] + cp_epsilon            
+                neg_t1_denom = cp.power(alpha[i][j]*cur_init_neg/alpha_init[i][j],\
+                                alpha_init[i][j]/cur_init_neg)
+                neg_t2_denom = cp.power(alpha[i][j]*psi[i]*cur_init_neg/ \
+                                (alpha_init[i][j]*psi_init[i]),\
+                                    alpha_init[i][j]*psi_init[i]/cur_init_neg)
+                neg_t3_denom = cp.power(cur_init_neg, \
+                                cp_epsilon/cur_init_neg)
+                neg_t_con_denoms[i].append(neg_t1_denom*neg_t2_denom*neg_t3_denom)
+                
+    else:
+        raise TypeError('invalid con_posy cp_type')
+    
+    return pos_t_con_denoms, neg_t_con_denoms
+
+def build_ts_posy_cons(pos_denoms,neg_denoms,chi,cp_type,\
+            alpha,psi,args=args,cp_epsilon=cent_epsilon):
+    pos_t_con_prev = []
+    neg_t_con_prev = []
+    
+    if cp_type == 1: #first constraint \sum \alpha - psi = 0
         for j in range(args.t_devices):
-            t_con_prev.append(cp.sum(alpha[:,j])/denoms[j] <= 1)
+            pos_t_con_prev.append( (cp.sum(alpha[:,j])/pos_denoms[j]) <= 1)
+            neg_t_con_prev.append( ((psi[j]+chi)/neg_denoms[j]) <= 1)
+    elif cp_type == 2: #second constraint (1+psi_i-psi_j)alpha = 0
+        for i in range(args.t_devices):
+            for j in range(args.t_devices):
+                pos_t_con_prev.append(((1+psi[i])*alpha[i][j] \
+                                      /pos_denoms[i][j])<=1)
+                neg_t_con_prev.append( ((chi \
+                                +psi[j]*alpha[i][j]) \
+                                /neg_denoms[i][j]) <=1 )
+                
     else:
         raise TypeError('cptype invalid posy con')
 
-    return t_con_prev
+    return pos_t_con_prev,neg_t_con_prev
 
 # fxn to repeat build source constraints
 def build_posy_cons(denoms,args=args):
@@ -246,11 +334,11 @@ def posy_init(iter_num,cp_vars,args=args):
     ## cp_vars - dict of optimization variables on which to perform posynomial approximation
     if iter_num == 0:
         psi_init = 0.5*np.ones(args.t_devices)
-        chi_s_init = 10*np.ones(args.t_devices)
-        chi_t_init = (10*np.ones((args.t_devices,args.t_devices))).tolist()
+        chi_s_init = 100*np.ones(args.t_devices)
+        chi_t_init = (100*np.ones((args.t_devices,args.t_devices))).tolist()
         alpha_init = 1e-2*np.ones((args.t_devices,args.t_devices))
-        chi_c1 = 9e-4*np.ones(args.t_devices)
-        chi_c2 = 9e-4*np.ones(args.t_devices)
+        chi_c1 = 1e-7#*np.ones(args.t_devices)
+        chi_c2 = 1e-7#*np.ones((args.t_devices,args.t_devices))
         
     else:
         psi_init = cp_vars['psi'].value
@@ -265,6 +353,7 @@ def posy_init(iter_num,cp_vars,args=args):
 
 # %% combine and run
 obj_vals = []
+psi_track = {}
 
 for c_iter in range(args.approx_iters):
     t_dict = {'psi':psi,'chi_s':chi_s,'chi_t':chi_t,'alpha':alpha,\
@@ -278,7 +367,8 @@ for c_iter in range(args.approx_iters):
     s_err = phi_s*cp.sum(chi_s)
     
     # target error term
-    t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,psi_init,err_type='t',\
+    t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,\
+                        psi_init,err_type='t',\
                         alpha_init=alpha_init)
     t_posy_cons = []
     for key_td,list_td in t_denoms.items():
@@ -290,40 +380,65 @@ for c_iter in range(args.approx_iters):
             t_err = psi[j]*cp.sum(chi_t[:,j])
         else:
             t_err += psi[j]*cp.sum(chi_t[:,j])
+    t_err = phi_t*t_err
     
     # build constraint posynomial updates
-    con1_denoms = con_posy_denom_calc(chi_c1,chi_c1_init,psi,psi_init)
-    prev_con1 = build_ts_posy_cons(con1_denoms,cp_type=1)
+    con1_denoms_pos,con1_denoms_neg = \
+        con_posy_denom_calc(chi_c1,chi_c1_init,psi,psi_init,\
+                            alpha,alpha_init,cp_type=1)
+    pos_prev_con1,neg_prev_con1 = \
+        build_ts_posy_cons(con1_denoms_pos,con1_denoms_neg,chi_c1,cp_type=1, \
+                            alpha=alpha,psi=psi)
     
-    con2_denoms = con_posy_denom_calc(chi_c2,chi_c2_init,psi,psi_init)
-    prev_con2 = build_ts_posy_cons(con2_denoms,cp_type=2)
+    # con2_denoms_pos,con2_denoms_neg = \
+    #     con_posy_denom_calc(chi_c2,chi_c2_init,psi,psi_init,\
+    #                 alpha,alpha_init,cp_type=2)
+    # pos_prev_con2,neg_prev_con2 = \
+    #     build_ts_posy_cons(con2_denoms_pos,con2_denoms_neg,chi_c2,cp_type=2, \
+    #                         alpha=alpha,psi=psi)
     
     posy_con = s_posy_con + t_posy_cons
     net_con = constraints + posy_con 
     # net_con = constraints+s_posy_con
-    net_con += prev_con1
-    net_con += prev_con2
+    net_con += pos_prev_con1 + neg_prev_con1
+    # net_con += pos_prev_con2 + neg_prev_con2
     
-    obj_fxn = s_err+t_err
+    obj_fxn = s_err + t_err
     prob = cp.Problem(cp.Minimize(obj_fxn),constraints=net_con)
     prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
     
     # print checking
+    print('\n current iteration: '+str(c_iter))
+    print('prob value:')
     print(prob.value)
+    print('psi:')
+    print(psi.value)
+    # print('chi_s:')
+    # print(chi_s.value)
+    # print('chi_t:')
+    # print([cp.sum(chi_t[:,j]).value for j in range(args.t_devices)])
+    print('alpha:')
+    print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
+    # print('chi_c1:')
+    # print(chi_c1.value)
+    # print('chi_c2:')
+    # print(chi_c2.value) #[0,:].value)
+    
     obj_vals.append(prob.value)
-
-
-# %% saving some results
-# with open(cwd+'/optim_results/obj_val/initial_test','wb') as f:
+    psi_track[c_iter] = psi.value
+    
+# # %% saving some results 
+# with open(cwd+'/optim_results/obj_val/init_bgap_st2','wb') as f:
 #     pk.dump(obj_vals,f)
 
+# with open(cwd+'/optim_results/psi_val/init_bgap_st2','wb') as f:
+#     pk.dump(psi_track,f)
 
+# with open(cwd+'/optim_results/hat_ep_val/init_hat_ep2','wb') as f:
+#     pk.dump(hat_ep_alld,f)
 
-
-
-
-
-
+# with open(cwd+'/optim_results/alpha_val/init_alpha_2','wb') as f:
+#     pk.dump(alpha.value)
 
 # %% backups
 ## no initial constant for s_err
@@ -383,3 +498,28 @@ for c_iter in range(args.approx_iters):
 #     for i in range(args.t_devices):
 #     #     con_prev.append((1+psi[i]-psi[j])*alpha[i,j] <= 1e-3)
 # constraints.extend(con_prev)
+
+
+## old posy_denom calc
+    # t_con_denoms = []
+    # ovr_init = np.array(chi_init) +  np.array(psi_init)
+    # for j in range(args.t_devices):
+    #     t1_con_denoms = cp.power(chi[j]*ovr_init[j]/chi_init[j], \
+    #                              chi_init[j]/ovr_init[j])
+    #     t2_con_denoms = cp.power(psi[j]*ovr_init[j]/psi_init[j], \
+    #                              psi_init[j]/ovr_init[j])
+    #     t_con_denoms.append(t1_con_denoms*t2_con_denoms)
+
+
+## old build_posy_ts_con
+    # t_con_prev = []
+    # if cp_type == 1:
+    #     for j in range(args.t_devices):
+    #         for i in range(args.t_devices):
+    #             t_num = alpha[i,j]*(1+psi[i])
+    #             t_con_prev.append(t_num/denoms[j] <= 1) 
+    # elif cp_type == 2:
+    #     for j in range(args.t_devices):
+    #         t_con_prev.append(cp.sum(alpha[:,j])/denoms[j] <= 1)
+    # else:
+    #     raise TypeError('cptype invalid posy con')
