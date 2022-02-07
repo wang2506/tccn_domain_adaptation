@@ -11,14 +11,8 @@ def optim_parser():
     ## code system settings
     parser.add_argument('--seed',type=int,default=1)    
     parser.add_argument('--optim_save',type=bool,default=False,\
-                        help='save the run data or not')    
-    parser.add_argument('--div_save',type=int,default=0,\
-                        help='0 false; 1 true')
-    parser.add_argument('--div_comp',type=str,default='gpu',\
-                        choices=['cpu','gpu'])
-    parser.add_argument('--div_gpu_num',type=int,default=0,\
-                        help='based on your devices')
-        
+                        help='save the run data or not')
+    
     ## devices and their characteristics    
     parser.add_argument('--t_devices',type=int,default=10,\
                         help='total_networked_devices')
@@ -49,7 +43,6 @@ def optim_parser():
     # parser.add_argument('--params_dim',type=int,default=1e3,\
     #                     help='dimension of hypothesis space')
     
-    
     # parser.add_argument('--gtime',type=int,default=10,\
     #                     help='total num of global iterations') #default=2
     
@@ -58,6 +51,22 @@ def optim_parser():
                         help='estimate divergence yes or no')
     
     ## divergence estimation variables
+    # div est infrastructure vars
+    parser.add_argument('--div_save',type=int,default=0,\
+                        help='0 false; 1 true')
+    parser.add_argument('--div_comp',type=str,default='gpu',\
+                        choices=['cpu','gpu'])
+    parser.add_argument('--div_gpu_num',type=int,default=0,\
+                        help='based on your devices')
+    parser.add_argument('--div_ttime',type=int,default=10,\
+                        help='divergence estimation total iteration loops')        
+    parser.add_argument('--div_nn',type=str,default='MLP',\
+                        choices=['MLP','CNN'],\
+                        help='neural network for divergence estimation')
+    parser.add_argument('--div_lr',type=float,default=1e-2)    
+    parser.add_argument('--div_bs',type=int,default=50)
+    
+    # div est data + label vars
     parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets')
     parser.add_argument('--split_type',type=str,default=None,\
@@ -68,12 +77,12 @@ def optim_parser():
                         choices=['M','S','U'],\
                         help='{M:mnist,S:svhn,U:usps}')
     
-    parser.add_argument('--label_split',type=int,default=0,\
-                        help='true:1 or false:0')
-    parser.add_argument('--labels_type',type=str,default=None,\
-                        choices=['iid','mild','extreme'],\
-                        help='type of labels assignment')
-        
+    parser.add_argument('--label_split',type=int,default=1,\
+                        help='true:1 or false:0 (false = iid)')
+    parser.add_argument('--labels_type',type=str,default='mild',\
+                        choices=['mild','extreme'],\
+                        help='type of labels assignment')    
+    
     # parser
     args = parser.parse_args()
     
