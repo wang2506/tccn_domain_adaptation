@@ -98,7 +98,9 @@ for i in range(args.t_devices):
         ep_mismatch[i].extend(random.sample(temp_ep_mismatch,1))
 
 ## divergence terms
-
+if args.div_flag == 1: #div flag is online
+    with open(cwd+'/div_results/test_ex','rb') as f:
+        div_pairs = pk.load(f)
 
 ## rademacher estimates
 rad_s = [np.sqrt(2*np.log(net_l_qtys[i])/net_l_qtys[i]) for i in range(args.l_devices)]
@@ -116,7 +118,7 @@ sqrt_alld = sqrt_s+sqrt_t
 ## fxn name --> posy_err_calc
 def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                rads=rad_alld,sqrts=sqrt_alld,hat_ep=hat_ep_alld,\
-                ep_mis=ep_mismatch,args=args):
+                ep_mis=ep_mismatch,div_vals=None,args=args):
     err_denoms = []
     if err_type == 's':
         chi_scale = np.array(hat_ep) + 2*np.array(rads) + np.array(sqrts)
@@ -143,15 +145,22 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
             chi_scale[j] = []
             chi_scale_init[j] = []
             for i in range(args.t_devices):
-                if div_flag == False:
-                    t_chi_scale = alpha[i,j]*(hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                                +ep_mis[j][i]+4*rad_alld[j]+sqrts[j])
-                    t_chi_scale_init = alpha_init[i,j]*(hat_ep[i]+\
-                                2*rad_alld[i]+sqrts[i]\
-                                +ep_mis[j][i]+4*rad_alld[j]+sqrts[j])
-                else:
-                    raise TypeError('not in yet')
-
+                t_chi_scale = alpha[i,j]*(hat_ep[i]+2*rad_alld[i]+sqrts[i]\
+                            +ep_mis[j][i]+4*rad_alld[j]+sqrts[j])
+                t_chi_scale_init = alpha_init[i,j]*(hat_ep[i]+\
+                            2*rad_alld[i]+sqrts[i]\
+                            +ep_mis[j][i]+4*rad_alld[j]+sqrts[j])
+                if div_flag == True:
+                    ct_div_val = div_vals[i,j]
+                    if i == j:
+                        ct_div_val = div_vals[i,j]+1e2
+                    t_chi_scale += alpha[i,j]*(0.5*div_vals[i,j]+\
+                                2*(rad_alld[i]+rad_alld[j]) + \
+                                sqrts[i]+sqrts[j])
+                    t_chi_scale_init += alpha_init[i,j]*(0.5*div_vals[i,j]+\
+                                2*(rad_alld[i]+rad_alld[j]) + \
+                                sqrts[i]+sqrts[j])
+                    
                 chi_scale[j].append(t_chi_scale)     
                 chi_scale_init[j].append(t_chi_scale_init)
             chi_scale[j] = np.array(chi_scale[j])
@@ -251,7 +260,6 @@ def con_posy_denom_calc(chi,chi_init,psi,psi_init,alpha,alpha_init,cp_type,\
                                   cp_epsilon/cur_init_pos)
             pos_t_con_denoms.append(pos_t1_denom*pos_t2_denom*pos_t3_denom)            
             
-            
             # pos_t1_denom = cp.power(chi*ovr_init_pos[j]/chi_init, \
             #                      chi_init/ovr_init_pos[j])
             # pos_t2_denom = cp.power(psi[j]*ovr_init_pos[j]/psi_init[j], \
@@ -259,7 +267,6 @@ def con_posy_denom_calc(chi,chi_init,psi,psi_init,alpha,alpha_init,cp_type,\
             # pos_t3_denom = cp.power(ovr_init_pos[j], \
             #                      cp_epsilon/ovr_init_pos[j])
             # pos_t_con_denoms.append(pos_t1_denom*pos_t2_denom*pos_t3_denom)
-            
             
             cur_init_neg = np.sum(alpha_init[:,j])+cp_epsilon
             neg_t_hold = cp.power(cur_init_neg, \
@@ -371,14 +378,19 @@ for c_iter in range(args.approx_iters):
         = posy_init(c_iter,t_dict)
     
     # source error term
-    s_denoms,chi_s_scale = err_calc(psi,chi_s,chi_s_init,psi_init,err_type='s')
+    s_denoms,chi_s_scale = err_calc(psi,chi_s,chi_s_init,psi_init,err_type='s') 
     s_posy_con = build_posy_cons(s_denoms)
     s_err = phi_s*cp.sum(chi_s)
     
     # target error term
-    t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,\
-                        psi_init,err_type='t',\
-                        alpha_init=alpha_init)
+    if args.div_flag == 0: 
+        t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,\
+                            psi_init,err_type='t',alpha_init=alpha_init)
+    else:
+        t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,\
+                            psi_init,err_type='t',alpha_init=alpha_init,\
+                            div_flag=True,div_vals=div_pairs)
+        
     t_posy_cons = []
     for key_td,list_td in t_denoms.items():
         t_posy_con = build_posy_cons(list_td)
@@ -436,18 +448,32 @@ for c_iter in range(args.approx_iters):
     obj_vals.append(prob.value)
     psi_track[c_iter] = psi.value
     
-# # %% saving some results 
-# with open(cwd+'/optim_results/obj_val/init_bgap_st2','wb') as f:
-#     pk.dump(obj_vals,f)
+# %% saving some results 
+if args.div_flag == 1: 
+    with open(cwd+'/optim_results/obj_val/init_bgap_st_div1','wb') as f:
+        pk.dump(obj_vals,f)
+    
+    with open(cwd+'/optim_results/psi_val/init_bgap_st_div1','wb') as f:
+        pk.dump(psi_track,f)
+    
+    with open(cwd+'/optim_results/hat_ep_val/init_hat_ep_div1','wb') as f:
+        pk.dump(hat_ep_alld,f)
+    
+    with open(cwd+'/optim_results/alpha_val/init_alpha_div1','wb') as f:
+        pk.dump(alpha.value)
+else:
+    with open(cwd+'/optim_results/obj_val/init_bgap_st1','wb') as f:
+        pk.dump(obj_vals,f)
+    
+    with open(cwd+'/optim_results/psi_val/init_bgap_st1','wb') as f:
+        pk.dump(psi_track,f)
+    
+    with open(cwd+'/optim_results/hat_ep_val/init_hat_ep1','wb') as f:
+        pk.dump(hat_ep_alld,f)
+    
+    with open(cwd+'/optim_results/alpha_val/init_alpha1','wb') as f:
+        pk.dump(alpha.value)    
 
-# with open(cwd+'/optim_results/psi_val/init_bgap_st2','wb') as f:
-#     pk.dump(psi_track,f)
-
-# with open(cwd+'/optim_results/hat_ep_val/init_hat_ep2','wb') as f:
-#     pk.dump(hat_ep_alld,f)
-
-# with open(cwd+'/optim_results/alpha_val/init_alpha_2','wb') as f:
-#     pk.dump(alpha.value)
 
 # %% backups
 ## no initial constant for s_err

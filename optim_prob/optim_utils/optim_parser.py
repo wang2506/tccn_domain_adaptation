@@ -40,14 +40,8 @@ def optim_parser():
                         help='posynomial approximation iterations') #50
     parser.add_argument('--l_delta',type=float,default=1e-2,\
                         help='probabiliy 1-\delta term, accuracy metric')
-    # parser.add_argument('--params_dim',type=int,default=1e3,\
-    #                     help='dimension of hypothesis space')
-    
-    # parser.add_argument('--gtime',type=int,default=10,\
-    #                     help='total num of global iterations') #default=2
-    
-    ## ablation variables
-    parser.add_argument('--div_flag',type=bool,default=False,\
+    ## ablation variables 
+    parser.add_argument('--div_flag',type=int,default=0,\
                         help='estimate divergence yes or no')
     
     ## divergence estimation variables
@@ -64,7 +58,7 @@ def optim_parser():
                         choices=['MLP','CNN'],\
                         help='neural network for divergence estimation')
     parser.add_argument('--div_lr',type=float,default=1e-2)    
-    parser.add_argument('--div_bs',type=int,default=50)
+    parser.add_argument('--div_bs',type=int,default=10)
     
     # div est data + label vars
     parser.add_argument('--dset_split',type=int,default=0,\
@@ -97,3 +91,13 @@ def optim_parser():
     # parser.add_argument('--iid_style',type=str,default='mild',\
     #                     choices=['extreme','mild','iid'],\
     #                     help='noniid/iid styles')
+    
+    # parser.add_argument('--params_dim',type=int,default=1e3,\
+    #                     help='dimension of hypothesis space')
+    
+    # parser.add_argument('--gtime',type=int,default=10,\
+    #                     help='total num of global iterations') #default=2
+        
+    
+    
+    

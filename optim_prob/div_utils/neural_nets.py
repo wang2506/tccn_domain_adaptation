@@ -78,9 +78,9 @@ class LocalUpdate(object):
             for batch_indx,(images,labels) in enumerate(self.ldr_train):
                 images,labels = images.to(self.device),labels.to(self.device)
                 if self.st == 'source':
-                    labels = torch.zeros(self.bs,dtype=torch.long).to(self.device)
+                    labels = torch.zeros(len(labels),dtype=torch.long).to(self.device)
                 elif self.st == 'target':
-                    labels = torch.ones(self.bs,dtype=torch.long).to(self.device)
+                    labels = torch.ones(len(labels),dtype=torch.long).to(self.device)
                 else:
                     raise TypeError('bad st string')
                 net.zero_grad()
@@ -100,9 +100,10 @@ def wAvg(w):
     
     for k in w_avg.keys():
         for i in range(len(w)):
-            if i != 0:
-                w_avg[k] += w[i][k]
-
+            if i == 0:
+                w_avg[k] = w[i][k]/len(w)
+            else:# i != 0:
+                w_avg[k] += w[i][k]/len(w)
     return w_avg
 
 

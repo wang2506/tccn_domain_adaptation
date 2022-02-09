@@ -89,6 +89,8 @@ elif args.label_split == 0: #i.e., iid
 else:
     raise TypeError('label split invalid')
 
+# lpd[1] = [1]
+# lpd[0] = [0]
 lpd[0] = lpd[1]
 
 # populate device datasets
@@ -97,6 +99,10 @@ d_train_ls = {i:np.where(d_train.targets==i)[0] for i in range(labels)}
 
 d_dset_sqtys = [np.random.multinomial(alld_qty[i],[0.333]*3) \
                          for i in range(args.t_devices)]
+
+# d_dset_sqtys[1] = [d_dset_sqtys[1][0]]
+# d_dset_sqtys[0] = [d_dset_sqtys[0][0]]
+
 for i in range(args.t_devices): 
     d_dsets[i] = []
     c_labels = lpd[i]
@@ -164,25 +170,31 @@ for i in range(args.l_devices): #a device with labeled data
             # training, combining, and testing loop
             for tc in range(args.div_ttime):
                 # one training iteration
+                s_temp_set = random.sample(d_dsets[i],10*args.div_bs)
                 s_w,s_loss = div_roi(deepcopy(st_net),st='source',\
                         bs=args.div_bs,lr=args.div_lr,\
-                        l_dset=random.sample(d_dsets[i],args.div_bs))
-                
+                        l_dset=s_temp_set)#random.sample(d_dsets[i],args.div_bs))
+                #d_dsets[i])
+                t_temp_set = random.sample(d_dsets[j],10*args.div_bs) 
                 t_w,t_loss = div_roi(deepcopy(st_net),st='target',\
                         bs=args.div_bs,lr=args.div_lr,\
-                        l_dset=random.sample(d_dsets[j],args.div_bs))
-            
+                        l_dset=t_temp_set)#random.sample(d_dsets[j],args.div_bs))
+                #d_dsets[j])
                 # perform unweighted avg for the two devices
                 w_avg = wAvg([s_w,t_w])
                 st_net.load_state_dict(w_avg)
-            
+                
+                # print(s_loss)
+                # print(t_loss)
+                # print(w_avg['layer_hidden.bias'])
+                
             # calc acc/error - done in distributed way
             s_acc,s_loss = test_img(st_net,args.div_bs,dset=d_train,\
                      indx=random.sample(d_dsets[i],10*args.div_bs),\
                      st='source',device=device)
             
-            t_acc,t_loss =  test_img(st_net,args.div_bs,dset=d_train,\
-                     indx=random.sample(d_dsets[i],10*args.div_bs),\
+            t_acc,t_loss = test_img(st_net,args.div_bs,dset=d_train,\
+                     indx=random.sample(d_dsets[j],10*args.div_bs),\
                      st='target',device=device)
             
             ovr_acc = (s_acc+t_acc)/2
@@ -194,15 +206,10 @@ for i in range(args.l_devices): #a device with labeled data
 
 print('done')
 
-# %% 
+# %% save the results
+with open(cwd+'/div_results/test_ex','wb') as f:
+    pk.dump(lab2ulab_accs,f)
 
-# build neural network in separate file
-# do single hidden layer MLP
-
-
-# import in the federated training loop
-# fedavg after every iteration - do 10 or 20 or 50 iterations?
-# record the nn cross entropy loss 
 
 
 # %% divergence calc
