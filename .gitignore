@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 
 # custom
+data/mnist/MNIST/processed/
+data/mnist/MNIST/raw/
 data/mnist/processed/
 data/mnist/raw
 data/svhn/
