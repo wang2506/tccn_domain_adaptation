@@ -40,10 +40,10 @@ def optim_parser():
                         help='posynomial approximation iterations') #50
     parser.add_argument('--l_delta',type=float,default=1e-3,\
                         help='probabiliy 1-\delta term, accuracy metric') #1e-2
+    
     ## ablation variables 
     parser.add_argument('--div_flag',type=int,default=1,\
                         help='estimate divergence yes or no')
-    
     ## divergence estimation variables
     # div est infrastructure vars
     parser.add_argument('--div_save',type=int,default=0,\
@@ -59,7 +59,7 @@ def optim_parser():
                         help='neural network for divergence estimation')
     parser.add_argument('--div_lr',type=float,default=1e-2)    
     parser.add_argument('--div_bs',type=int,default=10)
-    
+        
     # div est data + label vars
     parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets')
@@ -82,6 +82,17 @@ def optim_parser():
     
     # remaining calcs
     args.u_devices = args.t_devices - args.l_devices
+    return args
+
+# %% argparser for the divergence ablation study only
+def div_ablate_parser():
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--div_ablation',type=int,default=1,\
+                        help='Tests for divergence ablation flag')
+    parser.add_argument('--div_hetero',type=str,default='random',\
+                        choices=['random','extreme'])
+    args = parser.parse_args()
     return args
 
 # %% temp

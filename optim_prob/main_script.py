@@ -83,7 +83,7 @@ for i in range(args.t_devices):
         # hat_ep[2] = 80
         hat_ep_alld.append(hat_ep[i]) #*1e3)
     else:
-        hat_ep_alld.append(1e3)
+        hat_ep_alld.append(1e3) #TODO change to 1e4
         # hat_ep_alld.append(np.random.randint(1e2,5e2))
 
 
@@ -433,7 +433,7 @@ for c_iter in range(args.approx_iters):
     
     obj_vals.append(prob.value)
     psi_track[c_iter] = psi.value
-    
+
 # %% saving some results 
 if args.div_flag == 1: 
     with open(cwd+'/optim_results/obj_val/init_bgap_st_div1','wb') as f:
