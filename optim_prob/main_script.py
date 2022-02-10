@@ -83,7 +83,9 @@ for i in range(args.t_devices):
         # hat_ep[2] = 80
         hat_ep_alld.append(hat_ep[i]) #*1e3)
     else:
-        hat_ep_alld.append(1e2) #np.random.randint(1e2,9e2)) #1e2)
+        hat_ep_alld.append(1e3)
+        # hat_ep_alld.append(np.random.randint(1e2,5e2))
+
 
 ## empirical hypothesis mismatch error
 ep_mismatch = {}
@@ -145,22 +147,23 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
             chi_scale[j] = []
             chi_scale_init[j] = []
             for i in range(args.t_devices):
-                t_chi_scale = alpha[i,j]*(hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                            +ep_mis[j][i]+4*rad_alld[j]+sqrts[j])
-                t_chi_scale_init = alpha_init[i,j]*(hat_ep[i]+\
-                            2*rad_alld[i]+sqrts[i]\
-                            +ep_mis[j][i]+4*rad_alld[j]+sqrts[j])
-                if div_flag == True:
-                    ct_div_val = div_vals[i,j]
-                    if i == j:
-                        ct_div_val = div_vals[i,j]+1e2
-                    t_chi_scale += alpha[i,j]*(0.5*div_vals[i,j]+\
+                if div_flag == False:
+                    cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
+                                +ep_mis[j][i]+4*rad_alld[j]+sqrts[j]
+                else:
+                    cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
+                                +ep_mis[j][i]+4*rad_alld[j]+sqrts[j]+\
+                                0.5*2*div_vals[i,j]/100+\
                                 2*(rad_alld[i]+rad_alld[j]) + \
-                                sqrts[i]+sqrts[j])
-                    t_chi_scale_init += alpha_init[i,j]*(0.5*div_vals[i,j]+\
-                                2*(rad_alld[i]+rad_alld[j]) + \
-                                sqrts[i]+sqrts[j])
+                                sqrts[i]+sqrts[j]
+                    # by defn, divergence is 2*(1-min error)
+                    # equiv 2*(accuracy/100), and its scaled by 1/2 in our obj fxn
                     
+                # print(cs_factor)
+                
+                t_chi_scale = alpha[i,j] * cs_factor
+                t_chi_scale_init = alpha_init[i,j] * cs_factor
+                
                 chi_scale[j].append(t_chi_scale)     
                 chi_scale_init[j].append(t_chi_scale_init)
             chi_scale[j] = np.array(chi_scale[j])
@@ -194,6 +197,11 @@ e_err = 1e-6
 # %% constraints
 constraints = []
 
+# auxiliary vars for these two constraints
+chi_c1 = cp.Variable(pos=True) #args.t_devices,pos=True)
+chi_c2 = cp.Variable(pos=True) #(args.t_devices,args.t_devices),pos=True)
+# chi_c3 = cp.Variable(pos=True)
+
 # alpha constraints
 con_alpha = []
 for i in range(args.t_devices):
@@ -202,7 +210,7 @@ for i in range(args.t_devices):
         # con_alpha.append(alpha[i,j] >= 1e-3) #1e-3) #1e-6)
         # con_alpha.append(psi[i]*alpha[i,j] <= 1e-3) #1e-2) #1e-3)
         con_alpha.append(alpha[i,j] >= 1e-3) #1e-3) #1e-6)
-        con_alpha.append(psi[i]*alpha[i,j] <= 1e-3)
+        con_alpha.append(psi[i]*alpha[i,j] <= 1e-3) #chi_c3) #1e-3)
     con_alpha.append(cp.sum(alpha[:,i]) <= 1+1e-6)
     # con_alpha.append(psi[i]*cp.sum(alpha[:,i]) <= 1+1e-6)
 constraints.extend(con_alpha)
@@ -214,30 +222,18 @@ for i in range(args.t_devices):
     con_psi.append(psi[i] >= 1e-6)
 constraints.extend(con_psi)
 
-# all target/source prevention constraints
-# con_test = [cp.sum(psi) >= 1]
-# constraints.extend(con_test)
-
-# auxiliary vars for these two constraints
-chi_c1 = cp.Variable(pos=True) #args.t_devices,pos=True)
-chi_c2 = cp.Variable(pos=True) #(args.t_devices,args.t_devices),pos=True)
-
 # cent_epsilon = 1e-2 #1e-1 #5e-2 #5e-2 #1e-1 #5e-2 #5e-2 #4e-2 #7e-3 #1e-2 #5e-3
 cent_epsilon = 1e-2
 
 con_prev = []
-# con_prev.append(chi_c1 <= 2*cent_epsilon)
-# con_prev.append(chi_c2 <= 2*cent_epsilon)
-# con_prev.append(chi_c1 >= cent_epsilon)
-# con_prev.append(chi_c2 >= cent_epsilon)
-for j in range(args.t_devices):
-    con_prev.append(chi_c1 <= 1e-4) #1e-3)#1e-6)
-    # con_prev.append(chi_c1 <= 1e-1)
-    con_prev.append(chi_c1 >= 1e-8)
-    # for i in range(args.t_devices):
-    #     # con_prev.append(chi_c2 <= 1e-3) #1e-3)#1e-6)
-    #     con_prev.append(chi_c2 <= 1e-4)
-    #     con_prev.append(chi_c2 >= 1e-8)
+con_prev.append(chi_c1 <= 1e-4) #1e-3)#1e-6)
+con_prev.append(chi_c1 >= 1e-8)
+# for j in range(args.t_devices):
+#     # con_prev.append(chi_c1 <= 1e-1)
+#     # for i in range(args.t_devices):
+#     #     # con_prev.append(chi_c2 <= 1e-3) #1e-3)#1e-6)
+#     #     con_prev.append(chi_c2 <= 1e-4)
+#     #     con_prev.append(chi_c2 >= 1e-8)
 
 constraints.extend(con_prev)
 
@@ -246,9 +242,6 @@ def con_posy_denom_calc(chi,chi_init,psi,psi_init,alpha,alpha_init,cp_type,\
     if cp_type == 1: #first constraint, return both pos and neg denoms
         pos_t_con_denoms = []
         neg_t_con_denoms = []
-        
-        # ovr_init_pos = np.array(chi_init) + np.array(psi_init) \
-        #     + cp_epsilon*np.ones(args.t_devices)
         
         for j in range(args.t_devices):
             cur_init_pos = chi_init + psi_init[j] + cp_epsilon
@@ -259,14 +252,6 @@ def con_posy_denom_calc(chi,chi_init,psi,psi_init,alpha,alpha_init,cp_type,\
             pos_t3_denom = cp.power(cur_init_pos, \
                                   cp_epsilon/cur_init_pos)
             pos_t_con_denoms.append(pos_t1_denom*pos_t2_denom*pos_t3_denom)            
-            
-            # pos_t1_denom = cp.power(chi*ovr_init_pos[j]/chi_init, \
-            #                      chi_init/ovr_init_pos[j])
-            # pos_t2_denom = cp.power(psi[j]*ovr_init_pos[j]/psi_init[j], \
-            #                      psi_init[j]/ovr_init_pos[j])
-            # pos_t3_denom = cp.power(ovr_init_pos[j], \
-            #                      cp_epsilon/ovr_init_pos[j])
-            # pos_t_con_denoms.append(pos_t1_denom*pos_t2_denom*pos_t3_denom)
             
             cur_init_neg = np.sum(alpha_init[:,j])+cp_epsilon
             neg_t_hold = cp.power(cur_init_neg, \
@@ -306,7 +291,7 @@ def con_posy_denom_calc(chi,chi_init,psi,psi_init,alpha,alpha_init,cp_type,\
                 neg_t3_denom = cp.power(cur_init_neg, \
                                 cp_epsilon/cur_init_neg)
                 neg_t_con_denoms[i].append(neg_t1_denom*neg_t2_denom*neg_t3_denom)
-                
+
     else:
         raise TypeError('invalid con_posy cp_type')
     
@@ -329,7 +314,6 @@ def build_ts_posy_cons(pos_denoms,neg_denoms,chi,cp_type,\
                 neg_t_con_prev.append( ((chi \
                                 +psi[j]*alpha[i][j]) \
                                 /neg_denoms[i][j]) <=1 )
-                
     else:
         raise TypeError('cptype invalid posy con')
 
@@ -390,7 +374,7 @@ for c_iter in range(args.approx_iters):
         t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,\
                             psi_init,err_type='t',alpha_init=alpha_init,\
                             div_flag=True,div_vals=div_pairs)
-        
+    
     t_posy_cons = []
     for key_td,list_td in t_denoms.items():
         t_posy_con = build_posy_cons(list_td)
@@ -424,7 +408,7 @@ for c_iter in range(args.approx_iters):
     net_con += pos_prev_con1 + neg_prev_con1
     # net_con += pos_prev_con2 + neg_prev_con2
     
-    obj_fxn = s_err + t_err
+    obj_fxn = s_err + t_err #+ 1e3*chi_c3
     prob = cp.Problem(cp.Minimize(obj_fxn),constraints=net_con)
     prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
     
@@ -437,13 +421,15 @@ for c_iter in range(args.approx_iters):
     # print('chi_s:')
     # print(chi_s.value)
     # print('chi_t:')
-    # print([cp.sum(chi_t[:,j]).value for j in range(args.t_devices)])
+    # print(chi_t.value)
     print('alpha:')
     print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
-    # print('chi_c1:')
-    # print(chi_c1.value)
+    print('chi_c1:')
+    print(chi_c1.value)
     # print('chi_c2:')
     # print(chi_c2.value) #[0,:].value)
+    # print('chi_c3:')
+    # print(chi_c3.value)
     
     obj_vals.append(prob.value)
     psi_track[c_iter] = psi.value
@@ -460,7 +446,7 @@ if args.div_flag == 1:
         pk.dump(hat_ep_alld,f)
     
     with open(cwd+'/optim_results/alpha_val/init_alpha_div1','wb') as f:
-        pk.dump(alpha.value)
+        pk.dump(alpha.value,f)
 else:
     with open(cwd+'/optim_results/obj_val/init_bgap_st1','wb') as f:
         pk.dump(obj_vals,f)
@@ -472,89 +458,6 @@ else:
         pk.dump(hat_ep_alld,f)
     
     with open(cwd+'/optim_results/alpha_val/init_alpha1','wb') as f:
-        pk.dump(alpha.value)    
+        pk.dump(alpha.value,f)
 
 
-# %% backups
-## no initial constant for s_err
-# for i in range(args.t_devices):
-#     if i == 0:
-#         s_err = (1-psi[i])*(hat_ep_alld[i]+2*rad_alld[i]+sqrt_alld[i])
-#     else:
-#         s_err += (1-psi[i])*(hat_ep_alld[i]+2*rad_alld[i]+sqrt_alld[i])
-
-## no initial constant for t_err
-# for j in range(args.t_devices):
-#     for i in range(args.t_devices):
-#         if args.div_flag == False:
-#             if i == 0:
-#                 temp_calc = psi[i]*alpha[i,j]*\
-#                     (hat_ep_alld[i]+2*rad_alld[i]+sqrt_alld[i]+\
-#                     4*rad_alld[i]+4*rad_alld[j]+6*sqrt_alld[i]+6*sqrt_alld[j])
-#             else:
-#                 temp_calc += psi[i]*alpha[i,j]*\
-#                     (hat_ep_alld[i]+2*rad_alld[i]+sqrt_alld[i]+\
-#                     4*rad_alld[i]+4*rad_alld[j]+6*sqrt_alld[i]+6*sqrt_alld[j])
-#         else:
-            
-#     if j == 0:
-#         t_err = 0
-#     else:
-#         t_err += 0
-
-
-## s_err_calc adjustment for c_iter = 0
-    # if c_iter == 0: # (1-psi[i])*(hat_ep[i]+2*rads[i]+sqrts[i])    
-    #     ovr_init = psi_init + chi_init
-    # else: #c_iter > 0
-    #     psi_init = psi.value
-    #     chi_init = np.divide(chi.value,chi_scale)
-
-
-# # %% objective fxn - term 2 [target error] 
-
-# t_err = 1e-6
-# for j in range(args.t_devices):
-#     temp_calc = 1e-6
-#     for i in range(args.t_devices):
-#         if args.div_flag == False:
-#             temp_calc += (1-psi[i])*alpha[i,j]*\
-#                 (hat_ep_alld[i]+2*rad_alld[i]+sqrt_alld[i]+\
-#                 4*rad_alld[i]+4*rad_alld[j]+6*sqrt_alld[i]+6*sqrt_alld[j])
-#         else:
-#             raise TypeError('no work atm')
-        
-#     t_err += psi[j]*temp_calc
-
-
-## non-posynomial two mismatch prevention constraints
-# for j in range(args.t_devices):
-#     # con_prev.append(cp.sum(alpha[:,j]) <= 1e-3+psi[j]) # this needs another posynomial approximation
-#     for i in range(args.t_devices):
-#     #     con_prev.append((1+psi[i]-psi[j])*alpha[i,j] <= 1e-3)
-# constraints.extend(con_prev)
-
-
-## old posy_denom calc
-    # t_con_denoms = []
-    # ovr_init = np.array(chi_init) +  np.array(psi_init)
-    # for j in range(args.t_devices):
-    #     t1_con_denoms = cp.power(chi[j]*ovr_init[j]/chi_init[j], \
-    #                              chi_init[j]/ovr_init[j])
-    #     t2_con_denoms = cp.power(psi[j]*ovr_init[j]/psi_init[j], \
-    #                              psi_init[j]/ovr_init[j])
-    #     t_con_denoms.append(t1_con_denoms*t2_con_denoms)
-
-
-## old build_posy_ts_con
-    # t_con_prev = []
-    # if cp_type == 1:
-    #     for j in range(args.t_devices):
-    #         for i in range(args.t_devices):
-    #             t_num = alpha[i,j]*(1+psi[i])
-    #             t_con_prev.append(t_num/denoms[j] <= 1) 
-    # elif cp_type == 2:
-    #     for j in range(args.t_devices):
-    #         t_con_prev.append(cp.sum(alpha[:,j])/denoms[j] <= 1)
-    # else:
-    #     raise TypeError('cptype invalid posy con')

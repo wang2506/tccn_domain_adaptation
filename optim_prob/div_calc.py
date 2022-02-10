@@ -157,9 +157,11 @@ elif args.div_nn == 'CNN':
 print(start_net)
 
 # %% pairwise training loops
-lab2ulab_accs = np.zeros(shape=(args.l_devices,args.t_devices)).astype(int) #labeled to unlabeled accuracies
+# lab2ulab_accs = np.zeros(shape=(args.l_devices,args.t_devices)).astype(int) #labeled to unlabeled accuracies
+lab2ulab_accs = np.zeros(shape=(args.t_devices,args.t_devices)).astype(int) #labeled to unlabeled accuracies
 
-for i in range(args.l_devices): #a device with labeled data
+# for i in range(args.l_devices): #a device with labeled data
+for i in range(args.t_devices):
     for j in range(args.t_devices):
         if lab2ulab_accs[i,j] == 0 and i != j:
             # get the relabelled datasets
