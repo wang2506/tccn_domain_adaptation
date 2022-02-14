@@ -10,8 +10,15 @@ import pickle as pk
 import random
 from copy import deepcopy
 
+import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader,Dataset
+
 
 from optim_utils.optim_parser import optim_parser
+from div_utils.neural_nets import init_source_train, MLP, CNN
 
 cwd = os.getcwd()
 args = optim_parser()
@@ -49,13 +56,102 @@ with open(cwd+'/data_div/devices'+str(args.t_devices)+\
           '_seed'+str(args.seed)+'_data_qty','wb') as f:
     pk.dump(data_qty_alld,f)
 
-## call the source/target divergence finder here
-##
-##
-##
+## epsilon hat - empirical loss at as measured on s_devices' labelled data
+# full org datasets
+pwd = os.path.dirname(cwd)
+if args.dset_split == 0:
+    if args.dset_type == 'M':
+        print('Using MNIST \n')
+        d_train = torchvision.datasets.MNIST(pwd+'/data/',train=True,download=True,\
+                        transform=transforms.ToTensor())
+    elif args.dset_type == 'S': #needs scipy
+        print('Using SVHN \n')
+        d_train = torchvision.datasets.SVHN(pwd+'/data/svhn/',split='train',download=True,\
+                        transform=transforms.ToTensor())
+        #http://ufldl.stanford.edu/housenumbers/
+        # TODO : need some data-preprocessing
+    elif args.dset_type == 'U':
+        print('Using USPS \n')
+        d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                        transform=transforms.ToTensor())
+    else:
+        raise TypeError('Dataset exceeds sims')
 
-## epsilon hat - average loss at the devices with labelled data, as measured on their labelled
-hat_ep = [] #sequentially stored
+elif args.dset_split == 1: # TODO
+    if args.dset_type == 'M+S':
+        print('Using MNIST + SVHN')
+    elif args.dset_type == 'M+U':
+        print('Using MNIST + USPS')
+    elif args.dset_type == 'S+U':
+        print('Using SVHN + USPS')
+    elif args.dset_type == 'A':
+        print('Using MNIST + SVHN + USPS')
+    else:
+        raise TypeError('Datasets exceed sims')
+
+# data processing
+if args.label_split == 1:
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type+'_lpd','rb') as f:
+        lpd = pk.load(f)
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
+        d_dsets = pk.load(f)    
+elif args.label_split == 0: #replace args.labels_type with iid in the save name
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_iid_lpd','rb') as f:
+        lpd = pk.load(f)
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_iid_dindexsets','rb') as f:
+        d_dsets = pk.load(f)
+
+# random sampling to determine the labelled datasets
+ld_sets = {}
+for i in d_dsets.keys():
+    if i >= args.l_devices:
+        break
+    else:
+        ld_sets[i] = random.sample(d_dsets[i],split_lqtys[i])
+
+## call source training here
+# setup training vars
+if args.div_nn == 'MLP':
+    d_in = np.prod(d_train[0][0].shape)
+    d_h = 64
+    d_out = 10
+    start_net = MLP(d_in,d_h,d_out).to(device)
+
+    try:
+        with open(cwd+'/optim_utils/MLP_start_w','rb') as f:
+            start_w = pk.load(f)
+        start_net.load_state_dict(start_w)
+    except:
+        start_w = start_net.state_dict()
+        with open(cwd+'/optim_utils/MLP_start_w','wb') as f:
+            pk.dump(start_w,f)
+elif args.div_nn == 'CNN':
+    nchannels = 1
+    nclasses = 10
+    start_net = CNN(nchannels,nclasses).to(device)
+    try:
+        with open(cwd+'/optim_utils/CNN_start_w','rb') as f:
+            start_w = pk.load(f)
+        start_net.load_state_dict(start_w)
+    except:
+        start_w = start_net.state_dict()
+        with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
+            pk.dump(start_w,f)
+
+# sequential storage
+hat_ep = []
+hat_w = {}
+for i in range(args.l_devices):
+    params_w,loss = init_source_train(ld_sets,args=args,\
+            save_err=True,d_train=d_train,nnet=deepcopy(start_net))
+    hat_ep.append(loss)
+    hat_w[i] = params_w
+
+input('resume here')
 
 min_ep_vect = 1e-3
 max_ep_vect = 5e-1
@@ -69,11 +165,6 @@ for i in range(args.l_devices):
     hat_ep.extend(t_hat_ep)
 
 ## ordering devices (labelled and unlabelled combined)
-device_order = []
-# # init_dlist = list(np.arange(0,10,1))
-# for i in range(args.t_devices): 
-#     device_order.append()
-
 # for now, just sequentially, all labelled, then unlabelled
 device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
 

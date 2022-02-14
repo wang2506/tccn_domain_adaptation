@@ -75,6 +75,10 @@ def optim_parser():
                         choices=['mild','extreme'],\
                         help='type of labels assignment')    
     
+    # source training variables
+    parser.add_argument('--st_time',type=int,default=100,\
+                        help='source training time')
+    
     # parser
     args = parser.parse_args()
     

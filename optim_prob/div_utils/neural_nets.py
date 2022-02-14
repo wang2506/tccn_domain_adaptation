@@ -106,7 +106,6 @@ def wAvg(w):
                 w_avg[k] += w[i][k]/len(w)
     return w_avg
 
-
 def test_img(net_g,bs,dset,indx,st,device):
     net_g.eval()
     # testing
@@ -139,6 +138,41 @@ def test_img(net_g,bs,dset,indx,st,device):
     
     return accuracy, test_loss
 
+# %% neural nets for the optim problem + source error calc
+class LocalUpdate_st(object):
+    def __init__(self,device,bs,lr,epochs,dataset=None,indexes=None):
+        self.device = device
+        self.bs = bs
+        self.lr = lr
+        self.dataset = dataset
+        self.indexes = indexes
+        self.epochs = epochs
+        self.ldr_train = DataLoader(segmentdataset(dataset,indexes),batch_size=bs,shuffle=True)
+        self.loss_func = nn.CrossEntropyLoss()
+        
+    def train(self,net):
+        net.train()
+        optimizer = torch.optim.SGD(net.parameters(),lr=self.lr)#, momentum=0.5,weight_decay=1e-4) #l2 penalty
+        epoch_loss = []
+        for epoch in range(self.epochs):
+            batch_loss = []
+            for batch_indx,(images,labels) in enumerate(self.ldr_train):
+                images,labels = images.to(self.device),labels.to(self.device)
+                net.zero_grad()
+                log_probs = net(images)
+                loss = self.loss_func(log_probs,labels)
+                loss.backward()
+                optimizer.step()
+                batch_loss.append(loss.item())
+                
+            epoch_loss.append(sum(batch_loss)/len(batch_loss))
+        
+        return net,net.state_dict(),(sum(batch_loss)/len(batch_loss))
+
+def init_source_train(ld_set,args,save_err,d_train,nnet):
+    train_obj = LocalUpdate_st(device=torch.device(args.div_comp+str(args.gpu_num)),\
+                bs=args.bs,epochs=args.st_time,dataset=d_train,indexes=ld_set)
     
-    
+    _,c_w,loss = train_obj.train(nnet)
+    return c_w,loss
     

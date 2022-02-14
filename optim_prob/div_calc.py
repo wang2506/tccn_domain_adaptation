@@ -50,13 +50,13 @@ if args.dset_split == 0:
         d_train = torchvision.datasets.MNIST(pwd+'/data/',train=True,download=True,\
                         transform=transforms.ToTensor())
     elif args.dset_type == 'S': #needs scipy
-        print('Using SVHN')
+        print('Using SVHN \n')
         d_train = torchvision.datasets.SVHN(pwd+'/data/svhn/',split='train',download=True,\
                         transform=transforms.ToTensor())
         #http://ufldl.stanford.edu/housenumbers/
         # TODO : need some data-preprocessing
     elif args.dset_type == 'U':
-        print('Using USPS')
+        print('Using USPS \n')
         d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
                         transform=transforms.ToTensor())
     else:
