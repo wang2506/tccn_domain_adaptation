@@ -83,11 +83,12 @@ for i in range(args.t_devices):
         # hat_ep[2] = 80
         hat_ep_alld.append(hat_ep[i]) #*1e3)
     else:
-        hat_ep_alld.append(1e3) #TODO change to 1e4
+        hat_ep_alld.append(1e4)
         # hat_ep_alld.append(np.random.randint(1e2,5e2))
 
 
 ## empirical hypothesis mismatch error
+# TODO
 ep_mismatch = {}
 min_mismatch = 1e-3
 max_mismatch = 5e-1
@@ -101,8 +102,20 @@ for i in range(args.t_devices):
 
 ## divergence terms
 if args.div_flag == 1: #div flag is online
-    with open(cwd+'/div_results/test_ex','rb') as f:
+    with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
+        +'_seed'+str(args.seed)+'_'+args.dset_type\
+        +'_'+args.labels_type,'rb') as f:
         div_pairs = pk.load(f)
+
+# divergence normalization (by low end - 50)
+d_min = 50
+d_max = 100
+for ir,row in enumerate(div_pairs):
+    for iv,cval in enumerate(row):
+        if cval != 0:
+            cval = (cval-50)*2
+            row[iv] = cval
+            div_pairs[ir] = row
 
 ## rademacher estimates
 rad_s = [np.sqrt(2*np.log(net_l_qtys[i])/net_l_qtys[i]) for i in range(args.l_devices)]
@@ -149,13 +162,15 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
             for i in range(args.t_devices):
                 if div_flag == False:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                                +ep_mis[j][i]+4*rad_alld[j]+sqrts[j]
+                                +4*rad_alld[j]+sqrts[j] #+ep_mis[j][i]
                 else:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                                +ep_mis[j][i]+4*rad_alld[j]+sqrts[j]+\
+                                +4*rad_alld[j]+sqrts[j]+\
                                 0.5*2*div_vals[i,j]/100+\
                                 2*(rad_alld[i]+rad_alld[j]) + \
-                                sqrts[i]+sqrts[j]
+                                sqrts[i]+sqrts[j] #+ep_mis[j][i]
+                                
+                                
                     # by defn, divergence is 2*(1-min error)
                     # equiv 2*(accuracy/100), and its scaled by 1/2 in our obj fxn
                     
@@ -436,28 +451,36 @@ for c_iter in range(args.approx_iters):
 
 # %% saving some results 
 if args.div_flag == 1: 
-    with open(cwd+'/optim_results/obj_val/init_bgap_st_div1','wb') as f:
+    with open(cwd+'/optim_results/obj_val/'\
+        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
         pk.dump(obj_vals,f)
     
-    with open(cwd+'/optim_results/psi_val/init_bgap_st_div1','wb') as f:
+    with open(cwd+'/optim_results/psi_val/'\
+        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
         pk.dump(psi_track,f)
     
-    with open(cwd+'/optim_results/hat_ep_val/init_hat_ep_div1','wb') as f:
+    with open(cwd+'/optim_results/hat_ep_val/'\
+        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
         pk.dump(hat_ep_alld,f)
     
-    with open(cwd+'/optim_results/alpha_val/init_alpha_div1','wb') as f:
+    with open(cwd+'/optim_results/alpha_val/'\
+        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
         pk.dump(alpha.value,f)
-else:
-    with open(cwd+'/optim_results/obj_val/init_bgap_st1','wb') as f:
+else: #ablation cases for div_flag == 0
+    with open(cwd+'/optim_results/obj_val/bgap_st1','wb') as f:
         pk.dump(obj_vals,f)
     
-    with open(cwd+'/optim_results/psi_val/init_bgap_st1','wb') as f:
+    with open(cwd+'/optim_results/psi_val/bgap_st1','wb') as f:
         pk.dump(psi_track,f)
     
-    with open(cwd+'/optim_results/hat_ep_val/init_hat_ep1','wb') as f:
+    with open(cwd+'/optim_results/hat_ep_val/hat_ep1','wb') as f:
         pk.dump(hat_ep_alld,f)
     
-    with open(cwd+'/optim_results/alpha_val/init_alpha1','wb') as f:
+    with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
         pk.dump(alpha.value,f)
 
 

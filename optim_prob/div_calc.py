@@ -74,34 +74,29 @@ elif args.dset_split == 1: # TODO
     else:
         raise TypeError('Datasets exceed sims')
 
-# labels assignment
+# labels assignment and populate device datasets
 labels = 10 #all three datasets have three labels
+d_dsets = {} #these are indexes
+d_train_ls = {i:np.where(d_train.targets==i)[0] for i in range(labels)}
+
 if args.label_split == 1:
     # determination of the device datasets requires
     if args.labels_type == 'mild':
         lpd = [sorted(random.sample(range(labels),3)) for i in range(args.t_devices)]
+        d_dset_sqtys = [np.random.multinomial(alld_qty[i],[np.round(1/3,3)]*3) \
+                         for i in range(args.t_devices)]
     elif args.labels_type == 'extreme':
         lpd = [random.sample(range(labels),1) for i in range(args.t_devices)]
+        d_dset_sqtys = [np.random.multinomial(alld_qty[i],[1]) \
+                         for i in range(args.t_devices)]
     else:
         raise TypeError('labels type invalid')
 elif args.label_split == 0: #i.e., iid
     lpd = [list(range(10)) for i in range(args.t_devices)]
+    d_dset_sqtys = [np.random.multinomial(alld_qty[i],[np.round(1/10,3)]*10) \
+                     for i in range(args.t_devices)]    
 else:
     raise TypeError('label split invalid')
-
-# lpd[1] = [1]
-# lpd[0] = [0]
-lpd[0] = lpd[1]
-
-# populate device datasets
-d_dsets = {} #these are indexes
-d_train_ls = {i:np.where(d_train.targets==i)[0] for i in range(labels)}
-
-d_dset_sqtys = [np.random.multinomial(alld_qty[i],[0.333]*3) \
-                         for i in range(args.t_devices)]
-
-# d_dset_sqtys[1] = [d_dset_sqtys[1][0]]
-# d_dset_sqtys[0] = [d_dset_sqtys[0][0]]
 
 for i in range(args.t_devices): 
     d_dsets[i] = []
@@ -109,6 +104,21 @@ for i in range(args.t_devices):
     for ti,tj in enumerate(d_dset_sqtys[i]):
         td_dset = random.sample(d_train_ls[c_labels[ti]].tolist(),tj)
         d_dsets[i].extend(td_dset)
+
+if args.label_split == 1:
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type+'_lpd','wb') as f:
+        pk.dump(lpd,f)
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','wb') as f:
+        pk.dump(d_dsets,f)    
+elif args.label_split == 0: #replace args.labels_type with iid in the save name
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_iid_lpd','wb') as f:
+        pk.dump(lpd,f)
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_iid_dindexsets','wb') as f:
+        pk.dump(d_dsets,f)
 
 # %% source target label re-assignment func
 def st_relab(s_dset,t_dset,d_train):
@@ -160,6 +170,9 @@ print(start_net)
 # lab2ulab_accs = np.zeros(shape=(args.l_devices,args.t_devices)).astype(int) #labeled to unlabeled accuracies
 lab2ulab_accs = np.zeros(shape=(args.t_devices,args.t_devices)).astype(int) #labeled to unlabeled accuracies
 
+def nearest_batch(index_set,bs_size=args.div_bs):
+    return int(np.ceil(len(index_set)*0.36/bs_size)*bs_size)
+
 # for i in range(args.l_devices): #a device with labeled data
 for i in range(args.t_devices):
     for j in range(args.t_devices):
@@ -172,12 +185,14 @@ for i in range(args.t_devices):
             # training, combining, and testing loop
             for tc in range(args.div_ttime):
                 # one training iteration
-                s_temp_set = random.sample(d_dsets[i],10*args.div_bs)
+                s_temp_set = random.sample(d_dsets[i],\
+                        nearest_batch(d_dsets[i])) #10*args.div_bs)
                 s_w,s_loss = div_roi(deepcopy(st_net),st='source',\
                         bs=args.div_bs,lr=args.div_lr,\
                         l_dset=s_temp_set)#random.sample(d_dsets[i],args.div_bs))
                 #d_dsets[i])
-                t_temp_set = random.sample(d_dsets[j],10*args.div_bs) 
+                t_temp_set = random.sample(d_dsets[j],\
+                        nearest_batch(d_dsets[j])) #10*args.div_bs)
                 t_w,t_loss = div_roi(deepcopy(st_net),st='target',\
                         bs=args.div_bs,lr=args.div_lr,\
                         l_dset=t_temp_set)#random.sample(d_dsets[j],args.div_bs))
@@ -209,9 +224,14 @@ for i in range(args.t_devices):
 print('done')
 
 # %% save the results
-with open(cwd+'/div_results/test_ex','wb') as f:
-    pk.dump(lab2ulab_accs,f)
-
+if args.label_split == 1:
+    with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+        pk.dump(lab2ulab_accs,f)
+elif args.label_split == 0: #replace args.labels_type with iid in the save name
+    with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_iid','wb') as f:
+        pk.dump(lab2ulab_accs,f)
 
 
 # %% divergence calc

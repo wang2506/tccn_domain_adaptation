@@ -100,7 +100,7 @@ for i in range(args.t_devices):
 
 ## divergence terms
 if args.div_flag == 1: #div flag is online
-    with open(cwd+'/div_results/test_ex','rb') as f:
+    with open(cwd+'/div_results/div/vals/test_ex','rb') as f:
         div_pairs = pk.load(f)
 ## hard coding div_pairs to show that the divergence estimation
 ## works in isolation
@@ -110,8 +110,25 @@ if dargs.div_ablation == 0: #so default settings
 elif dargs.div_ablation == 1 and dargs.div_hetero == 'extreme':
     div_pairs = 100*np.ones((args.t_devices,args.t_devices))
     div_pairs[0,:] = np.ones(args.t_devices)
+    # div_pairs[:,0] = np.ones(args.t_devices)
 elif dargs.div_ablation == 1 and dargs.div_hetero == 'random':
     div_pairs = np.round(100*np.random.rand(args.t_devices,args.t_devices),2)
+    # div_pairs = np.minimum(div_pairs, div_pairs.T)
+elif dargs.div_ablation == 1 and dargs.div_hetero == 'estimated':
+    with open(cwd+'/div_results/test_ex','rb') as f:
+        div_pairs = pk.load(f)
+    div_pairs = div_pairs.astype(float)
+    for ir,row in enumerate(div_pairs):
+        for iv,cval in enumerate(row):
+            if cval != 0:
+                cval = (cval-50)*2
+                row[iv] = cval
+                div_pairs[ir] = row    
+    
+    for ci,cj in enumerate(div_pairs):
+        cj[np.where(cj == 0)[0]] = 1e-3
+        div_pairs[ci] = cj
+
 
 ## rademacher estimates
 rad_s = [np.sqrt(2*np.log(net_l_qtys[i])/net_l_qtys[i]) for i in range(args.l_devices)]
@@ -434,8 +451,8 @@ for c_iter in range(args.approx_iters):
     # print(chi_t.value)
     print('alpha:')
     print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
-    print('chi_c1:')
-    print(chi_c1.value)
+    # print('chi_c1:')
+    # print(chi_c1.value)
     # print('chi_c2:')
     # print(chi_c2.value) #[0,:].value)
     # print('chi_c3:')
@@ -446,8 +463,8 @@ for c_iter in range(args.approx_iters):
 
 # %% saving some results 
 if args.div_flag == 1 and dargs.div_ablation == 0: 
-    with open(cwd+'/div_results/ablation_study/obj_vals_unif_maxdiv','wb') as f:
-        pk.dump(obj_vals,f)
+    # with open(cwd+'/div_results/ablation_study/obj_vals_unif_maxdiv','wb') as f:
+    #     pk.dump(obj_vals,f)
     
     with open(cwd+'/div_results/ablation_study/psi_vals_unif_maxdiv','wb') as f:
         pk.dump(psi_track,f)
@@ -462,8 +479,8 @@ if args.div_flag == 1 and dargs.div_ablation == 0:
         pk.dump(div_pairs,f)
     
 elif args.div_flag == 1 and dargs.div_ablation == 1: # and dargs.div_hetero == 'extreme':
-    with open(cwd+'/div_results/ablation_study/obj_vals_'+dargs.div_hetero,'wb') as f:
-        pk.dump(obj_vals,f)
+    # with open(cwd+'/div_results/ablation_study/obj_vals_'+dargs.div_hetero,'wb') as f:
+    #     pk.dump(obj_vals,f)
     
     with open(cwd+'/div_results/ablation_study/psi_vals_'+dargs.div_hetero,'wb') as f:
         pk.dump(psi_track,f)

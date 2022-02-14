@@ -34,7 +34,7 @@ def optim_parser():
                         help='scaling the target errors') #50 #0.5
     parser.add_argument('--phi_e',type=float,default=0.0,\
                         help='scaling the energy term')
-
+    
     ## optimization constants
     parser.add_argument('--approx_iters',type=int,default=50,\
                         help='posynomial approximation iterations') #50
@@ -46,8 +46,6 @@ def optim_parser():
                         help='estimate divergence yes or no')
     ## divergence estimation variables
     # div est infrastructure vars
-    parser.add_argument('--div_save',type=int,default=0,\
-                        help='0 false; 1 true')
     parser.add_argument('--div_comp',type=str,default='gpu',\
                         choices=['cpu','gpu'])
     parser.add_argument('--div_gpu_num',type=int,default=0,\
@@ -59,7 +57,7 @@ def optim_parser():
                         help='neural network for divergence estimation')
     parser.add_argument('--div_lr',type=float,default=1e-2)    
     parser.add_argument('--div_bs',type=int,default=10)
-        
+    
     # div est data + label vars
     parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets')
@@ -91,7 +89,7 @@ def div_ablate_parser():
     parser.add_argument('--div_ablation',type=int,default=1,\
                         help='Tests for divergence ablation flag')
     parser.add_argument('--div_hetero',type=str,default='random',\
-                        choices=['random','extreme'])
+                        choices=['random','extreme','estimated'])
     args = parser.parse_args()
     return args
 

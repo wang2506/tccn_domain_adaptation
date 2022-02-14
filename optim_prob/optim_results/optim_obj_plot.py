@@ -65,7 +65,7 @@ ax2.set_xlabel('Device No')
 ax2.set_ylabel('$\psi$')
 ax2.set_title('Source Target Status of the Networked Devices')
 
-ax2.legend() 
+ax2.legend()
 
 ax2.grid(True)
 
