@@ -139,7 +139,7 @@ def test_img(net_g,bs,dset,indx,st,device):
     return accuracy, test_loss
 
 # %% neural nets for the optim problem + source error calc
-class LocalUpdate_st(object):
+class LocalUpdate_strain(object):
     def __init__(self,device,bs,lr,epochs,dataset=None,indexes=None):
         self.device = device
         self.bs = bs
@@ -169,10 +169,38 @@ class LocalUpdate_st(object):
         
         return net,net.state_dict(),(sum(batch_loss)/len(batch_loss))
 
-def init_source_train(ld_set,args,save_err,d_train,nnet):
-    train_obj = LocalUpdate_st(device=torch.device(args.div_comp+str(args.gpu_num)),\
-                bs=args.bs,epochs=args.st_time,dataset=d_train,indexes=ld_set)
+def init_source_train(ld_set,args,d_train,nnet,device):
+    print('starting the training for new device with labeled data')
+    train_obj = LocalUpdate_strain(device=torch.device(device),\
+                bs=args.div_bs,lr=args.div_lr, \
+                epochs=args.st_time,dataset=d_train,indexes=ld_set)
     
     _,c_w,loss = train_obj.train(nnet)
+    
     return c_w,loss
     
+
+
+def test_img_strain(net_g,bs,dset,indx,device):
+    net_g.eval()
+    # testing
+    test_loss = 0
+    correct = 0
+    
+    dl = DataLoader(segmentdataset(dset,indx),batch_size=bs,shuffle=True)
+    batch_loss = []
+    for idx, (data, targets) in enumerate(dl):
+        data = data.to(device)
+        targets = targets.to(device)
+        log_probs = net_g(data)
+        batch_loss.append(F.cross_entropy(log_probs, targets, reduction='sum').item())
+        
+        # get the index of the max log-probability
+        y_pred = log_probs.data.max(1, keepdim=True)[1]
+        correct += y_pred.eq(targets.data.view_as(y_pred)).long().cpu().sum()
+
+    # test_loss /= len(data_loader.dataset)
+    tloss = sum(batch_loss)/len(batch_loss)
+    accuracy = 100*correct.item() / len(indx) #data_loader.dataset)
+    
+    return accuracy, test_loss

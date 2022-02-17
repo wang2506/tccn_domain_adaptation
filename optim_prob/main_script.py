@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader,Dataset
 
 
 from optim_utils.optim_parser import optim_parser
-from div_utils.neural_nets import init_source_train, MLP, CNN
+from div_utils.neural_nets import init_source_train, MLP, CNN, test_img_strain
 
 cwd = os.getcwd()
 args = optim_parser()
@@ -115,6 +115,10 @@ for i in d_dsets.keys():
 
 ## call source training here
 # setup training vars
+if args.div_comp == 'gpu':
+    device = torch.device('cuda:'+str(args.div_gpu_num))
+else:
+    device = torch.device('cpu')
 if args.div_nn == 'MLP':
     d_in = np.prod(d_train[0][0].shape)
     d_h = 64
@@ -142,28 +146,54 @@ elif args.div_nn == 'CNN':
         with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
             pk.dump(start_w,f)
 
-# sequential storage
+# # sequential storage
 hat_ep = []
 hat_w = {}
+ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
 for i in range(args.l_devices):
-    params_w,loss = init_source_train(ld_sets,args=args,\
-            save_err=True,d_train=d_train,nnet=deepcopy(start_net))
-    hat_ep.append(loss)
+    # start_net.load_state_dict(start_w)
+    # train the source model on labeled data
+    params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
+            d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
+    # obtain the source accuracy on the full local dataset
+    t_net = deepcopy(ld_nets[i])
+    t_net.load_state_dict(params_w)
+    acc_i,ce_loss = test_img_strain(t_net,\
+                args.div_bs,d_train,indx=d_dsets[i],device=device)
+        
+    hat_ep.append((100-acc_i)/100) # need to replace with the final training error
+    # print(acc_i)
     hat_w[i] = params_w
 
-input('resume here')
+if args.label_split == 1:
+    with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
+        'wb') as f:
+        pk.dump(hat_w,f)
+elif args.label_split == 0: #replace args.labels_type with iid in the save name
+    with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.dset_type+'_iid'+'_modelparams_'+args.div_nn,\
+        'wb') as f:
+        pk.dump(hat_w,f)
 
-min_ep_vect = 1e-3
-max_ep_vect = 5e-1
-temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
-                *np.random.rand(args.t_devices)).tolist()
-
+# hat_ep = [0.03238866396761139,
+#   0.01891659501289766,
+#   0.013528748590755414,
+#   0.008746355685131135,
+#   0.006979062811565342]
+# print(hat_ep)
 # temporarily assign constant values
 # later, we will need to figure out a way to estimate them
-for i in range(args.l_devices):
-    t_hat_ep = random.sample(temp_ep_vect,1)
-    hat_ep.extend(t_hat_ep)
+# min_ep_vect = 1e-3
+# max_ep_vect = 5e-1
+# temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
+#                 *np.random.rand(args.t_devices)).tolist()
+# for i in range(args.l_devices):
+#     t_hat_ep = random.sample(temp_ep_vect,1)
+#     hat_ep.extend(t_hat_ep)
 
+# hat_ep = (1e-3*np.ones(args.l_devices)).tolist()
+# input('a')
 ## ordering devices (labelled and unlabelled combined)
 # for now, just sequentially, all labelled, then unlabelled
 device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
@@ -173,10 +203,11 @@ for i in range(args.t_devices):
     if i < args.l_devices:
         # hat_ep[2] = 80
         hat_ep_alld.append(hat_ep[i]) #*1e3)
-    else:
-        hat_ep_alld.append(1e4)
-        # hat_ep_alld.append(np.random.randint(1e2,5e2))
-
+    else: 
+        # temp_factor = np.round(np.log(max(hat_ep)))+6
+        # hat_ep_alld.append(np.power(10,temp_factor))
+        # hat_ep_alld.append(1e4) #1e3
+        hat_ep_alld.append(1e3)
 
 ## empirical hypothesis mismatch error
 # TODO
@@ -260,8 +291,7 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                                 0.5*2*div_vals[i,j]/100+\
                                 2*(rad_alld[i]+rad_alld[j]) + \
                                 sqrts[i]+sqrts[j] #+ep_mis[j][i]
-                                
-                                
+                                                                
                     # by defn, divergence is 2*(1-min error)
                     # equiv 2*(accuracy/100), and its scaled by 1/2 in our obj fxn
                     
@@ -530,8 +560,8 @@ for c_iter in range(args.approx_iters):
     # print(chi_t.value)
     print('alpha:')
     print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
-    print('chi_c1:')
-    print(chi_c1.value)
+    # print('chi_c1:')
+    # print(chi_c1.value)
     # print('chi_c2:')
     # print(chi_c2.value) #[0,:].value)
     # print('chi_c3:')

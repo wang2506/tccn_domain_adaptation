@@ -141,7 +141,6 @@ if args.div_nn == 'MLP':
     d_h = 64
     d_out = 2
     start_net = MLP(d_in,d_h,d_out).to(device)
-
     try:
         with open(cwd+'/div_utils/MLP_start_w','rb') as f:
             start_w = pk.load(f)
@@ -154,7 +153,6 @@ elif args.div_nn == 'CNN':
     nchannels = 1
     nclasses = 2
     start_net = CNN(nchannels,nclasses).to(device)
-
     try:
         with open(cwd+'/div_utils/CNN_start_w','rb') as f:
             start_w = pk.load(f)

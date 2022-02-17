@@ -107,7 +107,7 @@ def rescale_alphas(c_psi,c_alpha):
             else:
                 ovr_alpha = np.hstack((ovr_alpha,t_alpha[:,np.where(t_pv==a_ind)[0]]))
         
-    return s_alpha,t_alpha,ovr_alpha,s_pv,t_pv, 
+    return s_alpha,t_alpha,ovr_alpha,s_pv,t_pv
 
 rc_s_alpha, rc_t_alpha, joint_alpha, s_inds, t_inds = rescale_alphas(psi_vals,tc_alpha)
 # joint_alpha = np.concatenate((rc_s_alpha,rc_t_alpha),axis=1)
