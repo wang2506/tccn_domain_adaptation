@@ -17,7 +17,7 @@ def rescale_alphas(c_psi,c_alpha):
     # sources received models (alpha) adjust
     s_pv = np.where(np.array(c_psi) == 0)[0]
     s_alpha = c_alpha[:,s_pv]
-    s_alpha[np.where(s_alpha <= 1e-2)] = 0
+    s_alpha[np.where(s_alpha <= 5e-2)] = 0 #2.5
     
     s_alpha_sums = np.sum(s_alpha,axis=0)
     for div_factor in s_alpha_sums:

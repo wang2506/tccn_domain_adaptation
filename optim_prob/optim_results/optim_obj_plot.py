@@ -26,14 +26,14 @@ psi_vals = {}
 hat_ep_vals = {}
 alpha_vals = {}
 for i in range(1,3):   
-    with open(cwd+obj_f+'init_bgap_st'+str(i),'rb') as f:
+    with open(cwd+obj_f+'bgap_st'+str(i),'rb') as f: #'init_
         obj_vals[i] = pk.load(f)
 
-    with open(cwd+psi_f+'init_bgap_st'+str(i),'rb') as f:
+    with open(cwd+psi_f+'bgap_st'+str(i),'rb') as f: #'init_
         psi_vals[i] = pk.load(f)
     psi_vals[i] = [np.round(j,0) for j in psi_vals[i][len(psi_vals[i].keys())-1]]
 
-    with open(cwd+hat_ep_f+'init_hat_ep'+str(i),'rb') as f:
+    with open(cwd+hat_ep_f+'hat_ep'+str(i),'rb') as f: #'init_
         hat_ep_vals[i] = pk.load(f)
 
 # %% obj_fxn conv check 
@@ -46,12 +46,13 @@ ax.plot(obj_vals[2],marker='x',linestyle='dotted',c='darkgreen',\
 ax.set_xlabel('Approximation Iteration')
 ax.set_ylabel('Objective Function Value')
 ax.set_title('Objective Function Updates')
+ax.set_ylim([0,800])
 
 ax.legend() 
 
 ax.grid(True)
 
-# plt.savefig(cwd+'/init_test_obj.png',bbox_inches='tight',dpi=1000)
+# plt.savefig(cwd+'/init_test_obj.pdf',bbox_inches='tight',dpi=1000)
 
 # %% psi values
 fig2,ax2 = plt.subplots(figsize=(5,3))
@@ -69,7 +70,7 @@ ax2.legend()
 
 ax2.grid(True)
 
-# plt.savefig(cwd+'/init_test_psi.png',bbox_inches='tight',dpi=1000)
+# plt.savefig(cwd+'/init_test_psi.pdf',bbox_inches='tight',dpi=1000)
 
 # %% alpha values
 

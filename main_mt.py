@@ -27,49 +27,58 @@ oargs = optim_parser()
 np.random.seed(oargs.seed)
 random.seed(oargs.seed)
 
+if oargs.label_split == 0: #iid
+    oargs.labels_type = 'iid'
+
 # %% load in optimization and divergence results
-with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-          '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
-            +'_'+oargs.labels_type,'rb') as f:
-    psi_vals = pk.load(f)
-
-with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-          '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
-            +'_'+oargs.labels_type,'rb') as f:
-    alpha_vals = pk.load(f)
-
+if oargs.dset_split == 0:
+    with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
+              '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
+                +'_'+oargs.labels_type,'rb') as f:
+        psi_vals = pk.load(f)
+    
+    with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
+              '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
+                +'_'+oargs.labels_type,'rb') as f:
+        alpha_vals = pk.load(f)
+        
+    ## load in the model parameters of all devices with labeled data
+    with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+              '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
+                +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+        lmp = pk.load(f) #labeled model parameters        
+else:
+    with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
+              '_seed'+str(oargs.seed)+'_'+oargs.split_type\
+                +'_'+oargs.labels_type,'rb') as f:
+        psi_vals = pk.load(f)
+    
+    with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
+              '_seed'+str(oargs.seed)+'_'+oargs.split_type\
+                +'_'+oargs.labels_type,'rb') as f:
+        alpha_vals = pk.load(f)    
+    
+    with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+              '_seed'+str(oargs.seed)+'_'+oargs.split_type\
+                +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+        lmp = pk.load(f) #labeled model parameters        
+    
 psi_vals = [int(np.round(j,0)) for j in psi_vals[len(psi_vals.keys())-1]]
 s_alpha,t_alpha,ovr_alpha,s_pv,t_pv= rescale_alphas(psi_vals,alpha_vals)
-
-## load in the model parameters of all devices with labeled data
-with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-          '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
-            +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-    lmp = pk.load(f) #labeled model parameters
 
 ## load in the device data characteristics
 with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)+\
           '_seed'+str(oargs.seed)+'_data_qty','rb') as f:
     data_qty = pk.load(f)
 
-if oargs.label_split == 1:
-    with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
-              +'_seed'+str(oargs.seed)\
-        +'_'+oargs.dset_type+'_'+oargs.labels_type+'_lpd','rb') as f:
-        lpd = pk.load(f)
-    with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
-              +'_seed'+str(oargs.seed)\
-        +'_'+oargs.dset_type+'_'+oargs.labels_type+'_dindexsets','rb') as f:
-        d_dsets = pk.load(f)    
-elif oargs.label_split == 0: #replace args.labels_type with iid in the save name
-    with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
-              +'_seed'+str(oargs.seed)\
-        +'_'+oargs.dset_type+'_iid_lpd','rb') as f:
-        lpd = pk.load(f)
-    with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
-              +'_seed'+str(oargs.seed)\
-        +'_'+oargs.dset_type+'_iid_dindexsets','rb') as f:
-        d_dsets = pk.load(f)
+with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
+          +'_seed'+str(oargs.seed)\
+    +'_'+oargs.dset_type+'_'+oargs.labels_type+'_lpd','rb') as f:
+    lpd = pk.load(f)
+with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
+          +'_seed'+str(oargs.seed)\
+    +'_'+oargs.dset_type+'_'+oargs.labels_type+'_dindexsets','rb') as f:
+    d_dsets = pk.load(f)    
 
 # %% load in datasets
 if oargs.dset_split == 0:
@@ -79,14 +88,23 @@ if oargs.dset_split == 0:
                         transform=transforms.ToTensor())
     elif oargs.dset_type == 'S': #needs scipy
         print('Using SVHN \n')
-        d_train = torchvision.datasets.SVHN(cwd+'/data/svhn/',split='train',download=True,\
-                        transform=transforms.ToTensor())
+        tx_dat = torchvision.transforms.Compose([transforms.ToTensor(),\
+                        transforms.Grayscale(),transforms.CenterCrop(28)])
+        d_train = torchvision.datasets.SVHN(cwd+'/data/svhn',split='train',download=True,\
+                        transform=tx_dat)
+        d_train.targets = d_train.labels
         #http://ufldl.stanford.edu/housenumbers/
-        # TODO : need some data-preprocessing
     elif oargs.dset_type == 'U':
         print('Using USPS \n')
-        d_train = torchvision.datasets.USPS(cwd+'/data/usps',train=True,download=True,\
-                        transform=transforms.ToTensor())
+        tx_dat = torchvision.transforms.Compose([transforms.ToTensor(),transforms.Pad(14-8)])
+        try: 
+            d_train = torchvision.datasets.USPS(cwd+'/data/',train=True,download=True,\
+                            transform=tx_dat)
+        except:
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context            
+            d_train = torchvision.datasets.USPS(cwd+'/data/',train=True,download=True,\
+                            transform=tx_dat)    
     else:
         raise TypeError('Dataset exceeds sims')
 elif oargs.dset_split == 1: # TODO
@@ -184,12 +202,46 @@ for i,j in enumerate(psi_vals):
         source_accs[i],_ = test_img_ttest(source_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)
 
 # %% save the results
+if oargs.dset_split == 0: # only one dataset
+    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+              +'_full_target','wb') as f:
+        pk.dump(target_accs,f)
 
+    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+              +'_full_rng','wb') as f:
+        pk.dump(rt_accs,f)
+    
+    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+              +'_full_h1','wb') as f:
+        pk.dump(h1_accs,f)
 
+    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+              +'_full_h2','wb') as f:
+        pk.dump(h2_accs,f)        
+    
+    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+              +'_full_source','wb') as f:
+        pk.dump(source_accs,f)  
+else:
+    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+              +'_full_target','wb') as f:
+        pk.dump(target_accs,f)
 
+    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+              +'_full_rng','wb') as f:
+        pk.dump(rt_accs,f)
+        
+    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+              +'_full_h1','wb') as f:
+        pk.dump(h1_accs,f)
 
-
-
+    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+              +'_full_h2','wb') as f:
+        pk.dump(h2_accs,f)        
+    
+    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+              +'_full_source','wb') as f:
+        pk.dump(source_accs,f)      
 
 
 

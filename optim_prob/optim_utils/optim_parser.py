@@ -42,8 +42,10 @@ def optim_parser():
                         help='probabiliy 1-\delta term, accuracy metric') #1e-2
     
     ## ablation variables 
+    parser.add_argument('--init_test',type=int,default=0,\
+                        help='initial convergence tests')
     parser.add_argument('--div_flag',type=int,default=1,\
-                        help='estimate divergence yes or no')
+                        help='estimate divergence yes or no') #1 
     ## divergence estimation variables
     # div est infrastructure vars
     parser.add_argument('--div_comp',type=str,default='gpu',\
@@ -65,11 +67,11 @@ def optim_parser():
                         choices=['M+S','M+U','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
-    parser.add_argument('--dset_type',type=str,default='M',\
+    parser.add_argument('--dset_type',type=str,default='S',\
                         choices=['M','S','U'],\
                         help='{M:mnist,S:svhn,U:usps}')
     
-    parser.add_argument('--label_split',type=int,default=1,\
+    parser.add_argument('--label_split',type=int,default=0,\
                         help='true:1 or false:0 (false = iid)')
     parser.add_argument('--labels_type',type=str,default='mild',\
                         choices=['mild','extreme'],\

@@ -26,6 +26,9 @@ args = optim_parser()
 np.random.seed(args.seed)
 random.seed(args.seed)
 
+if args.label_split == 0:
+    args.labels_type = 'iid'
+
 # %% variable declarations
 phi_s = args.phi_s # source errors
 phi_t = args.phi_t # target errors
@@ -66,14 +69,25 @@ if args.dset_split == 0:
                         transform=transforms.ToTensor())
     elif args.dset_type == 'S': #needs scipy
         print('Using SVHN \n')
+        args.approx_iters = 100
+        tx_dat = torchvision.transforms.Compose([transforms.ToTensor(),\
+                        transforms.Grayscale(),transforms.CenterCrop(28)])
         d_train = torchvision.datasets.SVHN(pwd+'/data/svhn/',split='train',download=True,\
-                        transform=transforms.ToTensor())
+                        transform=tx_dat)
+        d_train.targets = d_train.labels
         #http://ufldl.stanford.edu/housenumbers/
-        # TODO : need some data-preprocessing
     elif args.dset_type == 'U':
         print('Using USPS \n')
-        d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
-                        transform=transforms.ToTensor())
+        tx_dat = torchvision.transforms.Compose([transforms.ToTensor(),transforms.Pad(14-8)])
+        try: 
+            d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                            transform=tx_dat)
+        except:
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context            
+            d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                            transform=tx_dat)
+        d_train.targets = np.array(d_train.targets)
     else:
         raise TypeError('Dataset exceeds sims')
 
@@ -90,20 +104,20 @@ elif args.dset_split == 1: # TODO
         raise TypeError('Datasets exceed sims')
 
 # data processing
-if args.label_split == 1:
+if args.dset_split == 0:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.dset_type+'_'+args.labels_type+'_lpd','rb') as f:
         lpd = pk.load(f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
         d_dsets = pk.load(f)    
-elif args.label_split == 0: #replace args.labels_type with iid in the save name
+else:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_iid_lpd','rb') as f:
+        +'_'+args.split_type+'_'+args.labels_type+'_lpd','rb') as f:
         lpd = pk.load(f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_iid_dindexsets','rb') as f:
-        d_dsets = pk.load(f)
+        +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
+        d_dsets = pk.load(f)    
 
 # random sampling to determine the labelled datasets
 ld_sets = {}
@@ -113,87 +127,83 @@ for i in d_dsets.keys():
     else:
         ld_sets[i] = random.sample(d_dsets[i],split_lqtys[i])
 
-## call source training here
-# setup training vars
-if args.div_comp == 'gpu':
-    device = torch.device('cuda:'+str(args.div_gpu_num))
+if args.init_test != 1:
+    ## call source training here
+    # setup training vars
+    if args.div_comp == 'gpu':
+        device = torch.device('cuda:'+str(args.div_gpu_num))
+    else:
+        device = torch.device('cpu')
+    if args.div_nn == 'MLP':
+        d_in = np.prod(d_train[0][0].shape)
+        d_h = 64
+        d_out = 10
+        start_net = MLP(d_in,d_h,d_out).to(device)
+    
+        try:
+            with open(cwd+'/optim_utils/MLP_start_w','rb') as f:
+                start_w = pk.load(f)
+            start_net.load_state_dict(start_w)
+        except:
+            start_w = start_net.state_dict()
+            with open(cwd+'/optim_utils/MLP_start_w','wb') as f:
+                pk.dump(start_w,f)
+    elif args.div_nn == 'CNN':
+        nchannels = 1
+        nclasses = 10
+        start_net = CNN(nchannels,nclasses).to(device)
+        try:
+            with open(cwd+'/optim_utils/CNN_start_w','rb') as f:
+                start_w = pk.load(f)
+            start_net.load_state_dict(start_w)
+        except:
+            start_w = start_net.state_dict()
+            with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
+                pk.dump(start_w,f)
+    
+    # # sequential storage
+    hat_ep = []
+    hat_w = {}
+    ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
+    print('training source domains - find source errors')
+    for i in range(args.l_devices):
+        # start_net.load_state_dict(start_w)
+        # train the source model on labeled data
+        params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
+                d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
+        # obtain the source accuracy on the full local dataset
+        t_net = deepcopy(ld_nets[i])
+        t_net.load_state_dict(params_w)
+        acc_i,ce_loss = test_img_strain(t_net,\
+                    args.div_bs,d_train,indx=d_dsets[i],device=device)
+            
+        hat_ep.append((100-acc_i)/100) # need to replace with the final training error
+        # print(acc_i)
+        hat_w[i] = params_w
+    
+    if args.dset_split == 0:
+        with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
+            'wb') as f:
+            pk.dump(hat_w,f)
+    else:
+        with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.split_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
+            'wb') as f:
+            pk.dump(hat_w,f)     
 else:
-    device = torch.device('cpu')
-if args.div_nn == 'MLP':
-    d_in = np.prod(d_train[0][0].shape)
-    d_h = 64
-    d_out = 10
-    start_net = MLP(d_in,d_h,d_out).to(device)
+    # temporarily assign constant values
+    # later, we will need to figure out a way to estimate them
+    # hat_ep = []
+    # min_ep_vect = 1e-3
+    # max_ep_vect = 5e-1
+    # temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
+    #                 *np.random.rand(args.t_devices)).tolist()
+    # for i in range(args.l_devices):
+    #     t_hat_ep = random.sample(temp_ep_vect,1)
+    #     hat_ep.extend(t_hat_ep)
+    hat_ep = [0.04,0.27,0.45,0.09,0.45] 
 
-    try:
-        with open(cwd+'/optim_utils/MLP_start_w','rb') as f:
-            start_w = pk.load(f)
-        start_net.load_state_dict(start_w)
-    except:
-        start_w = start_net.state_dict()
-        with open(cwd+'/optim_utils/MLP_start_w','wb') as f:
-            pk.dump(start_w,f)
-elif args.div_nn == 'CNN':
-    nchannels = 1
-    nclasses = 10
-    start_net = CNN(nchannels,nclasses).to(device)
-    try:
-        with open(cwd+'/optim_utils/CNN_start_w','rb') as f:
-            start_w = pk.load(f)
-        start_net.load_state_dict(start_w)
-    except:
-        start_w = start_net.state_dict()
-        with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
-            pk.dump(start_w,f)
-
-# # sequential storage
-hat_ep = []
-hat_w = {}
-ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
-for i in range(args.l_devices):
-    # start_net.load_state_dict(start_w)
-    # train the source model on labeled data
-    params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
-            d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
-    # obtain the source accuracy on the full local dataset
-    t_net = deepcopy(ld_nets[i])
-    t_net.load_state_dict(params_w)
-    acc_i,ce_loss = test_img_strain(t_net,\
-                args.div_bs,d_train,indx=d_dsets[i],device=device)
-        
-    hat_ep.append((100-acc_i)/100) # need to replace with the final training error
-    # print(acc_i)
-    hat_w[i] = params_w
-
-if args.label_split == 1:
-    with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
-        'wb') as f:
-        pk.dump(hat_w,f)
-elif args.label_split == 0: #replace args.labels_type with iid in the save name
-    with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_iid'+'_modelparams_'+args.div_nn,\
-        'wb') as f:
-        pk.dump(hat_w,f)
-
-# hat_ep = [0.03238866396761139,
-#   0.01891659501289766,
-#   0.013528748590755414,
-#   0.008746355685131135,
-#   0.006979062811565342]
-# print(hat_ep)
-# temporarily assign constant values
-# later, we will need to figure out a way to estimate them
-# min_ep_vect = 1e-3
-# max_ep_vect = 5e-1
-# temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
-#                 *np.random.rand(args.t_devices)).tolist()
-# for i in range(args.l_devices):
-#     t_hat_ep = random.sample(temp_ep_vect,1)
-#     hat_ep.extend(t_hat_ep)
-
-# hat_ep = (1e-3*np.ones(args.l_devices)).tolist()
-# input('a')
 ## ordering devices (labelled and unlabelled combined)
 # for now, just sequentially, all labelled, then unlabelled
 device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
@@ -224,10 +234,18 @@ for i in range(args.t_devices):
 
 ## divergence terms
 if args.div_flag == 1: #div flag is online
-    with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
-        +'_seed'+str(args.seed)+'_'+args.dset_type\
-        +'_'+args.labels_type,'rb') as f:
-        div_pairs = pk.load(f)
+    if args.dset_split == 0: 
+        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
+            +'_seed'+str(args.seed)+'_'+args.dset_type\
+            +'_'+args.labels_type,'rb') as f:
+            div_pairs = pk.load(f)
+    else:
+        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
+            +'_seed'+str(args.seed)+'_'+args.split_type\
+            +'_'+args.labels_type,'rb') as f:
+            div_pairs = pk.load(f)
+else:
+    div_pairs = np.ones((args.t_devices,args.t_devices))
 
 # divergence normalization (by low end - 50)
 d_min = 50
@@ -572,25 +590,46 @@ for c_iter in range(args.approx_iters):
 
 # %% saving some results 
 if args.div_flag == 1: 
-    with open(cwd+'/optim_results/obj_val/'\
-        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-        pk.dump(obj_vals,f)
-    
-    with open(cwd+'/optim_results/psi_val/'\
-        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-        pk.dump(psi_track,f)
-    
-    with open(cwd+'/optim_results/hat_ep_val/'\
-        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-        pk.dump(hat_ep_alld,f)
-    
-    with open(cwd+'/optim_results/alpha_val/'\
-        +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-        pk.dump(alpha.value,f)
+    if args.dset_split == 0:
+        with open(cwd+'/optim_results/obj_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(obj_vals,f)
+        
+        with open(cwd+'/optim_results/psi_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(psi_track,f)
+        
+        with open(cwd+'/optim_results/hat_ep_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(hat_ep_alld,f)
+        
+        with open(cwd+'/optim_results/alpha_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(alpha.value,f)
+    else:
+        with open(cwd+'/optim_results/obj_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(obj_vals,f)
+        
+        with open(cwd+'/optim_results/psi_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(psi_track,f)
+        
+        with open(cwd+'/optim_results/hat_ep_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(hat_ep_alld,f)
+        
+        with open(cwd+'/optim_results/alpha_val/'\
+            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(alpha.value,f)
 else: #ablation cases for div_flag == 0
     with open(cwd+'/optim_results/obj_val/bgap_st1','wb') as f:
         pk.dump(obj_vals,f)

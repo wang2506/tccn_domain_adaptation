@@ -165,7 +165,7 @@ ax.grid(True)
 ax.set_axisbelow(True)
 
 # fig.savefig(cwd+'/ablation_plots/device_classification.png',dpi=1000,bbox_inches='tight')
-# fig.savefig(cwd+'/ablation_plots/device_classification.eps',dpi=1000,bbox_inches='tight')
+# fig.savefig(cwd+'/ablation_plots/device_classification.pdf',dpi=1000,bbox_inches='tight')
 
 # %% alpha_sum plot [offloading breakdown graphic]
 fig2,ax2 = plt.subplots(3,1,figsize=(3,5),dpi=250,sharex=True) #vertically stacked bars
@@ -241,7 +241,7 @@ for i in range(3):
     ax2[i].set_axisbelow(True)
 
 # fig2.savefig(cwd+'/ablation_plots/model_ratios.png',dpi=1000,bbox_inches='tight')
-# fig2.savefig(cwd+'/ablation_plots/model_ratios.eps',dpi=1000,bbox_inches='tight')
+# fig2.savefig(cwd+'/ablation_plots/model_ratios.pdf',dpi=1000,bbox_inches='tight')
 
 
 # %% backups

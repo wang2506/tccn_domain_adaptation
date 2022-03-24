@@ -28,6 +28,9 @@ seed = args.seed
 np.random.seed(seed)
 random.seed(seed)
 
+if args.label_split == 0:
+    args.labels_type = 'iid'
+
 # %% imports + redefinitions
 # comp method
 if args.div_comp == 'gpu':
@@ -51,14 +54,24 @@ if args.dset_split == 0:
                         transform=transforms.ToTensor())
     elif args.dset_type == 'S': #needs scipy
         print('Using SVHN \n')
+        tx_dat = torchvision.transforms.Compose([transforms.ToTensor(),\
+                        transforms.Grayscale(),transforms.CenterCrop(28)])
         d_train = torchvision.datasets.SVHN(pwd+'/data/svhn/',split='train',download=True,\
-                        transform=transforms.ToTensor())
+                        transform=tx_dat)
+        d_train.targets = d_train.labels
         #http://ufldl.stanford.edu/housenumbers/
-        # TODO : need some data-preprocessing
     elif args.dset_type == 'U':
         print('Using USPS \n')
-        d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
-                        transform=transforms.ToTensor())
+        tx_dat = torchvision.transforms.Compose([transforms.ToTensor(),transforms.Pad(14-8)])
+        try: 
+            d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                            transform=tx_dat)
+        except:
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context            
+            d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                            transform=tx_dat)
+        d_train.targets = np.array(d_train.targets)
     else:
         raise TypeError('Dataset exceeds sims')
 
@@ -73,6 +86,8 @@ elif args.dset_split == 1: # TODO
         print('Using MNIST + SVHN + USPS')
     else:
         raise TypeError('Datasets exceed sims')
+
+# input('a')
 
 # labels assignment and populate device datasets
 labels = 10 #all three datasets have three labels
@@ -102,23 +117,32 @@ for i in range(args.t_devices):
     d_dsets[i] = []
     c_labels = lpd[i]
     for ti,tj in enumerate(d_dset_sqtys[i]):
-        td_dset = random.sample(d_train_ls[c_labels[ti]].tolist(),tj)
+        if tj > len(d_train_ls[c_labels[ti]].tolist()):
+            td_dset = deepcopy(d_train_ls[c_labels[ti]])
+            while len(td_dset) < tj:
+                if len(td_dset)-tj > len(d_train_ls[c_labels[ti]].tolist()):
+                    td_dset += td_dset
+                else:
+                    td_dset += random.sample(d_train_ls[c_labels[ti]].tolist(),tj-len(td_dset))
+            random.shuffle(td_dset)
+        else:
+            td_dset = random.sample(d_train_ls[c_labels[ti]].tolist(),tj)
         d_dsets[i].extend(td_dset)
 
-if args.label_split == 1:
+if args.dset_split == 0:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.dset_type+'_'+args.labels_type+'_lpd','wb') as f:
         pk.dump(lpd,f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','wb') as f:
         pk.dump(d_dsets,f)    
-elif args.label_split == 0: #replace args.labels_type with iid in the save name
+else:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_iid_lpd','wb') as f:
+        +'_'+args.split_type+'_'+args.labels_type+'_lpd','wb') as f:
         pk.dump(lpd,f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_iid_dindexsets','wb') as f:
-        pk.dump(d_dsets,f)
+        +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','wb') as f:
+        pk.dump(d_dsets,f)    
 
 # %% source target label re-assignment func
 def st_relab(s_dset,t_dset,d_train):
@@ -222,15 +246,14 @@ for i in range(args.t_devices):
 print('done')
 
 # %% save the results
-if args.label_split == 1:
+if args.dset_split == 0:
     with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
         pk.dump(lab2ulab_accs,f)
-elif args.label_split == 0: #replace args.labels_type with iid in the save name
+else:
     with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.dset_type+'_iid','wb') as f:
+        +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
         pk.dump(lab2ulab_accs,f)
-
 
 # %% divergence calc
 

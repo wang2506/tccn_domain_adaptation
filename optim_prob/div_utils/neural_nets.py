@@ -170,7 +170,7 @@ class LocalUpdate_strain(object):
         return net,net.state_dict(),(sum(batch_loss)/len(batch_loss))
 
 def init_source_train(ld_set,args,d_train,nnet,device):
-    print('starting the training for new device with labeled data')
+    # print('starting the training for new device with labeled data')
     train_obj = LocalUpdate_strain(device=torch.device(device),\
                 bs=args.div_bs,lr=args.div_lr, \
                 epochs=args.st_time,dataset=d_train,indexes=ld_set)
