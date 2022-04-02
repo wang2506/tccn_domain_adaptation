@@ -546,10 +546,57 @@ def posy_init(iter_num,cp_vars,args=args):
         chi_c1,chi_c2
 
 # %% calculate energy consumption
-def c_nrg_calc(targs,psi,M=1e6):
-    t_dc = psi
+def c_nrg_calc(var_dict,t_args,M=1e6):
+    # setup needed variables
+    ep_E = 9.99e-4 # if alpha smaller than 1e-3, this should zero things out
+    vd = var_dict
+    tc_alpha = vd['alpha']
+    tc_st = vd['psi'] #temp_nrg_source_target
+    param_2_bits = M
     
+    # want to do 23dbm (0.2) to 25dbm (0.32)
+    tx_powers = 0.2 + (0.32-0.2)*np.random.rand(t_args.t_devices)  
+    tx_powers = tx_powers.tolist()
     
+    # communications constants
+    carrier_freq = 2 * 1e9
+    noise_db = 4e-21 #-174 dBm/Hz, we convert to watts
+    univ_bandwidth = 2e6 #MHz #10 MHz
+    mu_tx = 4*np.pi * carrier_freq/(3*1e8)
+    eta_los = 2 #3db 
+    eta_nlos = 200 #23db
+    path_loss_alpha = 2
+    psi_tx = 11.95
+    beta_tx = 0.14
+    dist_d2d_max = 100 #dist_d2d meters
+    dist_d2d_min = 25
+
+    # tx_rates
+    d2d_tx_rates = np.zeros(shape=(t_args.t_devices,t_args.t_devices))
+    for q in range(t_args.t_devices):
+        for j in range(t_args.t_devices):
+            dist_qj = dist_d2d_min + (dist_d2d_max-dist_d2d_min) \
+                *np.random.rand() # randomly determined
+            
+            theta_qj = 180/np.pi * np.arcsin(dist_d2d_min / dist_qj )
+            
+            prob_los = 1/(1+ psi_tx * np.exp(-beta_tx*(theta_qj-psi_tx)) )
+            prob_nlos = 1-prob_los
+            
+            la2g_qj = (mu_tx * dist_qj)**path_loss_alpha *\
+                (prob_los*eta_los + prob_nlos * eta_nlos )
+            
+            d2d_tx_rates[q,j] = univ_bandwidth *\
+                np.log2(1 + (tx_powers[q]/la2g_qj) / noise_db )    
+    
+    # calculate energy used for model transferring
+    tmp_nrg = 1e-6 # total energy consumption init
+    
+    for i in range(t_args.t_devices):
+         for j in range(t_args.t_devices):
+             # temp rescaled alpha to 0 or 1 (if alpha > alpha_min -> 1, else 0)
+             ts_alpha = (tc_alpha[i,j]-ep_E)/tc_alpha[i,j]
+             tmp_nrg += param_2_bits/d2d_tx_rates[i,j] * tx_powers[i] * ts_alpha
     
     return tmp_nrg
 
@@ -601,7 +648,8 @@ for c_iter in range(args.approx_iters):
     net_con = constraints + posy_con 
     net_con += pos_prev_con1 + neg_prev_con1
     
-    e_err = c_nrg_calc(targs=args)
+    # TODO 
+    e_err = c_nrg_calc(t_dict)
     e_err = phi_e*e_err
     
     obj_fxn = s_err + t_err + e_err
@@ -631,66 +679,67 @@ for c_iter in range(args.approx_iters):
     psi_track[c_iter] = psi.value
 
 # %% saving some results 
-if args.div_flag == 1: 
-    if args.dset_split == 0:
-        with open(cwd+'/optim_results/obj_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(obj_vals,f)
+# TODO - adjust the save file names to consider energy constraints!!
+# if args.div_flag == 1: 
+#     if args.dset_split == 0:
+#         with open(cwd+'/optim_results/obj_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(obj_vals,f)
         
-        with open(cwd+'/optim_results/psi_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(psi_track,f)
+#         with open(cwd+'/optim_results/psi_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(psi_track,f)
         
-        with open(cwd+'/optim_results/hat_ep_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(hat_ep_alld,f)
+#         with open(cwd+'/optim_results/hat_ep_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(hat_ep_alld,f)
         
-        with open(cwd+'/optim_results/alpha_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(alpha.value,f)
-    else:
-        with open(cwd+'/optim_results/obj_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(obj_vals,f)
+#         with open(cwd+'/optim_results/alpha_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(alpha.value,f)
+#     else:
+#         with open(cwd+'/optim_results/obj_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(obj_vals,f)
         
-        with open(cwd+'/optim_results/psi_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(psi_track,f)
+#         with open(cwd+'/optim_results/psi_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(psi_track,f)
         
-        with open(cwd+'/optim_results/hat_ep_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(hat_ep_alld,f)
+#         with open(cwd+'/optim_results/hat_ep_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(hat_ep_alld,f)
         
-        with open(cwd+'/optim_results/alpha_val/'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(alpha.value,f)
-else: #ablation cases for div_flag == 0
-    with open(cwd+'/optim_results/obj_val/bgap_st1','wb') as f:
-        pk.dump(obj_vals,f)
+#         with open(cwd+'/optim_results/alpha_val/'\
+#             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+#             +'_'+args.div_nn\
+#             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+#             pk.dump(alpha.value,f)
+# else: #ablation cases for div_flag == 0
+#     with open(cwd+'/optim_results/obj_val/bgap_st1','wb') as f:
+#         pk.dump(obj_vals,f)
     
-    with open(cwd+'/optim_results/psi_val/bgap_st1','wb') as f:
-        pk.dump(psi_track,f)
+#     with open(cwd+'/optim_results/psi_val/bgap_st1','wb') as f:
+#         pk.dump(psi_track,f)
     
-    with open(cwd+'/optim_results/hat_ep_val/hat_ep1','wb') as f:
-        pk.dump(hat_ep_alld,f)
+#     with open(cwd+'/optim_results/hat_ep_val/hat_ep1','wb') as f:
+#         pk.dump(hat_ep_alld,f)
     
-    with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
-        pk.dump(alpha.value,f)
+#     with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
+#         pk.dump(alpha.value,f)
 
 
