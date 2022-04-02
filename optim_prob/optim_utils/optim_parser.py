@@ -48,7 +48,7 @@ def optim_parser():
                         help='estimate divergence yes or no') #1 
     ## divergence estimation variables
     # div est infrastructure vars
-    parser.add_argument('--div_comp',type=str,default='cpu',\
+    parser.add_argument('--div_comp',type=str,default='gpu',\
                         choices=['cpu','gpu'])
     parser.add_argument('--div_gpu_num',type=int,default=0,\
                         help='based on your devices')
