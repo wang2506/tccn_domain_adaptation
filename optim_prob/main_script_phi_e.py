@@ -689,49 +689,49 @@ for c_iter in range(args.approx_iters):
 # %% saving some results 
 if args.div_flag == 1: 
     if args.dset_split == 0:
-        with open(cwd+'/optim_results/obj_val/NRG_'\
+        with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(obj_vals,f)
         
-        with open(cwd+'/optim_results/psi_val/NRG_'\
+        with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(psi_track,f)
         
-        with open(cwd+'/optim_results/hat_ep_val/NRG_'\
+        with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(hat_ep_alld,f)
         
-        with open(cwd+'/optim_results/alpha_val/NRG_'\
+        with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(alpha.value,f)
     else:
-        with open(cwd+'/optim_results/obj_val/NRG_'\
+        with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(obj_vals,f)
         
-        with open(cwd+'/optim_results/psi_val/NRG_'\
+        with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(psi_track,f)
         
-        with open(cwd+'/optim_results/hat_ep_val/NRG_'\
+        with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(hat_ep_alld,f)
         
-        with open(cwd+'/optim_results/alpha_val/NRG_'\
+        with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
