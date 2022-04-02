@@ -20,7 +20,8 @@ from torch.utils.data import DataLoader,Dataset
 
 from optim_utils.optim_parser import optim_parser
 from div_utils.neural_nets import MLP,CNN,segmentdataset,\
-    LocalUpdate, wAvg, test_img
+    LocalUpdate, wAvg, test_img, GCNN
+from mnist_m import MNISTM
 
 cwd = os.getcwd()
 args = optim_parser()
@@ -72,18 +73,50 @@ if args.dset_split == 0:
             d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
                             transform=tx_dat)
         d_train.targets = np.array(d_train.targets)
+    elif args.dset_type == 'MM':
+        print('Using MNIST-M \n')
+        tx_dat =  torchvision.transforms.Compose([transforms.ToTensor(),\
+                    transforms.Grayscale()])
+        d_train = MNISTM(pwd+'/data/',train=True,download=True,\
+                         transform=tx_dat)
     else:
         raise TypeError('Dataset exceeds sims')
-
-elif args.dset_split == 1: # TODO
-    if args.dset_type == 'M+S':
-        print('Using MNIST + SVHN')
-    elif args.dset_type == 'M+U':
+elif args.dset_split == 1: 
+    tx_m = torchvision.transforms.Compose([transforms.ToTensor()])
+    tx_mm = torchvision.transforms.Compose([transforms.ToTensor(),\
+                transforms.Grayscale()])
+    tx_u = torchvision.transforms.Compose([transforms.ToTensor(),transforms.Pad(14-8)])    
+    
+    d_m = torchvision.datasets.MNIST(pwd+'/data/',train=True,download=True,\
+                    transform=tx_m)
+    d_mm = MNISTM(pwd+'/data/',train=True,download=True,\
+                     transform=tx_mm)        
+    try: 
+        d_u = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                        transform=tx_u)
+    except:
+        import ssl
+        ssl._create_default_https_context = ssl._create_unverified_context            
+        d_u = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                        transform=tx_u)
+    d_u.targets = torch.tensor(d_u.targets)
+    
+    if args.split_type == 'M+MM':
+        print('Using MNIST + MNIST-M')
+        d_train = d_m+d_mm
+        d_train.targets = torch.concat([d_m.targets,d_mm.targets])
+    elif args.split_type == 'M+U':
         print('Using MNIST + USPS')
-    elif args.dset_type == 'S+U':
-        print('Using SVHN + USPS')
-    elif args.dset_type == 'A':
-        print('Using MNIST + SVHN + USPS')
+        d_train = d_m+d_u
+        d_train.targets = torch.concat([d_m.targets,d_u.targets])
+    elif args.split_type == 'MM+U':
+        print('Using MNIST-M + USPS')
+        d_train = d_mm+d_u       
+        d_train.targets = torch.concat([d_mm.targets,d_u.targets])
+    elif args.split_type == 'A':
+        print('Using MNIST + MNIST-M + USPS')
+        d_train = d_m+d_mm+d_u
+        d_train.targets = torch.concat([d_m.targets,d_mm.targets,d_u.targets])
     else:
         raise TypeError('Datasets exceed sims')
 
@@ -131,18 +164,24 @@ for i in range(args.t_devices):
 
 if args.dset_split == 0:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_lpd','wb') as f:
         pk.dump(lpd,f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','wb') as f:
         pk.dump(d_dsets,f)    
 else:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.split_type+'_'+args.labels_type+'_lpd','wb') as f:
         pk.dump(lpd,f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','wb') as f:
         pk.dump(d_dsets,f)    
+
+# input('a')
 
 # %% source target label re-assignment func
 def st_relab(s_dset,t_dset,d_train):
@@ -185,8 +224,13 @@ elif args.div_nn == 'CNN':
         start_w = start_net.state_dict()
         with open(cwd+'/div_utils/CNN_start_w','wb') as f:
             pk.dump(start_w,f)
+else:
+    nchannels = 1
+    nclasses = 2 
+    start_net = GCNN(nchannels,nclasses).to(device)
 
 print(start_net)
+# input('a')
 
 # %% pairwise training loops
 # lab2ulab_accs = np.zeros(shape=(args.l_devices,args.t_devices)).astype(int) #labeled to unlabeled accuracies
@@ -248,10 +292,12 @@ print('done')
 # %% save the results
 if args.dset_split == 0:
     with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
         pk.dump(lab2ulab_accs,f)
 else:
     with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
         pk.dump(lab2ulab_accs,f)
 

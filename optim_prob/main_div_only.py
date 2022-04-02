@@ -100,7 +100,7 @@ for i in range(args.t_devices):
 
 ## divergence terms
 if args.div_flag == 1: #div flag is online
-    with open(cwd+'/div_results/div/vals/test_ex','rb') as f:
+    with open(cwd+'/div_results/div_vals/test_ex','rb') as f:
         div_pairs = pk.load(f)
 ## hard coding div_pairs to show that the divergence estimation
 ## works in isolation

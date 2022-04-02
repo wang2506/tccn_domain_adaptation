@@ -32,7 +32,7 @@ def optim_parser():
                         help='scaling the source errors') #0.5
     parser.add_argument('--phi_t',type=float,default=50,\
                         help='scaling the target errors') #50 #0.5
-    parser.add_argument('--phi_e',type=float,default=0.0,\
+    parser.add_argument('--phi_e',type=float,default=1,\
                         help='scaling the energy term')
     
     ## optimization constants
@@ -55,7 +55,7 @@ def optim_parser():
     parser.add_argument('--div_ttime',type=int,default=10,\
                         help='divergence estimation total iteration loops')        
     parser.add_argument('--div_nn',type=str,default='MLP',\
-                        choices=['MLP','CNN'],\
+                        choices=['MLP','CNN','GCNN'],\
                         help='neural network for divergence estimation')
     parser.add_argument('--div_lr',type=float,default=1e-2)    
     parser.add_argument('--div_bs',type=int,default=10)
@@ -63,15 +63,15 @@ def optim_parser():
     # div est data + label vars
     parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets')
-    parser.add_argument('--split_type',type=str,default=None,\
-                        choices=['M+S','M+U','S+U','A'],
+    parser.add_argument('--split_type',type=str,default='MM+U',\
+                        choices=['M+MM','M+U','MM+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
-    parser.add_argument('--dset_type',type=str,default='S',\
-                        choices=['M','S','U'],\
-                        help='{M:mnist,S:svhn,U:usps}')
+    parser.add_argument('--dset_type',type=str,default='MM',\
+                        choices=['M','S','U','MM'],\
+                        help='{M:mnist,S:svhn,U:usps,MM:mnist-m}')
     
-    parser.add_argument('--label_split',type=int,default=0,\
+    parser.add_argument('--label_split',type=int,default=1,\
                         help='true:1 or false:0 (false = iid)')
     parser.add_argument('--labels_type',type=str,default='mild',\
                         choices=['mild','extreme'],\

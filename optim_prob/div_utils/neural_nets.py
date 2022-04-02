@@ -47,6 +47,33 @@ class CNN(nn.Module):
         x = self.fc2(x)
         return F.softmax(x, dim=1)
 
+
+class GCNN(nn.Module):
+    def __init__(self, nchannels,nclasses):
+        super(GCNN, self).__init__()
+        self.conv1 = nn.Conv2d(nchannels, 64, kernel_size=5)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3)
+        self.conv3 = nn.Conv2d(64,128,kernel_size=5)
+        self.drop = nn.Dropout2d()
+        self.mpool = nn.MaxPool2d(2,2)
+        self.fc1 = nn.Linear(128, 3072)
+        self.fc2 = nn.Linear(3072, 2048)
+        self.fc3 = nn.Linear(2048,nclasses)
+
+    def forward(self, x):
+        x = F.relu(self.mpool(self.drop(self.conv1(x))))
+        x = F.relu(self.mpool(self.drop(self.conv2(x))))
+        x = F.relu(self.drop(self.conv3(x)))
+        # print(x.shape[1]*x.shape[2]*x.shape[3])
+        x = x.view(-1, x.shape[1]*x.shape[2]*x.shape[3])
+        x = F.relu(self.fc1(x))
+        x = self.drop(x)#, training=self.training)
+        x = F.relu(self.fc2(x))
+        x = self.drop(x)#, training=self.training)
+        x = self.fc3(x)
+        return F.softmax(x, dim=1)        
+        
+
 class segmentdataset(Dataset):
     def __init__(self,dataset,indexes):
         self.dataset = dataset

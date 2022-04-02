@@ -9,6 +9,8 @@ data/mnist/MNIST/raw/
 data/mnist/processed/
 data/mnist/raw
 data/svhn/
+data/usps/
+data/MNISTM/
 optim_prob/backups/
 
 # C extensions

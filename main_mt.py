@@ -18,8 +18,9 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader,Dataset
 
 from optim_prob.optim_utils.optim_parser import optim_parser
-from optim_prob.div_utils.neural_nets import MLP, CNN, test_img_strain
+from optim_prob.div_utils.neural_nets import MLP, CNN, test_img_strain, GCNN
 from utils.mt_utils import rescale_alphas, test_img_ttest, alpha_avg
+from optim_prob.mnist_m import MNISTM
 
 cwd = os.getcwd()
 oargs = optim_parser()
@@ -30,36 +31,53 @@ random.seed(oargs.seed)
 if oargs.label_split == 0: #iid
     oargs.labels_type = 'iid'
 
+# %% Some notes
+# This file contains the model transfer analysis and evaluation for 
+# our optimization results. 
+# We compare ours and 3 algos (random, heuristic 1 and 2) that 
+# find weights (\alpha).
+# These three alternative algos use the source/target determination from
+# our optimization solver.
+#
+# For a full comparison of weights + source/target determination, see
+# mt_comp_full.
+#
 # %% load in optimization and divergence results
 if oargs.dset_split == 0:
     with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
+              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                +'_'+oargs.dset_type\
                 +'_'+oargs.labels_type,'rb') as f:
         psi_vals = pk.load(f)
     
     with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
+              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                +'_'+oargs.dset_type\
                 +'_'+oargs.labels_type,'rb') as f:
         alpha_vals = pk.load(f)
         
     ## load in the model parameters of all devices with labeled data
     with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.dset_type\
+              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                +'_'+oargs.dset_type\
                 +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
         lmp = pk.load(f) #labeled model parameters        
 else:
     with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.split_type\
+              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                +'_'+oargs.split_type\
                 +'_'+oargs.labels_type,'rb') as f:
         psi_vals = pk.load(f)
     
     with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.split_type\
+              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                +'_'+oargs.split_type\
                 +'_'+oargs.labels_type,'rb') as f:
         alpha_vals = pk.load(f)    
     
     with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.split_type\
+              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                +'_'+oargs.split_type\
                 +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
         lmp = pk.load(f) #labeled model parameters        
     
@@ -73,11 +91,13 @@ with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)+\
 
 with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
           +'_seed'+str(oargs.seed)\
-    +'_'+oargs.dset_type+'_'+oargs.labels_type+'_lpd','rb') as f:
+        +'_'+oargs.div_nn\
+        +'_'+oargs.dset_type+'_'+oargs.labels_type+'_lpd','rb') as f:
     lpd = pk.load(f)
 with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
           +'_seed'+str(oargs.seed)\
-    +'_'+oargs.dset_type+'_'+oargs.labels_type+'_dindexsets','rb') as f:
+        +'_'+oargs.div_nn\
+        +'_'+oargs.dset_type+'_'+oargs.labels_type+'_dindexsets','rb') as f:
     d_dsets = pk.load(f)    
 
 # %% load in datasets
@@ -105,19 +125,52 @@ if oargs.dset_split == 0:
             ssl._create_default_https_context = ssl._create_unverified_context            
             d_train = torchvision.datasets.USPS(cwd+'/data/',train=True,download=True,\
                             transform=tx_dat)    
+    elif oargs.dset_type == 'MM':
+        print('Using MNIST-M \n')
+        tx_dat =  torchvision.transforms.Compose([transforms.ToTensor()])
+        d_train = MNISTM(cwd+'/data/',train=True,download=True,\
+                         transform=tx_dat)                    
     else:
         raise TypeError('Dataset exceeds sims')
-elif oargs.dset_split == 1: # TODO
-    if oargs.dset_type == 'M+S':
-        print('Using MNIST + SVHN')
-    elif oargs.dset_type == 'M+U':
+elif oargs.dset_split == 1: 
+    tx_m = torchvision.transforms.Compose([transforms.ToTensor()])
+    tx_mm = torchvision.transforms.Compose([transforms.ToTensor(),\
+                transforms.Grayscale()])
+    tx_u = torchvision.transforms.Compose([transforms.ToTensor(),transforms.Pad(14-8)])    
+    
+    d_m = torchvision.datasets.MNIST(cwd+'/data/',train=True,download=True,\
+                    transform=tx_m)
+    d_mm = MNISTM(cwd+'/data/',train=True,download=True,\
+                     transform=tx_mm)        
+    try: 
+        d_u = torchvision.datasets.USPS(cwd+'/data/',train=True,download=True,\
+                        transform=tx_u)
+    except:
+        import ssl
+        ssl._create_default_https_context = ssl._create_unverified_context            
+        d_u = torchvision.datasets.USPS(cwd+'/data/',train=True,download=True,\
+                        transform=tx_u)
+    d_u.targets = torch.tensor(d_u.targets)    
+    
+    if oargs.split_type == 'M+MM':
+        print('Using MNIST + MNIST-M')
+        d_train = d_m+d_mm
+        d_train.targets = torch.concat([d_m.targets,d_mm.targets])
+    elif oargs.split_type == 'M+U':
         print('Using MNIST + USPS')
-    elif oargs.dset_type == 'S+U':
-        print('Using SVHN + USPS')
-    elif oargs.dset_type == 'A':
-        print('Using MNIST + SVHN + USPS')
+        d_train = d_m+d_u
+        d_train.targets = torch.concat([d_m.targets,d_u.targets])
+    elif oargs.split_type == 'MM+U':
+        print('Using MNIST-M + USPS')
+        d_train = d_mm+d_u       
+        d_train.targets = torch.concat([d_mm.targets,d_u.targets])
+    elif oargs.split_type == 'A':
+        print('Using MNIST + MNIST-M + USPS')
+        d_train = d_m+d_mm+d_u
+        d_train.targets = torch.concat([d_m.targets,d_mm.targets,d_u.targets])
     else:
         raise TypeError('Datasets exceed sims')
+
 
 if oargs.div_comp == 'gpu':
     device = torch.device('cuda:'+str(oargs.div_gpu_num))
@@ -149,7 +202,11 @@ elif oargs.div_nn == 'CNN':
         start_w = start_net.state_dict()
         with open(cwd+'/optim_prob/optim_utils/CNN_start_w','wb') as f:
             pk.dump(start_w,f)
-
+else:
+    nchannels = 1
+    nclasses = 10
+    start_net = GCNN(nchannels,nclasses).to(device)    
+        
 # %% build model + transfer to targets + record results
 wap_dict = {}
 target_models = {}
@@ -204,43 +261,53 @@ for i,j in enumerate(psi_vals):
 # %% save the results
 if oargs.dset_split == 0: # only one dataset
     with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_full_target','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_target','wb') as f:
         pk.dump(target_accs,f)
 
     with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_full_rng','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_rng','wb') as f:
         pk.dump(rt_accs,f)
     
     with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_full_h1','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_h1','wb') as f:
         pk.dump(h1_accs,f)
 
     with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_full_h2','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_h2','wb') as f:
         pk.dump(h2_accs,f)        
     
     with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_full_source','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_source','wb') as f:
         pk.dump(source_accs,f)  
 else:
     with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_full_target','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_target','wb') as f:
         pk.dump(target_accs,f)
 
     with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_full_rng','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_rng','wb') as f:
         pk.dump(rt_accs,f)
         
     with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_full_h1','wb') as f:
+              +'_'+oargs.div_nn\
+            +'_full_h1','wb') as f:
         pk.dump(h1_accs,f)
 
-    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_full_h2','wb') as f:
+    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+              +'_'+oargs.div_nn\
+            +'_full_h2','wb') as f:
         pk.dump(h2_accs,f)        
     
-    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_full_source','wb') as f:
+    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+              +'_'+oargs.div_nn\
+            +'_full_source','wb') as f:
         pk.dump(source_accs,f)      
 
 

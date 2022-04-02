@@ -18,7 +18,8 @@ from torch.utils.data import DataLoader,Dataset
 
 
 from optim_utils.optim_parser import optim_parser
-from div_utils.neural_nets import init_source_train, MLP, CNN, test_img_strain
+from div_utils.neural_nets import init_source_train, MLP, CNN, test_img_strain, GCNN
+from mnist_m import MNISTM
 
 cwd = os.getcwd()
 args = optim_parser()
@@ -88,34 +89,69 @@ if args.dset_split == 0:
             d_train = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
                             transform=tx_dat)
         d_train.targets = np.array(d_train.targets)
+    elif args.dset_type == 'MM':
+        print('Using MNIST-M \n')
+        tx_dat =  torchvision.transforms.Compose([transforms.ToTensor()])
+        d_train = MNISTM(pwd+'/data/',train=True,download=True,\
+                         transform=tx_dat)        
     else:
         raise TypeError('Dataset exceeds sims')
-
-elif args.dset_split == 1: # TODO
-    if args.dset_type == 'M+S':
-        print('Using MNIST + SVHN')
-    elif args.dset_type == 'M+U':
+elif args.dset_split == 1:
+    tx_m = torchvision.transforms.Compose([transforms.ToTensor()])
+    tx_mm = torchvision.transforms.Compose([transforms.ToTensor(),\
+                transforms.Grayscale()])
+    tx_u = torchvision.transforms.Compose([transforms.ToTensor(),transforms.Pad(14-8)])    
+    
+    d_m = torchvision.datasets.MNIST(pwd+'/data/',train=True,download=True,\
+                    transform=tx_m)
+    d_mm = MNISTM(pwd+'/data/',train=True,download=True,\
+                     transform=tx_mm)        
+    try: 
+        d_u = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                        transform=tx_u)
+    except:
+        import ssl
+        ssl._create_default_https_context = ssl._create_unverified_context            
+        d_u = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
+                        transform=tx_u)
+    d_u.targets = torch.tensor(d_u.targets)    
+    
+    if args.split_type == 'M+MM':
+        print('Using MNIST + MNIST-M')
+        d_train = d_m+d_mm
+        d_train.targets = torch.concat([d_m.targets,d_mm.targets])
+    elif args.split_type == 'M+U':
         print('Using MNIST + USPS')
-    elif args.dset_type == 'S+U':
-        print('Using SVHN + USPS')
-    elif args.dset_type == 'A':
-        print('Using MNIST + SVHN + USPS')
+        d_train = d_m+d_u
+        d_train.targets = torch.concat([d_m.targets,d_u.targets])
+    elif args.split_type == 'MM+U':
+        print('Using MNIST-M + USPS')
+        d_train = d_mm+d_u       
+        d_train.targets = torch.concat([d_mm.targets,d_u.targets])
+    elif args.split_type == 'A':
+        print('Using MNIST + MNIST-M + USPS')
+        d_train = d_m+d_mm+d_u
+        d_train.targets = torch.concat([d_m.targets,d_mm.targets,d_u.targets])
     else:
         raise TypeError('Datasets exceed sims')
 
 # data processing
 if args.dset_split == 0:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_lpd','rb') as f:
         lpd = pk.load(f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
         d_dsets = pk.load(f)    
 else:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.split_type+'_'+args.labels_type+'_lpd','rb') as f:
         lpd = pk.load(f)
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
         +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
         d_dsets = pk.load(f)    
 
@@ -160,6 +196,10 @@ if args.init_test != 1:
             start_w = start_net.state_dict()
             with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
                 pk.dump(start_w,f)
+    else:
+        nchannels = 1
+        nclasses = 10
+        start_net = GCNN(nchannels,nclasses).to(device)    
     
     # # sequential storage
     hat_ep = []
@@ -183,11 +223,13 @@ if args.init_test != 1:
     
     if args.dset_split == 0:
         with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
             'wb') as f:
             pk.dump(hat_w,f)
     else:
         with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
             'wb') as f:
             pk.dump(hat_w,f)     
@@ -220,7 +262,7 @@ for i in range(args.t_devices):
         hat_ep_alld.append(1e3)
 
 ## empirical hypothesis mismatch error
-# TODO
+# can't really be done in practice - randomly assignment aar
 ep_mismatch = {}
 min_mismatch = 1e-3
 max_mismatch = 5e-1
@@ -236,12 +278,14 @@ for i in range(args.t_devices):
 if args.div_flag == 1: #div flag is online
     if args.dset_split == 0: 
         with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
-            +'_seed'+str(args.seed)+'_'+args.dset_type\
+            +'_seed'+str(args.seed)+'_'+args.div_nn\
+            +'_'+args.dset_type\
             +'_'+args.labels_type,'rb') as f:
             div_pairs = pk.load(f)
     else:
         with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
-            +'_seed'+str(args.seed)+'_'+args.split_type\
+            +'_seed'+str(args.seed)+'_'+args.div_nn\
+            +'_'+args.split_type\
             +'_'+args.labels_type,'rb') as f:
             div_pairs = pk.load(f)
 else:
@@ -343,10 +387,6 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
 ## auxiliary variables
 chi_s = cp.Variable(args.t_devices,pos=True) 
 chi_t = cp.Variable((args.t_devices,args.t_devices),pos=True)
-
-# %% objective fxn - term 3 [energy costs]
-e_err = 1e-6
-
 
 # %% constraints
 constraints = []
@@ -505,6 +545,14 @@ def posy_init(iter_num,cp_vars,args=args):
     return psi_init,chi_s_init,chi_t_init,alpha_init,\
         chi_c1,chi_c2
 
+# %% calculate energy consumption
+def c_nrg_calc(targs,psi,M=1e6):
+    t_dc = psi
+    
+    
+    
+    return tmp_nrg
+
 # %% combine and run
 obj_vals = []
 psi_track = {}
@@ -549,20 +597,14 @@ for c_iter in range(args.approx_iters):
         build_ts_posy_cons(con1_denoms_pos,con1_denoms_neg,chi_c1,cp_type=1, \
                             alpha=alpha,psi=psi)
     
-    # con2_denoms_pos,con2_denoms_neg = \
-    #     con_posy_denom_calc(chi_c2,chi_c2_init,psi,psi_init,\
-    #                 alpha,alpha_init,cp_type=2)
-    # pos_prev_con2,neg_prev_con2 = \
-    #     build_ts_posy_cons(con2_denoms_pos,con2_denoms_neg,chi_c2,cp_type=2, \
-    #                         alpha=alpha,psi=psi)
-    
     posy_con = s_posy_con + t_posy_cons
     net_con = constraints + posy_con 
-    # net_con = constraints+s_posy_con
     net_con += pos_prev_con1 + neg_prev_con1
-    # net_con += pos_prev_con2 + neg_prev_con2
     
-    obj_fxn = s_err + t_err #+ 1e3*chi_c3
+    e_err = c_nrg_calc(targs=args)
+    e_err = phi_e*e_err
+    
+    obj_fxn = s_err + t_err + e_err
     prob = cp.Problem(cp.Minimize(obj_fxn),constraints=net_con)
     prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
     
@@ -593,41 +635,49 @@ if args.div_flag == 1:
     if args.dset_split == 0:
         with open(cwd+'/optim_results/obj_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(obj_vals,f)
         
         with open(cwd+'/optim_results/psi_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(psi_track,f)
         
         with open(cwd+'/optim_results/hat_ep_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(hat_ep_alld,f)
         
         with open(cwd+'/optim_results/alpha_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
             pk.dump(alpha.value,f)
     else:
         with open(cwd+'/optim_results/obj_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(obj_vals,f)
         
         with open(cwd+'/optim_results/psi_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(psi_track,f)
         
         with open(cwd+'/optim_results/hat_ep_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(hat_ep_alld,f)
         
         with open(cwd+'/optim_results/alpha_val/'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(alpha.value,f)
 else: #ablation cases for div_flag == 0
