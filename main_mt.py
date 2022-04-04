@@ -43,44 +43,87 @@ if oargs.label_split == 0: #iid
 # mt_comp_full.
 #
 # %% load in optimization and divergence results
-if oargs.dset_split == 0:
-    with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.dset_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        psi_vals = pk.load(f)
-    
-    with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.dset_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        alpha_vals = pk.load(f)
+if oargs.nrg_mt == 0: 
+    if oargs.dset_split == 0:
+        with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
         
-    ## load in the model parameters of all devices with labeled data
-    with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.dset_type\
-                +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-        lmp = pk.load(f) #labeled model parameters        
-else:
-    with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.split_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        psi_vals = pk.load(f)
-    
-    with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.split_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        alpha_vals = pk.load(f)    
-    
-    with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.split_type\
-                +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-        lmp = pk.load(f) #labeled model parameters        
-    
+        with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)
+            
+        ## load in the model parameters of all devices with labeled data
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters        
+    else:
+        with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
+        
+        with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)    
+        
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters        
+else: #load in the modified phi_e results
+    if oargs.dset_split == 0:
+        with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
+        
+        with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)
+            
+        ## load in the model parameters of all devices with labeled data
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters        
+    else:
+        with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
+        
+        with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)    
+        
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters      
+
 psi_vals = [int(np.round(j,0)) for j in psi_vals[len(psi_vals.keys())-1]]
 s_alpha,t_alpha,ovr_alpha,s_pv,t_pv= rescale_alphas(psi_vals,alpha_vals)
 
@@ -206,7 +249,25 @@ else:
     nchannels = 1
     nclasses = 10
     start_net = GCNN(nchannels,nclasses).to(device)    
-        
+
+# %% energy compute fxn + load in vars
+with open(cwd+'/optim_prob/nrg_constants/devices'+str(oargs.t_devices)\
+    +'_d2dtxrates','rb') as f:
+    d2d_tx_rates = pk.load(f)
+with open(cwd+'/optim_prob/nrg_constants/devices'+str(oargs.t_devices)\
+    +'_txpowers','rb') as f:
+    tx_powers = pk.load(f)   
+
+def mt_nrg_calc(tc_alpha,c2d_rates,tx_pow=tx_powers,M=oargs.p2bits):
+    param_2_bits = M
+    
+    # calculate energy used for model transferring
+    ctx_nrg = 0
+    for ind_ca,ca in enumerate(tc_alpha):
+        ctx_nrg += param_2_bits/c2d_rates[ind_ca] * tx_powers[ind_ca] * ca
+    
+    return ctx_nrg #current tx energy
+
 # %% build model + transfer to targets + record results
 wap_dict = {}
 target_models = {}
@@ -222,6 +283,11 @@ h2_accs = {}
 source_models = {}
 source_accs = {}
 
+our_nrg = 0
+r_nrg = 0
+h1_nrg = 0
+h2_nrg = 0
+
 for i,j in enumerate(psi_vals):
     if j == 1:
         wap = alpha_avg(lmp,ovr_alpha[:,i]) #w_avg_params
@@ -233,85 +299,246 @@ for i,j in enumerate(psi_vals):
         target_accs[i],_ = test_img_ttest(target_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)
         
         # build random models + test them
-        rwp = alpha_avg(lmp,np.round(np.random.dirichlet(np.ones(len(s_pv))),5))
+        r_alpha = np.round(np.random.dirichlet(np.ones(len(s_pv))),5)
+        rwp = alpha_avg(lmp,r_alpha)
         
         rt_models[i] = deepcopy(start_net)
         rt_models[i].load_state_dict(rwp)
         rt_accs[i],_ = test_img_ttest(rt_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)
         
         # heuristic qty
-        h1wp = alpha_avg(lmp,np.round(np.array(data_qty)[s_pv]/max(data_qty),5))
+        h1_alpha = np.round(np.array(data_qty)[s_pv]/max(data_qty),5)
+        h1wp = alpha_avg(lmp,h1_alpha)
         
         h1_models[i] = deepcopy(start_net)
         h1_models[i].load_state_dict(h1wp)
         h1_accs[i],_ = test_img_ttest(h1_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)
         
-        # heuristic max source labels distribution
-        h2wp = alpha_avg(lmp,1/len(s_pv) * np.ones(len(s_pv)))
+        # heuristic - uniform ratios
+        h2_alpha = 1/len(s_pv) * np.ones(len(s_pv))
+        h2wp = alpha_avg(lmp,h2_alpha)
         
         h2_models[i] = deepcopy(start_net)
         h2_models[i].load_state_dict(h2wp)
         h2_accs[i],_ = test_img_ttest(h2_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)        
         
+        ## compute energies
+        tmp_c2d_rates = d2d_tx_rates[:,i]
+        our_nrg += mt_nrg_calc(ovr_alpha[:,i],tmp_c2d_rates)
+        r_nrg += mt_nrg_calc(r_alpha,tmp_c2d_rates)
+        h1_nrg += mt_nrg_calc(h1_alpha,tmp_c2d_rates)
+        h2_nrg += mt_nrg_calc(h2_alpha,tmp_c2d_rates)
     else:
         source_models[i] = deepcopy(start_net)
         source_models[i].load_state_dict(lmp[i])
         source_accs[i],_ = test_img_ttest(source_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)
 
 # %% save the results
-if oargs.dset_split == 0: # only one dataset
-    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_target','wb') as f:
-        pk.dump(target_accs,f)
-
-    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_rng','wb') as f:
-        pk.dump(rt_accs,f)
+if oargs.nrg_mt == 0:
+    if oargs.dset_split == 0: # only one dataset
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_target','wb') as f:
+            pk.dump(target_accs,f)
     
-    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_h1','wb') as f:
-        pk.dump(h1_accs,f)
-
-    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_h2','wb') as f:
-        pk.dump(h2_accs,f)        
-    
-    with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_source','wb') as f:
-        pk.dump(source_accs,f)  
-else:
-    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_target','wb') as f:
-        pk.dump(target_accs,f)
-
-    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_rng','wb') as f:
-        pk.dump(rt_accs,f)
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_rng','wb') as f:
+            pk.dump(rt_accs,f)
         
-    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_h1','wb') as f:
-        pk.dump(h1_accs,f)
-
-    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_h2','wb') as f:
-        pk.dump(h2_accs,f)        
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h1','wb') as f:
+            pk.dump(h1_accs,f)
     
-    with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
-              +'_'+oargs.div_nn\
-            +'_full_source','wb') as f:
-        pk.dump(source_accs,f)      
-
-
-
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h2','wb') as f:
+            pk.dump(h2_accs,f)        
+        
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_source','wb') as f:
+            pk.dump(source_accs,f)  
+            
+        ## save energies
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_target_nrg','wb') as f:
+            pk.dump(our_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_rng_nrg','wb') as f:
+            pk.dump(r_nrg,f)
+        
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h1_nrg','wb') as f:
+            pk.dump(h1_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h2_nrg','wb') as f:
+            pk.dump(h2_nrg,f)               
+    else:
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_target','wb') as f:
+            pk.dump(target_accs,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_rng','wb') as f:
+            pk.dump(rt_accs,f)
+            
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h1','wb') as f:
+            pk.dump(h1_accs,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h2','wb') as f:
+            pk.dump(h2_accs,f)        
+        
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_source','wb') as f:
+            pk.dump(source_accs,f)      
+    
+        ## save energies
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_target_nrg','wb') as f:
+            pk.dump(our_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_rng_nrg','wb') as f:
+            pk.dump(r_nrg,f)
+        
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h1_nrg','wb') as f:
+            pk.dump(h1_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/'+oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h2_nrg','wb') as f:
+            pk.dump(h2_nrg,f)   
+else: ## adjust file name with nrg
+    if oargs.dset_split == 0: # only one dataset
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_target','wb') as f:
+            pk.dump(target_accs,f)
+    
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_rng','wb') as f:
+            pk.dump(rt_accs,f)
+        
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h1','wb') as f:
+            pk.dump(h1_accs,f)
+    
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h2','wb') as f:
+            pk.dump(h2_accs,f)        
+        
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_source','wb') as f:
+            pk.dump(source_accs,f)  
+            
+        ## save energies
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_target_nrg','wb') as f:
+            pk.dump(our_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_rng_nrg','wb') as f:
+            pk.dump(r_nrg,f)
+        
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h1_nrg','wb') as f:
+            pk.dump(h1_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h2_nrg','wb') as f:
+            pk.dump(h2_nrg,f)               
+    else:
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_target','wb') as f:
+            pk.dump(target_accs,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_rng','wb') as f:
+            pk.dump(rt_accs,f)
+            
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h1','wb') as f:
+            pk.dump(h1_accs,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_h2','wb') as f:
+            pk.dump(h2_accs,f)        
+        
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_full_source','wb') as f:
+            pk.dump(source_accs,f)      
+    
+        ## save energies
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_target_nrg','wb') as f:
+            pk.dump(our_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_rng_nrg','wb') as f:
+            pk.dump(r_nrg,f)
+        
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h1_nrg','wb') as f:
+            pk.dump(h1_nrg,f)
+    
+        with open(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +oargs.labels_type \
+                  +'_'+oargs.div_nn\
+                +'_h2_nrg','wb') as f:
+            pk.dump(h2_nrg,f)   
+    
 
 
 

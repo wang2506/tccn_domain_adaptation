@@ -32,7 +32,7 @@ def optim_parser():
                         help='scaling the source errors') #0.5
     parser.add_argument('--phi_t',type=float,default=50,\
                         help='scaling the target errors') #50 #0.5
-    parser.add_argument('--phi_e',type=float,default=1,\
+    parser.add_argument('--phi_e',type=float,default=1e5,\
                         help='scaling the energy term')
     
     ## optimization constants
@@ -81,6 +81,11 @@ def optim_parser():
     parser.add_argument('--st_time',type=int,default=100,\
                         help='source training time')
     
+    # nrg variables
+    parser.add_argument('--p2bits',type=int,default=1e6,\
+                        help='model 2 bits')    
+    parser.add_argument('--nrg_mt',type=int,default=1,\
+                        help='run energy compute for model transfers')
     # parser
     args = parser.parse_args()
     

@@ -546,16 +546,16 @@ def posy_init(iter_num,cp_vars,args=args):
         chi_c1,chi_c2
 
 # %% calculate energy consumption
-def c_nrg_calc(var_dict,t_args,a_init,M=1e6):
-    # setup needed variables
-    ep_E = 1e-3# if alpha smaller than 1e-3, this should zero things out
-    vd = var_dict
-    tc_alpha = vd['alpha']
-    tc_st = vd['psi'] #temp_nrg_source_target
-    param_2_bits = M
-    
+try: 
+    with open(cwd+'/nrg_constants/devices'+str(args.t_devices)\
+        +'_d2dtxrates','rb') as f:
+        d2d_tx_rates = pk.load(f)
+    with open(cwd+'/nrg_constants/devices'+str(args.t_devices)\
+        +'_txpowers','rb') as f:
+        tx_powers = pk.load(f)        
+except:
     # want to do 23dbm (0.2) to 25dbm (0.32)
-    tx_powers = 0.2 + (0.32-0.2)*np.random.rand(t_args.t_devices)  
+    tx_powers = 0.2 + (0.32-0.2)*np.random.rand(args.t_devices)  
     tx_powers = tx_powers.tolist()
     
     # communications constants
@@ -570,11 +570,12 @@ def c_nrg_calc(var_dict,t_args,a_init,M=1e6):
     beta_tx = 0.14
     dist_d2d_max = 100 #dist_d2d meters
     dist_d2d_min = 25
-
+    
     # tx_rates
-    d2d_tx_rates = np.zeros(shape=(t_args.t_devices,t_args.t_devices))
-    for q in range(t_args.t_devices):
-        for j in range(t_args.t_devices):
+    d2d_tx_rates = np.zeros(shape=(args.t_devices,args.t_devices))    
+
+    for q in range(args.t_devices):
+        for j in range(args.t_devices):
             dist_qj = dist_d2d_min + (dist_d2d_max-dist_d2d_min) \
                 *np.random.rand() # randomly determined
             
@@ -588,6 +589,21 @@ def c_nrg_calc(var_dict,t_args,a_init,M=1e6):
             
             d2d_tx_rates[q,j] = univ_bandwidth *\
                 np.log2(1 + (tx_powers[q]/la2g_qj) / noise_db )    
+
+    with open(cwd+'/nrg_constants/devices'+str(args.t_devices)\
+        +'_d2dtxrates','wb') as f:
+        pk.dump(d2d_tx_rates,f)
+    with open(cwd+'/nrg_constants/devices'+str(args.t_devices)\
+        +'_txpowers','wb') as f:
+        pk.dump(tx_powers,f)    
+
+def c_nrg_calc(var_dict,t_args,a_init,M=args.p2bits,d2d_tx_rates=d2d_tx_rates):
+    # setup needed variables
+    ep_E = 1e-3# if alpha smaller than 1e-3, this should zero things out
+    vd = var_dict
+    tc_alpha = vd['alpha']
+    tc_st = vd['psi'] #temp_nrg_source_target
+    param_2_bits = M
     
     # calculate energy used for model transferring
     tmp_nrg = 1e-6 # total energy consumption init
