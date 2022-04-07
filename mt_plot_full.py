@@ -130,7 +130,7 @@ ax[0].bar(x+0.5*spacing,h1v[:3],width=spacing,\
 ax[0].bar(x+1.5*spacing,h2v[:3],width=spacing,\
         color='darkcyan',edgecolor='black',label='H2')
 ax[0].set_ylabel('Accuracy (%)')
-    
+
 ax[1].bar(x-1.5*spacing,tv[3:6],width=spacing,\
         color='darkblue',edgecolor='black',label='Our Method')
 ax[1].bar(x-0.5*spacing,rv[3:6],width=spacing,\

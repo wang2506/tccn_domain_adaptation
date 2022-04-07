@@ -161,8 +161,100 @@ ax[0].add_artist(leg1)
 
 fig.text(-0.15,0.35,r'Model Weights $\alpha_{i,j}$',rotation='vertical',fontsize=12)
 
+# %% energy computations for large range of phi_e values
+# phi_e = [1,10,1e2]+np.arange(1e3,1e4,1e3).tolist()+[1e4,1e5,1e6,1e7]
+phi_e = [1,1e2,1e3]+np.arange(2e3,2.2e4,2e3).tolist()+[1e5,1e6,1e7]
+param_2_bits = 1e6
+
+# load in the rate constants
+with open(pwd+'/nrg_constants/devices'+str(tds)\
+    +'_d2dtxrates','rb') as f:
+    d2d_rates = pk.load(f)
+    
+with open(pwd+'/nrg_constants/devices'+str(tds)\
+    +'_txpowers','rb') as f:
+    tx_powers = pk.load(f)   
+
+# alpha imports
+for tpe in phi_e:
+    with open(pwd+'/optim_results/'+alpha_f+'/NRG_'+str(tpe)\
+        +'_devices'+str(tds)+'_seed'+str(tseed)+'_'\
+        +model+'_'+dataset+'_'+iid,'rb') as f:
+        tc_alpha = pk.load(f)
+    alpha_vals[tpe] = tc_alpha
+
+# psi imports
+for tpe in phi_e:
+    with open(pwd+'/optim_results/'+psi_f+'/NRG_'+str(tpe)\
+        +'_devices'+str(tds)+'_seed'+str(tseed)+'_'\
+        +model+'_'+dataset+'_'+iid,'rb') as f:
+        tc_psi = pk.load(f)
+        
+    tc_psi = [int(np.round(j,0)) for j in tc_psi[len(tc_psi.keys())-1]]
+    psi_vals[tpe] = tc_psi
+
+rd_alphas = {}
+for tpe in phi_e:
+    rc_s_alpha, rc_t_alpha, joint_alpha, s_inds, t_inds = rescale_alphas(psi_vals[tpe],alpha_vals[tpe])
+    rd_alphas[tpe] = joint_alpha
+
+## calculate energy use based on alphas
+tpe_nrg = []
+
+for tpe in phi_e:
+    c_nrg = 0    
+    for i in range(tds): #for every device
+        tc_alpha = rd_alphas[tpe][i,:]
+        for ind_ca,ca in enumerate(tc_alpha):
+            if ca > 1e-3:
+                c_nrg += param_2_bits/d2d_rates[i,ind_ca] * tx_powers[i] #* ca
+            
+    tpe_nrg.append(c_nrg)
+
+norm_tpe_nrg = np.round(np.array(tpe_nrg)/np.max(tpe_nrg),4)
+
+# %% plot the normalized energy result
+fig2,ax2 = plt.subplots(1,3,figsize=(6,3),dpi=250,sharey=True,gridspec_kw={'width_ratios': [0.8,3,0.8]})
+
+# need to get the data for
+# split the plot into 3 y arranged plots
+# first subplot is 1, 10, 100, 1000
+# second subplot is 2e3 to 2e4 in intervals of 2k
+# third subplot is 1e5 1e6 1e7
+
+# want more from 10,000 to 100.000
+
+ax2[0].step(range(3),norm_tpe_nrg[:3],where='post', \
+        marker='x',linestyle='dashed',color='darkblue',\
+        label='test')
+ax2[1].step(range(10),norm_tpe_nrg[3:13],where='post', \
+        marker='x',linestyle='dashed',color='darkblue',\
+        label='test')
+ax2[2].step(range(3),norm_tpe_nrg[13:],where='post', \
+        marker='x',linestyle='dashed',color='darkblue',\
+        label='test')
+
+ax2[0].set_xticks(range(3))
+ax2[0].set_xticklabels(['1','1e2','1e3'])
+
+# ax2[1].set_xticks(range(5)) 
+ax2[1].set_xticklabels(['2e3','2e3','6e3','1e4','1.4e4','1.8e4'])#,'2.2e4'])
+
+ax2[2].set_xticks(range(3))
+ax2[2].set_xticklabels(['1e5','1e6','1e7'])
+
+for i in range(3):
+    ax2[i].grid(True)
+
+ax2[0].set_ylabel('Normalized Energy \n Consumption (%)',fontsize=12)
+
+fig2.text(0.5, 0, r'$\phi_e$', ha='center',fontsize=12)
+fig2.tight_layout()
+
 # %% save figures
 # fig.savefig(cwd+'/nrg_plots/nrg_model_ratios.png',dpi=1000,bbox_inches='tight')
 # fig.savefig(cwd+'/nrg_plots/nrg_model_ratios.pdf',dpi=1000,bbox_inches='tight')
 
+# fig2.savefig(cwd+'/nrg_plots/nrg_norm_nrg.png',dpi=1000,bbox_inches='tight')
+# fig2.savefig(cwd+'/nrg_plots/nrg_norm_nrg.pdf',dpi=1000,bbox_inches='tight')
 

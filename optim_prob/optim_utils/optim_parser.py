@@ -32,7 +32,7 @@ def optim_parser():
                         help='scaling the source errors') #0.5
     parser.add_argument('--phi_t',type=float,default=50,\
                         help='scaling the target errors') #50 #0.5
-    parser.add_argument('--phi_e',type=float,default=1e5,\
+    parser.add_argument('--phi_e',type=float,default=2e4,\
                         help='scaling the energy term')
     
     ## optimization constants

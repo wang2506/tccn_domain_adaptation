@@ -264,6 +264,8 @@ def mt_nrg_calc(tc_alpha,c2d_rates,tx_pow=tx_powers,M=oargs.p2bits):
     # calculate energy used for model transferring
     ctx_nrg = 0
     for ind_ca,ca in enumerate(tc_alpha):
+        # TODO : messed up
+        # should not have ca - add an if/else
         ctx_nrg += param_2_bits/c2d_rates[ind_ca] * tx_powers[ind_ca] * ca
     
     return ctx_nrg #current tx energy

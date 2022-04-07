@@ -233,6 +233,26 @@ for i,j in enumerate(our_psi_vals):
         our_taccs[i],_ = test_img_ttest(our_tmodels[i],oargs.div_bs,d_train,d_dsets[i],device=device)
 
 # input('a')
+
+# %% energy compute fxn + load in vars
+with open(cwd+'/optim_prob/nrg_constants/devices'+str(oargs.t_devices)\
+    +'_d2dtxrates','rb') as f:
+    d2d_tx_rates = pk.load(f)
+with open(cwd+'/optim_prob/nrg_constants/devices'+str(oargs.t_devices)\
+    +'_txpowers','rb') as f:
+    tx_powers = pk.load(f)   
+
+def mt_nrg_calc(tc_alpha,c2d_rates,tx_pow=tx_powers,M=oargs.p2bits):
+    param_2_bits = M
+    
+    # calculate energy used for model transferring
+    ctx_nrg = 0
+    for ind_ca,ca in enumerate(tc_alpha):
+        # TODO : change to if/else system
+        ctx_nrg += param_2_bits/c2d_rates[ind_ca] * tx_powers[ind_ca] * ca
+    
+    return ctx_nrg #current tx energy
+
 # %% determine the heurstic sources
 ## alg 1: g_avg_acc, all devices with source accuracies > avg become sources
 ## others become targets
@@ -309,6 +329,8 @@ for i,j in enumerate(r_psi):
         r_models[i] = deepcopy(start_net)
         r_models[i].load_state_dict(r_wp)
         r_accs[i],_ = test_img_ttest(r_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)   
+
+
 
 # %% save the results
 # if oargs.dset_split == 0: # only one dataset
