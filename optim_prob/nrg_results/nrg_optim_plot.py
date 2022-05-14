@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle as pk
+import pandas as pd
 
 cwd = os.getcwd()
 pwd = os.path.dirname(cwd)
@@ -24,7 +25,7 @@ hat_ep_vals = {}
 alpha_vals = {}
 
 # phi_e = [1,10,1e3,1e4,1e5,1e6]
-phi_e = [1e3,1e4,1e5]
+phi_e = [1e0,1e1,1e2]
 tds = 10
 tseed = 1
 model = 'MLP'
@@ -95,14 +96,14 @@ for tpe in phi_e:
     tj_alphas[tpe] = joint_alpha
     tt_alphas[tpe] = rc_t_alpha
 
-# have a small rounding issue, manually change
-tj_alphas[1e4][3,5] -= 0.01
-tj_alphas[1e4][3,6] -= 0.01
-tj_alphas[1e3][3,5] += 0.01
+# # have a small rounding issue, manually change
+# tj_alphas[1e4][3,5] -= 0.01
+# tj_alphas[1e4][3,6] -= 0.01
+# tj_alphas[1e3][3,5] += 0.01
 
-tt_alphas[1e4][3,0] -= 0.01
-tt_alphas[1e4][3,1] -= 0.01
-tt_alphas[1e3][3,0] += 0.01
+# tt_alphas[1e4][3,0] -= 0.01
+# tt_alphas[1e4][3,1] -= 0.01
+# tt_alphas[1e3][3,0] += 0.01
 
 # input('a')
 # %% plot bars for max-min
@@ -112,7 +113,7 @@ fig,ax = plt.subplots(3,1,figsize=(3,5),dpi=250,sharex=True) #vertically stacked
 cats = 1
 width = 0.5
 spacing = np.round(width/cats,2)
-x = np.arange(sum(psi_vals[1e3])) # TODO special case - we know that 5 sources every time
+x = np.arange(sum(psi_vals[1e2])) # TODO special case - we know that 5 sources every time
 # x = np.arange(0,10,1)
 
 color_vec = ['mediumblue','forestgreen','maroon','magenta','orange']
@@ -143,9 +144,9 @@ for i in range(3):
     ax[i].grid(True)
     ax[i].set_axisbelow(True)
 
-ax[0].set_ylabel(r'$\phi_e = 1e3$')
-ax[1].set_ylabel(r'$\phi_e = 1e4$')
-ax[2].set_ylabel(r'$\phi_e = 1e5$')
+ax[0].set_ylabel(r'$\phi_e = 1e0$')
+ax[1].set_ylabel(r'$\phi_e = 1e1$')
+ax[2].set_ylabel(r'$\phi_e = 1e2$')
 
 h,l = ax[0].get_legend_handles_labels()
 # l = l[:5]
@@ -163,8 +164,10 @@ fig.text(-0.15,0.35,r'Model Weights $\alpha_{i,j}$',rotation='vertical',fontsize
 
 # %% energy computations for large range of phi_e values
 # phi_e = [1,10,1e2]+np.arange(1e3,1e4,1e3).tolist()+[1e4,1e5,1e6,1e7]
-phi_e = [1,1e2,1e3]+np.arange(2e3,2.2e4,2e3).tolist()+[1e5,1e6,1e7]
-param_2_bits = 1e6
+phi_e = [1e-2,1e-1,1e0]+np.arange(2e0,2.2e1,2e0).tolist()+[1e2,1e3,1e4]#+[1e5,1e6,1e7]
+# add in 2e0,4e0,6e0,8e0,9e0,1e1,
+#1.2e1,1.4e1,1.6e1,1.8e1,2e1,2.2e1
+param_2_bits = 1e9
 
 # load in the rate constants
 with open(pwd+'/nrg_constants/devices'+str(tds)\
@@ -235,18 +238,20 @@ ax2[2].step(range(3),norm_tpe_nrg[13:],where='post', \
         label='test')
 
 ax2[0].set_xticks(range(3))
-ax2[0].set_xticklabels(['1','1e2','1e3'])
+ax2[0].set_xticklabels(['1e-2','1e-1','1e0'])
 
 # ax2[1].set_xticks(range(5)) 
-ax2[1].set_xticklabels(['2e3','2e3','6e3','1e4','1.4e4','1.8e4'])#,'2.2e4'])
+ax2[1].set_xticklabels(['1e0','2e0','6e0','1e1','1.4e1','1.8e1'])#,'2.2e4'])
 
 ax2[2].set_xticks(range(3))
-ax2[2].set_xticklabels(['1e5','1e6','1e7'])
+ax2[2].set_xticklabels(['1e2','1e3','1e4'])
 
 for i in range(3):
     ax2[i].grid(True)
 
 ax2[0].set_ylabel('Normalized Energy \n Consumption (%)',fontsize=12)
+# ax2[0].set_yticks([])
+ax2[0].set_yticklabels(['40']+[str(i) for i in np.arange(40,101,10)])
 
 fig2.text(0.5, 0, r'$\phi_e$', ha='center',fontsize=12)
 fig2.tight_layout()

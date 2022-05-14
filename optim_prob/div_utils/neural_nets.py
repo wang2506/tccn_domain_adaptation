@@ -133,6 +133,17 @@ def wAvg(w):
                 w_avg[k] += w[i][k]/len(w)
     return w_avg
 
+def wAvg_weighted(w,weights):
+    w_avg = deepcopy(w[0])
+    
+    for k in w_avg.keys():
+        for i in range(len(w)):
+            if i == 0:
+                w_avg[k] = w[i][k]*weights[0]
+            else:# i != 0:
+                w_avg[k] += w[i][k]*weights[0]
+    return w_avg
+
 def test_img(net_g,bs,dset,indx,st,device):
     net_g.eval()
     # testing
@@ -164,6 +175,30 @@ def test_img(net_g,bs,dset,indx,st,device):
     accuracy = 100*correct.item() / len(indx) #data_loader.dataset)
     
     return accuracy, test_loss
+
+# %% fxn to evaluate hypothesis mismatch
+def d2d_mismatch_test(c_net_s,params_t,params_s,dset,indx_t,bs,device):
+    c_net_t = deepcopy(c_net_s)
+    c_net_s.load_state_dict(params_s)
+    c_net_t.load_state_dict(params_t)
+    c_net_t.eval()
+    c_net_s.eval()
+    
+    matches = 0
+    dl = DataLoader(segmentdataset(dset,indx_t),batch_size=bs,shuffle=True)
+    for idx, (data,targets) in enumerate(dl):
+        data = data.to(device)
+        
+        log_probs_s = c_net_s(data)
+        log_probs_t = c_net_t(data)
+
+        s_pred = log_probs_s.data.max(1,keepdim=True)[1]
+        t_pred = log_probs_t.data.max(1,keepdim=True)[1]
+        
+        matches += s_pred.eq(t_pred).long().cpu().sum()
+    acc = 100*matches.item() / len(indx_t)
+    diff = (100-acc)/100
+    return diff
 
 # %% neural nets for the optim problem + source error calc
 class LocalUpdate_strain(object):

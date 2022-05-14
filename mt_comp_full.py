@@ -248,8 +248,8 @@ def mt_nrg_calc(tc_alpha,c2d_rates,tx_pow=tx_powers,M=oargs.p2bits):
     # calculate energy used for model transferring
     ctx_nrg = 0
     for ind_ca,ca in enumerate(tc_alpha):
-        # TODO : change to if/else system
-        ctx_nrg += param_2_bits/c2d_rates[ind_ca] * tx_powers[ind_ca] * ca
+        if ca > 1e-3:
+            ctx_nrg += param_2_bits/c2d_rates[ind_ca] * tx_powers[ind_ca] #* ca
     
     return ctx_nrg #current tx energy
 
@@ -258,6 +258,7 @@ def mt_nrg_calc(tc_alpha,c2d_rates,tx_pow=tx_powers,M=oargs.p2bits):
 ## others become targets
 h1_models = {}
 h1_accs = {}
+h1_nrg = 0
 
 avg_saccs = np.average(list(our_saccs.values()))
 h1_psi = deepcopy(psi_vals)
@@ -272,15 +273,20 @@ for i,j in enumerate(h1_s): # grab the parameters in a dict
 for i,j in enumerate(h1_psi):
     if j == 1:
         # build models (random weights)
-        h1wp = alpha_avg(h1_lmp,np.round(np.random.dirichlet(np.ones(len(h1_s))),5))
+        h1_alphas = np.round(np.random.dirichlet(np.ones(len(h1_s))),5)
+        h1wp = alpha_avg(h1_lmp,h1_alphas)
 
         h1_models[i] = deepcopy(start_net)
         h1_models[i].load_state_dict(h1wp)
         h1_accs[i],_ = test_img_ttest(h1_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)
-        
+
+        tmp_c2d_rates = d2d_tx_rates[:,i][h1_s]
+        h1_nrg += mt_nrg_calc(h1_alphas,tmp_c2d_rates)
+
 ## alg 2: greatest accuracy
 h2_models = {}
 h2_accs = {}
+h2_nrg = 0
 
 h2_psi = deepcopy(psi_vals)
 h2_s = np.argmax(list(our_saccs.values()))
@@ -295,17 +301,22 @@ for i,j in enumerate(h2_s):
 
 for i,j in enumerate(h2_psi):
     if j == 1:
-        h2wp = alpha_avg(h2_lmp,np.round(np.random.dirichlet(np.ones(len(h2_s))),5))
+        h2_alphas = np.round(np.random.dirichlet(np.ones(len(h2_s))),5)
+        h2wp = alpha_avg(h2_lmp,h2_alphas)
 
         h2_models[i] = deepcopy(start_net)
         h2_models[i].load_state_dict(h2wp)
         h2_accs[i],_ = test_img_ttest(h2_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)      
 
+        tmp_c2d_rates = d2d_tx_rates[:,i][h2_s]
+        h2_nrg += mt_nrg_calc(h2_alphas,tmp_c2d_rates)
+        
 ## alg 3: random source determination from devices with labelled datasets
 ## special case, as our algorithm (for this case) uses all labelled devices
 ## as sources
 r_models = {}
 r_accs = {}
+r_nrg = 0
 
 r_psi = np.array(deepcopy(psi_vals))
 r_s_init = list(np.where(r_psi == 0)[0])
@@ -324,15 +335,71 @@ for i,j in enumerate(r_s):
 for i,j in enumerate(r_psi):
     if j == 1:
         # build models (random weights)
-        r_wp = alpha_avg(r_lmp,np.round(np.random.dirichlet(np.ones(len(r_s))),5))
+        r_alphas = np.round(np.random.dirichlet(np.ones(len(r_s))),5)
+        r_wp = alpha_avg(r_lmp,r_alphas)
         
         r_models[i] = deepcopy(start_net)
         r_models[i].load_state_dict(r_wp)
         r_accs[i],_ = test_img_ttest(r_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)   
 
-
+        tmp_c2d_rates = d2d_tx_rates[:,i][r_s]
+        r_nrg += mt_nrg_calc(r_alphas,tmp_c2d_rates)
 
 # %% save the results
+import pandas as pd
+acc_df = pd.DataFrame()
+accs_vec = [list(r_accs.values()),list(h1_accs.values()),list(h2_accs.values())]
+accs_vec_lens = [len(i) for i in accs_vec]
+df_max_len = np.max(accs_vec_lens)
+df_max_len_ind = np.argmax(accs_vec_lens)
+for i,j in enumerate(accs_vec):
+    if len(j) < df_max_len:
+        tarr = np.empty(df_max_len - len(j))
+        tarr[:] = np.nan
+        j += tarr.tolist()
+        accs_vec[i] = j
+
+acc_df['rng'] = accs_vec[0]
+acc_df['geq_avg_acc'] = accs_vec[1]
+acc_df['max_acc'] = accs_vec[2]
+
+nrg_df = pd.DataFrame()
+nrg_df['rng'] = [r_nrg]
+nrg_df['geq_avg_acc'] = [h1_nrg]
+nrg_df['max_acc'] = [h2_nrg]
+if oargs.nrg_mt == 0:
+    if oargs.dset_split == 0: # only one dataset
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
+                +'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
+                +'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv')
+    else:
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+                +'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+                +'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv')
+
+else: ## adjust file name with nrg
+    if oargs.dset_split == 0: # only one dataset
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
+                  +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
+                  +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv')                  
+    else:
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)\
+                  +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)\
+                  +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv') 
+
+# %%
 # if oargs.dset_split == 0: # only one dataset
 #     with open(cwd+'/mt_results/'+oargs.dset_type+'/st_det_'+oargs.labels_type \
 #               +'_'+oargs.div_nn\
@@ -354,10 +421,21 @@ for i,j in enumerate(r_psi):
 #             +'_full_h2','wb') as f:
 #         pk.dump(h2_accs,f)        
     
-#     # with open(cwd+'/mt_results/'+oargs.dset_type+'/st_det_'+oargs.labels_type \
-#     #           +'_'+oargs.div_nn\
-#     #         +'_full_source','wb') as f:
-#     #     pk.dump(source_accs,f)  
+#     ## save energy
+#     with open(cwd+'/mt_results/'+oargs.dset_type+'/st_det_'+oargs.labels_type \
+#               +'_'+oargs.div_nn\
+#             +'_full_rng_nrg','wb') as f:
+#         pk.dump(r_nrg,f)
+    
+#     with open(cwd+'/mt_results/'+oargs.dset_type+'/st_det_'+oargs.labels_type \
+#               +'_'+oargs.div_nn\
+#             +'_full_h1_nrg','wb') as f:
+#         pk.dump(h1_nrg,f)
+
+#     with open(cwd+'/mt_results/'+oargs.dset_type+'/st_det_'+oargs.labels_type \
+#               +'_'+oargs.div_nn\
+#             +'_full_h2_nrg','wb') as f:
+#         pk.dump(h2_nrg,f)           
 # else:
 #     with open(cwd+'/mt_results/'+oargs.split_type+'/st_det_'+oargs.labels_type \
 #               +'_'+oargs.div_nn\
@@ -379,15 +457,21 @@ for i,j in enumerate(r_psi):
 #             +'_full_h2','wb') as f:
 #         pk.dump(h2_accs,f)        
     
-#     # with open(cwd+'/mt_results/'+oargs.split_type+'/st_det_'+oargs.labels_type \
-#     #           +'_'+oargs.div_nn\
-#     #         +'_full_source','wb') as f:
-#     #     pk.dump(source_accs,f)      
+#     ## save energy
+#     with open(cwd+'/mt_results/'+oargs.split_type+'/st_det_'+oargs.labels_type \
+#               +'_'+oargs.div_nn\
+#             +'_full_rng_nrg','wb') as f:
+#         pk.dump(r_nrg,f)
+    
+#     with open(cwd+'/mt_results/'+oargs.split_type+'/st_det_'+oargs.labels_type \
+#               +'_'+oargs.div_nn\
+#             +'_full_h1_nrg','wb') as f:
+#         pk.dump(h1_nrg,f)
 
-
-
-
-
+#     with open(cwd+'/mt_results/'+oargs.split_type+'/st_det_'+oargs.labels_type \
+#               +'_'+oargs.div_nn\
+#             +'_full_h2_nrg','wb') as f:
+#         pk.dump(h2_nrg,f)               
 
 
 

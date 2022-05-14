@@ -16,9 +16,9 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader,Dataset
 
-
 from optim_utils.optim_parser import optim_parser
-from div_utils.neural_nets import init_source_train, MLP, CNN, test_img_strain, GCNN
+from div_utils.neural_nets import init_source_train, MLP, CNN, \
+    test_img_strain, GCNN, wAvg_weighted, d2d_mismatch_test
 from mnist_m import MNISTM
 
 cwd = os.getcwd()
@@ -70,7 +70,7 @@ if args.dset_split == 0:
                         transform=transforms.ToTensor())
     elif args.dset_type == 'S': #needs scipy
         print('Using SVHN \n')
-        args.approx_iters = 100
+        # args.approx_iters = 100
         tx_dat = torchvision.transforms.Compose([transforms.ToTensor(),\
                         transforms.Grayscale(),transforms.CenterCrop(28)])
         d_train = torchvision.datasets.SVHN(pwd+'/data/svhn/',split='train',download=True,\
@@ -144,7 +144,7 @@ if args.dset_split == 0:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
-        d_dsets = pk.load(f)    
+        d_dsets = pk.load(f)
 else:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
@@ -205,7 +205,7 @@ if args.init_test != 1:
     hat_ep = []
     hat_w = {}
     ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
-    print('training source domains - find source errors')
+    print('training at devices with labeled data - find all possible source errors')
     for i in range(args.l_devices):
         # start_net.load_state_dict(start_w)
         # train the source model on labeled data
@@ -216,7 +216,7 @@ if args.init_test != 1:
         t_net.load_state_dict(params_w)
         acc_i,ce_loss = test_img_strain(t_net,\
                     args.div_bs,d_train,indx=d_dsets[i],device=device)
-            
+        
         hat_ep.append((100-acc_i)/100) # need to replace with the final training error
         # print(acc_i)
         hat_w[i] = params_w
@@ -261,18 +261,8 @@ for i in range(args.t_devices):
         # hat_ep_alld.append(1e4) #1e3
         hat_ep_alld.append(1e3)
 
-## empirical hypothesis mismatch error
-# can't really be done in practice - randomly assignment aar
-ep_mismatch = {}
-min_mismatch = 1e-3
-max_mismatch = 5e-1
-
-for i in range(args.t_devices):
-    temp_ep_mismatch = (min_mismatch+(max_mismatch-min_mismatch)\
-                        *np.random.rand(args.t_devices)).tolist()
-    ep_mismatch[i] = []
-    for j in range(args.t_devices):
-        ep_mismatch[i].extend(random.sample(temp_ep_mismatch,1))
+## empirical hypothesis mismatch error - calculate iteratively
+# as it depends on the current instance's alpha values
 
 ## divergence terms
 if args.div_flag == 1: #div flag is online
@@ -292,12 +282,12 @@ else:
     div_pairs = np.ones((args.t_devices,args.t_devices))
 
 # divergence normalization (by low end - 50)
-d_min = 50
-d_max = 100
+d_min = np.min(div_pairs[np.nonzero(div_pairs)])
+d_max = np.max(div_pairs) #100
 for ir,row in enumerate(div_pairs):
     for iv,cval in enumerate(row):
         if cval != 0:
-            cval = (cval-50)*2
+            cval = np.abs(cval-50)*2 #(cval-d_min)
             row[iv] = cval
             div_pairs[ir] = row
 
@@ -317,7 +307,7 @@ sqrt_alld = sqrt_s+sqrt_t
 ## fxn name --> posy_err_calc
 def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                rads=rad_alld,sqrts=sqrt_alld,hat_ep=hat_ep_alld,\
-                ep_mis=ep_mismatch,div_vals=None,args=args):
+                div_vals=None,args=args,s_params=hat_w,base_net=start_net): #ep_mis=ep_mismatch,
     err_denoms = []
     if err_type == 's':
         chi_scale = np.array(hat_ep) + 2*np.array(rads) + np.array(sqrts)
@@ -342,18 +332,19 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
         # chi_init_lists = []
         for j in range(args.t_devices):
             chi_scale[j] = []
-            chi_scale_init[j] = []
-            for i in range(args.t_devices):
+            chi_scale_init[j] = []        
+            
+            for i in range(args.t_devices):                
                 if div_flag == False:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                                +4*rad_alld[j]+sqrts[j] #+ep_mis[j][i]
+                                +4*rad_alld[j]+sqrts[j] #+ ep_mis#[j][i]
                 else:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
                                 +4*rad_alld[j]+sqrts[j]+\
                                 0.5*2*div_vals[i,j]/100+\
                                 2*(rad_alld[i]+rad_alld[j]) + \
-                                sqrts[i]+sqrts[j] #+ep_mis[j][i]
-                                                                
+                                sqrts[i]+sqrts[j] #+ep_mis#[j][i]
+                    
                     # by defn, divergence is 2*(1-min error)
                     # equiv 2*(accuracy/100), and its scaled by 1/2 in our obj fxn
                     
@@ -572,8 +563,8 @@ except:
     dist_d2d_min = 25
     
     # tx_rates
-    d2d_tx_rates = np.zeros(shape=(args.t_devices,args.t_devices))    
-
+    d2d_tx_rates = np.zeros(shape=(args.t_devices,args.t_devices))       
+    
     for q in range(args.t_devices):
         for j in range(args.t_devices):
             dist_qj = dist_d2d_min + (dist_d2d_max-dist_d2d_min) \
@@ -762,7 +753,7 @@ else: #ablation cases for div_flag == 0
     with open(cwd+'/optim_results/hat_ep_val/hat_ep1','wb') as f:
         pk.dump(hat_ep_alld,f)
     
-    with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
-        pk.dump(alpha.value,f)
+#     with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
+#         pk.dump(alpha.value,f)
 
 

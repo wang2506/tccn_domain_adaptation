@@ -130,9 +130,23 @@ d_train_ls = {i:np.where(d_train.targets==i)[0] for i in range(labels)}
 if args.label_split == 1:
     # determination of the device datasets requires
     if args.labels_type == 'mild':
-        lpd = [sorted(random.sample(range(labels),3)) for i in range(args.t_devices)]
-        d_dset_sqtys = [np.random.multinomial(alld_qty[i],[np.round(1/3,3)]*3) \
-                         for i in range(args.t_devices)]
+        lpd = [random.sample(range(labels),3) for i in range(args.t_devices)]
+        # random.shuffle(lpd)
+        td_qty = np.round(np.random.dirichlet(5*np.ones(3),args.t_devices),2)
+        ## if a row doesn't sum to 1
+        for trow in td_qty:
+            if np.round(sum(trow),2) < 1:
+                ind_min = np.argmin(trow)
+                trow[ind_min] += 1 - np.round(sum(trow),2)
+            elif np.round(sum(trow),2) > 1:
+                ind_max = np.argmax(trow)
+                trow[ind_max] -= np.round(sum(trow),2) - 1
+        
+        d_dset_sqtys = np.array([alld_qty[i]*td_qty[i,:] for i in range(args.t_devices)])
+        d_dset_sqtys = np.round(d_dset_sqtys,0).astype(int)
+        
+        # d_dset_sqtys = [np.random.multinomial(alld_qty[i],[np.round(1/3,3)]*3) \
+        #                    for i in range(args.t_devices)]
     elif args.labels_type == 'extreme':
         lpd = [random.sample(range(labels),1) for i in range(args.t_devices)]
         d_dset_sqtys = [np.random.multinomial(alld_qty[i],[1]) \
@@ -156,6 +170,7 @@ for i in range(args.t_devices):
                 if len(td_dset)-tj > len(d_train_ls[c_labels[ti]].tolist()):
                     td_dset += td_dset
                 else:
+                    td_dset = list(td_dset)
                     td_dset += random.sample(d_train_ls[c_labels[ti]].tolist(),tj-len(td_dset))
             random.shuffle(td_dset)
         else:

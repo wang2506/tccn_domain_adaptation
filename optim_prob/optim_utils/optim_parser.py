@@ -9,15 +9,15 @@ import argparse
 def optim_parser():
     parser = argparse.ArgumentParser()
     ## code system settings
-    parser.add_argument('--seed',type=int,default=1)    
+    parser.add_argument('--seed',type=int,default=1) #[1,2,3,4,5]
     parser.add_argument('--optim_save',type=bool,default=False,\
                         help='save the run data or not')
     
     ## devices and their characteristics    
     parser.add_argument('--t_devices',type=int,default=10,\
-                        help='total_networked_devices')
+                        help='total_networked_devices') #10
     parser.add_argument('--l_devices',type=int,default=5,\
-                        help='devices w labelled data')
+                        help='devices w labelled data') #5
     # 'devices w/out labelled data' - see bottom
     
     parser.add_argument('--avg_uqty',type=int,default=1000,\
@@ -32,8 +32,8 @@ def optim_parser():
                         help='scaling the source errors') #0.5
     parser.add_argument('--phi_t',type=float,default=50,\
                         help='scaling the target errors') #50 #0.5
-    parser.add_argument('--phi_e',type=float,default=2e4,\
-                        help='scaling the energy term')
+    parser.add_argument('--phi_e',type=float,default=1e1,\
+                        help='scaling the energy term') #1e1
     
     ## optimization constants
     parser.add_argument('--approx_iters',type=int,default=50,\
@@ -63,11 +63,11 @@ def optim_parser():
     # div est data + label vars
     parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets')
-    parser.add_argument('--split_type',type=str,default='MM+U',\
-                        choices=['M+MM','M+U','MM+U','A'],
+    parser.add_argument('--split_type',type=str,default='M+MM',\
+                        choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
-    parser.add_argument('--dset_type',type=str,default='M',\
+    parser.add_argument('--dset_type',type=str,default='MM',\
                         choices=['M','S','U','MM'],\
                         help='{M:mnist,S:svhn,U:usps,MM:mnist-m}')
     
@@ -82,8 +82,8 @@ def optim_parser():
                         help='source training time')
     
     # nrg variables
-    parser.add_argument('--p2bits',type=int,default=1e6,\
-                        help='model 2 bits')    
+    parser.add_argument('--p2bits',type=int,default=1e9,\
+                        help='model 2 bits')
     parser.add_argument('--nrg_mt',type=int,default=1,\
                         help='run energy compute for model transfers')
     # parser

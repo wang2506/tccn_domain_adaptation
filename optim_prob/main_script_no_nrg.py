@@ -16,9 +16,9 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader,Dataset
 
-
 from optim_utils.optim_parser import optim_parser
-from div_utils.neural_nets import init_source_train, MLP, CNN, test_img_strain, GCNN
+from div_utils.neural_nets import init_source_train, MLP, CNN, \
+    test_img_strain, GCNN, wAvg_weighted, d2d_mismatch_test
 from mnist_m import MNISTM
 
 cwd = os.getcwd()
@@ -205,7 +205,7 @@ if args.init_test != 1:
     hat_ep = []
     hat_w = {}
     ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
-    print('training source domains - find source errors')
+    print('training at devices with labeled data - find all possible source errors')
     for i in range(args.l_devices):
         # start_net.load_state_dict(start_w)
         # train the source model on labeled data
@@ -216,7 +216,7 @@ if args.init_test != 1:
         t_net.load_state_dict(params_w)
         acc_i,ce_loss = test_img_strain(t_net,\
                     args.div_bs,d_train,indx=d_dsets[i],device=device)
-            
+        
         hat_ep.append((100-acc_i)/100) # need to replace with the final training error
         # print(acc_i)
         hat_w[i] = params_w
@@ -261,18 +261,8 @@ for i in range(args.t_devices):
         # hat_ep_alld.append(1e4) #1e3
         hat_ep_alld.append(1e3)
 
-## empirical hypothesis mismatch error
-# TODO
-ep_mismatch = {}
-min_mismatch = 1e-3
-max_mismatch = 5e-1
-
-for i in range(args.t_devices):
-    temp_ep_mismatch = (min_mismatch+(max_mismatch-min_mismatch)\
-                        *np.random.rand(args.t_devices)).tolist()
-    ep_mismatch[i] = []
-    for j in range(args.t_devices):
-        ep_mismatch[i].extend(random.sample(temp_ep_mismatch,1))
+## empirical hypothesis mismatch error - calculate iteratively
+# as it depends on the current instance's alpha values
 
 ## divergence terms
 if args.div_flag == 1: #div flag is online
@@ -317,7 +307,7 @@ sqrt_alld = sqrt_s+sqrt_t
 ## fxn name --> posy_err_calc
 def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                rads=rad_alld,sqrts=sqrt_alld,hat_ep=hat_ep_alld,\
-                ep_mis=ep_mismatch,div_vals=None,args=args):
+                div_vals=None,args=args,s_params=hat_w,base_net=start_net): #ep_mis=ep_mismatch,
     err_denoms = []
     if err_type == 's':
         chi_scale = np.array(hat_ep) + 2*np.array(rads) + np.array(sqrts)
@@ -342,18 +332,19 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
         # chi_init_lists = []
         for j in range(args.t_devices):
             chi_scale[j] = []
-            chi_scale_init[j] = []
-            for i in range(args.t_devices):
+            chi_scale_init[j] = []        
+            
+            for i in range(args.t_devices):                
                 if div_flag == False:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                                +4*rad_alld[j]+sqrts[j] #+ep_mis[j][i]
+                                +4*rad_alld[j]+sqrts[j] #+ ep_mis#[j][i]
                 else:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
                                 +4*rad_alld[j]+sqrts[j]+\
                                 0.5*2*div_vals[i,j]/100+\
                                 2*(rad_alld[i]+rad_alld[j]) + \
-                                sqrts[i]+sqrts[j] #+ep_mis[j][i]
-                                                                
+                                sqrts[i]+sqrts[j] #+ep_mis#[j][i]
+                    
                     # by defn, divergence is 2*(1-min error)
                     # equiv 2*(accuracy/100), and its scaled by 1/2 in our obj fxn
                     
@@ -683,16 +674,16 @@ if args.div_flag == 1:
             +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
             pk.dump(alpha.value,f)
 else: #ablation cases for div_flag == 0
-    with open(cwd+'/optim_results/obj_val/bgap_st1','wb') as f:
+    with open(cwd+'/optim_results/obj_val/bgap_st1_hat','wb') as f:
         pk.dump(obj_vals,f)
     
-    with open(cwd+'/optim_results/psi_val/bgap_st1','wb') as f:
+    with open(cwd+'/optim_results/psi_val/bgap_st1_hat','wb') as f:
         pk.dump(psi_track,f)
     
-    with open(cwd+'/optim_results/hat_ep_val/hat_ep1','wb') as f:
+    with open(cwd+'/optim_results/hat_ep_val/hat_ep1_hat','wb') as f:
         pk.dump(hat_ep_alld,f)
     
-    with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
+    with open(cwd+'/optim_results/alpha_val/alpha1_hat','wb') as f:
         pk.dump(alpha.value,f)
 
 
