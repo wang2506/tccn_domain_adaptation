@@ -60,14 +60,14 @@ def optim_parser():
     parser.add_argument('--div_lr',type=float,default=1e-2)    
     parser.add_argument('--div_bs',type=int,default=10)
     
-    # div est data + label vars
+    # div est data + label vars 
     parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets')
     parser.add_argument('--split_type',type=str,default='M+MM',\
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
-    parser.add_argument('--dset_type',type=str,default='MM',\
+    parser.add_argument('--dset_type',type=str,default='M',\
                         choices=['M','S','U','MM'],\
                         help='{M:mnist,S:svhn,U:usps,MM:mnist-m}')
     

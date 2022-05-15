@@ -43,43 +43,86 @@ if oargs.label_split == 0: #iid
 # [again, dirichlet]
 # 
 # %% load in optimization and divergence results
-if oargs.dset_split == 0:
-    with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.dset_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        psi_vals = pk.load(f)
-    
-    with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.dset_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        alpha_vals = pk.load(f)
+if oargs.nrg_mt == 0: 
+    if oargs.dset_split == 0:
+        with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
         
-    ## load in the model parameters of all devices with labeled data
-    with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.dset_type\
-                +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-        lmp = pk.load(f) #labeled model parameters        
-else:
-    with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.split_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        psi_vals = pk.load(f)
-    
-    with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.split_type\
-                +'_'+oargs.labels_type,'rb') as f:
-        alpha_vals = pk.load(f)    
-    
-    with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-              '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                +'_'+oargs.split_type\
-                +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-        lmp = pk.load(f) #labeled model parameters        
+        with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)
+            
+        ## load in the model parameters of all devices with labeled data
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters        
+    else:
+        with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
+        
+        with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)    
+        
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters        
+else: #load in the phi_e results
+    if oargs.dset_split == 0:
+        with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
+        
+        with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)
+        
+        ## load in the model parameters of all devices with labeled data
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters        
+    else:
+        with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            psi_vals = pk.load(f)
+        
+        with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type,'rb') as f:
+            alpha_vals = pk.load(f)    
+        
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.split_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters      
     
 psi_vals = [int(np.round(j,0)) for j in psi_vals[len(psi_vals.keys())-1]]
 s_alpha,t_alpha,ovr_alpha,s_pv,t_pv= rescale_alphas(psi_vals,alpha_vals)

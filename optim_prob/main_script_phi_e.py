@@ -217,7 +217,10 @@ if args.init_test != 1:
         acc_i,ce_loss = test_img_strain(t_net,\
                     args.div_bs,d_train,indx=d_dsets[i],device=device)
         
-        hat_ep.append((100-acc_i)/100) # need to replace with the final training error
+        # hat_ep.append((100-acc_i)/100) # need to replace with the final training error
+        
+        # adjust hat_ep to make sure it only accounts for the labeled data        
+        hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
         # print(acc_i)
         hat_w[i] = params_w
     
@@ -682,8 +685,8 @@ for c_iter in range(args.approx_iters):
     # print(chi_t.value)
     print('alpha:')
     print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
-    # print('chi_c1:')
-    # print(chi_c1.value)
+    print('chi_c1:')
+    print(chi_c1.value)
     # print('chi_c2:')
     # print(chi_c2.value) #[0,:].value)
     # print('chi_c3:')
