@@ -206,6 +206,29 @@ if args.init_test != 1:
     hat_w = {}
     ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
     print('training at devices with labeled data - find all possible source errors')
+    
+    # ovr_w = deepcopy(start_w)
+    # for la in range(args.l_aggs):
+    #     ld_params_all = []
+    #     for i in range(args.l_devices):
+    #         if la > 0:
+    #             ld_nets[i].load_state_dict(deepcopy(ovr_w))
+                
+    #         params_w,_ = init_source_train(ld_sets[i],args=args,\
+    #             d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
+    #         ld_params_all.append(params_w)
+    #         # print(params_w['layer_hidden.bias'])
+        
+    #     if la < args.l_aggs-1:
+    #         ovr_w = wAvg_weighted(ld_params_all,split_lqtys/sum(split_lqtys))
+    # # last agg result isn't used
+    
+    # for i in range(args.l_devices):
+    #     acc_i,ce_loss = test_img_strain(deepcopy(ld_nets[i]),\
+    #                 args.div_bs,d_train,indx=d_dsets[i],device=device)        
+    #     hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+    #     hat_w[i] = deepcopy(ld_params_all[i])
+    
     for i in range(args.l_devices):
         # start_net.load_state_dict(start_w)
         # train the source model on labeled data
@@ -225,11 +248,18 @@ if args.init_test != 1:
         hat_w[i] = params_w
     
     if args.dset_split == 0:
-        with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
-            'wb') as f:
-            pk.dump(hat_w,f)
+        if args.dset_type == 'MM': 
+            with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+'_base_6',\
+                'wb') as f:
+                pk.dump(hat_w,f)            
+        else:
+            with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
+                'wb') as f:
+                pk.dump(hat_w,f)
     else:
         with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
@@ -270,11 +300,18 @@ for i in range(args.t_devices):
 ## divergence terms
 if args.div_flag == 1: #div flag is online
     if args.dset_split == 0: 
-        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
-            +'_seed'+str(args.seed)+'_'+args.div_nn\
-            +'_'+args.dset_type\
-            +'_'+args.labels_type,'rb') as f:
-            div_pairs = pk.load(f)
+        if args.dset_type == 'MM':
+            with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
+                +'_seed'+str(args.seed)+'_'+args.div_nn\
+                +'_'+args.dset_type\
+                +'_'+args.labels_type+'_base_6','rb') as f:
+                div_pairs = pk.load(f)
+        else:
+            with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
+                +'_seed'+str(args.seed)+'_'+args.div_nn\
+                +'_'+args.dset_type\
+                +'_'+args.labels_type,'rb') as f:
+                div_pairs = pk.load(f)
     else:
         with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
             +'_seed'+str(args.seed)+'_'+args.div_nn\
@@ -699,29 +736,54 @@ for c_iter in range(args.approx_iters):
 # %% saving some results 
 if args.div_flag == 1: 
     if args.dset_split == 0:
-        with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(obj_vals,f)
-        
-        with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(psi_track,f)
-        
-        with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(hat_ep_alld,f)
-        
-        with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(alpha.value,f)
+        if args.dset_type == 'MM':
+            with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
+                pk.dump(obj_vals,f)
+            
+            with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
+                pk.dump(psi_track,f)
+            
+            with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
+                pk.dump(hat_ep_alld,f)
+            
+            with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
+                pk.dump(alpha.value,f)        
+        else: 
+            with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+                pk.dump(obj_vals,f)
+            
+            with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+                pk.dump(psi_track,f)
+            
+            with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+                pk.dump(hat_ep_alld,f)
+            
+            with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+                pk.dump(alpha.value,f)
     else:
         with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
             +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\

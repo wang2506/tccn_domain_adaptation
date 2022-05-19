@@ -139,9 +139,9 @@ def wAvg_weighted(w,weights):
     for k in w_avg.keys():
         for i in range(len(w)):
             if i == 0:
-                w_avg[k] = w[i][k]*weights[0]
+                w_avg[k] = w[i][k]*weights[i]
             else:# i != 0:
-                w_avg[k] += w[i][k]*weights[0]
+                w_avg[k] += w[i][k]*weights[i]
     return w_avg
 
 def test_img(net_g,bs,dset,indx,st,device):

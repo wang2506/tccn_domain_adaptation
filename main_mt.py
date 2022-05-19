@@ -83,26 +83,48 @@ if oargs.nrg_mt == 0:
             lmp = pk.load(f) #labeled model parameters        
 else: #load in the phi_e results
     if oargs.dset_split == 0:
-        with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
-                  'devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            psi_vals = pk.load(f)
-        
-        with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
-                  'devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            alpha_vals = pk.load(f)
-        
-        ## load in the model parameters of all devices with labeled data
-        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-            lmp = pk.load(f) #labeled model parameters        
+        if oargs.dset_type == 'MM':
+            with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_base_6','rb') as f:
+                psi_vals = pk.load(f)
+            
+            with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_base_6','rb') as f:
+                alpha_vals = pk.load(f)
+            
+            ## load in the model parameters of all devices with labeled data
+            with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn+'_base_6','rb') as f:
+                lmp = pk.load(f) #labeled model parameters                
+        else:
+            with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type,'rb') as f:
+                psi_vals = pk.load(f)
+            
+            with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type,'rb') as f:
+                alpha_vals = pk.load(f)
+            
+            ## load in the model parameters of all devices with labeled data
+            with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+                lmp = pk.load(f) #labeled model parameters        
     else:
         with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
                   'devices'+str(oargs.t_devices)+\
@@ -277,7 +299,7 @@ def calc_odeg(ovr_alpha=ovr_alpha,psi_vals=psi_vals):
         if j == 0:
             sources += 1
             num_tx += len(np.where(ovr_alpha[i,:] > 1e-3)[0])    
-    return round(num_tx/sources)
+    return int(np.ceil(num_tx/sources))
 
 def calc_sm_alphas(deg,ovr_alpha=ovr_alpha,psi_vals=psi_vals,oargs=oargs):
     tsm_alphas = deepcopy(ovr_alpha)
@@ -379,23 +401,36 @@ sm_alpha = calc_sm_alphas(avg_odeg)
 for i,j in enumerate(psi_vals):
     if j == 1:
         ## one-to-one and one-to-many
-        tta = oo_alpha[:,i][:oargs.l_devices]
-        t_ind = np.argmax(tta)
-        while occupied_sources[t_ind] == 1: #take next best one
+        # tta = oo_alpha[:,i][:oargs.l_devices]
+        # t_ind = np.argmax(tta)
+        # while occupied_sources[t_ind] == 1: #take next best one
+        #     # if all sources have a match, then reset the vector
+        #     if (occupied_sources == np.ones_like(occupied_sources)).all():
+        #         occupied_sources = np.zeros_like(occupied_sources) 
+        #         oo_alpha = deepcopy(ovr_alpha)
+        #         tta = oo_alpha[:,i][:oargs.l_devices]
+        #         t_ind = np.argmax(tta)
+        #     else:
+        #         tta[t_ind] = -1
+        #         t_ind = np.argmax(tta)
+        # occupied_sources[t_ind] = 1
+        # # print('oo')
+        # # print(occupied_sources)
+        # # print(t_ind)
+        
+        # oo_alpha2 = np.zeros_like(ovr_alpha[:,i])
+        # oo_alpha2[t_ind] = 1
+        # oo_wp = alpha_avg(lmp,oo_alpha2)
+        
+        t_ind = np.random.randint(0,oargs.l_devices)
+        while occupied_sources[t_ind] == 1:
             # if all sources have a match, then reset the vector
             if (occupied_sources == np.ones_like(occupied_sources)).all():
                 occupied_sources = np.zeros_like(occupied_sources) 
-                oo_alpha = deepcopy(ovr_alpha)
-                tta = oo_alpha[:,i][:oargs.l_devices]
-                t_ind = np.argmax(tta)
+                t_ind = np.random.randint(0,oargs.l_devices)
             else:
-                tta[t_ind] = -1
-                t_ind = np.argmax(tta)
-        occupied_sources[t_ind] = 1
-        # print('oo')
-        # print(occupied_sources)
-        # print(t_ind)
-        
+                t_ind = np.random.randint(0,oargs.l_devices)
+        occupied_sources[t_ind] = 1 
         oo_alpha2 = np.zeros_like(ovr_alpha[:,i])
         oo_alpha2[t_ind] = 1
         oo_wp = alpha_avg(lmp,oo_alpha2)
@@ -417,11 +452,11 @@ for i,j in enumerate(psi_vals):
 # %% save the results
 import pandas as pd
 acc_df = pd.DataFrame()
-acc_df['ours'] = list(target_accs.values())
-acc_df['rng'] = list(rt_accs.values())
-acc_df['max_qty'] = list(h1_accs.values())
+acc_df['ours'] = list(target_accs.values()) 
+acc_df['rng'] = list(rt_accs.values()) 
+acc_df['max_qty'] = list(h1_accs.values()) 
 acc_df['unif_ratio'] = list(h2_accs.values())
-acc_df['o2o'] = list(oo_accs.values())
+acc_df['o2o'] = list(oo_accs.values()) 
 acc_df['o2m'] = list(sm_accs.values())
 # acc_df['source'] = list(source_accs.values())
 
@@ -451,18 +486,26 @@ if oargs.nrg_mt == 0:
 
 else: ## adjust file name with nrg
     if oargs.dset_split == 0: # only one dataset
-        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_acc.csv')
-        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +'seed_'+str(oargs.seed)+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_nrg.csv')                  
+        if oargs.dset_type == 'MM':
+            acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_base_6_acc.csv')
+            nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_base_6_nrg.csv')              
+        else:
+            acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_acc.csv')
+            nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_nrg.csv')                  
     else:
         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +'seed_'+str(oargs.seed)+oargs.labels_type \
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
                   +'_'+oargs.div_nn+'_acc.csv')
         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +'seed_'+str(oargs.seed)+oargs.labels_type \
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
                   +'_'+oargs.div_nn+'_nrg.csv') 
     
     

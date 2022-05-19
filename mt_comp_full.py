@@ -83,26 +83,48 @@ if oargs.nrg_mt == 0:
             lmp = pk.load(f) #labeled model parameters        
 else: #load in the phi_e results
     if oargs.dset_split == 0:
-        with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
-                  'devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            psi_vals = pk.load(f)
-        
-        with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
-                  'devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            alpha_vals = pk.load(f)
-        
-        ## load in the model parameters of all devices with labeled data
-        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-            lmp = pk.load(f) #labeled model parameters        
+        if oargs.dset_type == 'MM':
+            with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_base_6','rb') as f:
+                psi_vals = pk.load(f)
+            
+            with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_base_6','rb') as f:
+                alpha_vals = pk.load(f)
+            
+            ## load in the model parameters of all devices with labeled data
+            with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn+'_base_6','rb') as f:
+                lmp = pk.load(f) #labeled model parameters                
+        else: 
+            with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type,'rb') as f:
+                psi_vals = pk.load(f)
+            
+            with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type,'rb') as f:
+                alpha_vals = pk.load(f)
+            
+            ## load in the model parameters of all devices with labeled data
+            with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+                lmp = pk.load(f) #labeled model parameters        
     else:
         with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
                   'devices'+str(oargs.t_devices)+\
@@ -325,6 +347,10 @@ for i,j in enumerate(h1_psi):
 
         tmp_c2d_rates = d2d_tx_rates[:,i][h1_s]
         h1_nrg += mt_nrg_calc(h1_alphas,tmp_c2d_rates)
+    # else:
+    #     h1_models[i] = deepcopy(start_net)
+    #     h1_models[i].load_state_dict(lmp[i])
+    #     h1_accs[i],_ = test_img_ttest(h1_models[i],oargs.div_bs,d_train,d_dsets[i],device=device) 
 
 ## alg 2: greatest accuracy
 h2_models = {}
@@ -353,12 +379,17 @@ for i,j in enumerate(h2_psi):
 
         tmp_c2d_rates = d2d_tx_rates[:,i][h2_s]
         h2_nrg += mt_nrg_calc(h2_alphas,tmp_c2d_rates)
-        
+    # else:
+    #     h2_models[i] = deepcopy(start_net)
+    #     h2_models[i].load_state_dict(lmp[i])
+    #     h2_accs[i],_ = test_img_ttest(h2_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)         
+
 ## alg 3: random source determination from devices with labelled datasets
 ## special case, as our algorithm (for this case) uses all labelled devices
 ## as sources
 r_models = {}
 r_accs = {}
+r_s_accs = {}
 r_nrg = 0
 
 r_psi = np.array(deepcopy(psi_vals))
@@ -384,9 +415,13 @@ for i,j in enumerate(r_psi):
         r_models[i] = deepcopy(start_net)
         r_models[i].load_state_dict(r_wp)
         r_accs[i],_ = test_img_ttest(r_models[i],oargs.div_bs,d_train,d_dsets[i],device=device)   
-
+        
         tmp_c2d_rates = d2d_tx_rates[:,i][r_s]
         r_nrg += mt_nrg_calc(r_alphas,tmp_c2d_rates)
+    # else:
+    #     r_models[i] = deepcopy(start_net)
+    #     r_models[i].load_state_dict(lmp[i])
+    #     r_accs[i],_ = test_img_ttest(r_models[i],oargs.div_bs,d_train,d_dsets[i],device=device) 
 
 # %% save the results
 import pandas as pd
@@ -428,12 +463,20 @@ if oargs.nrg_mt == 0:
 
 else: ## adjust file name with nrg
     if oargs.dset_split == 0: # only one dataset
-        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
-                  +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_acc.csv')
-        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
-                  +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_nrg.csv')                  
+        if oargs.dset_type == 'MM':
+            acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
+                      +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_base_6_acc.csv')
+            nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
+                      +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_base_6_nrg.csv')       
+        else: 
+            acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
+                      +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_acc.csv')
+            nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)\
+                      +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \
+                      +'_'+oargs.div_nn+'_nrg.csv')                  
     else:
         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)\
                   +'_seed_'+str(oargs.seed)+'_st_det_'+oargs.labels_type \

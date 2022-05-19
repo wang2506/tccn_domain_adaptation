@@ -130,9 +130,14 @@ d_train_ls = {i:np.where(d_train.targets==i)[0] for i in range(labels)}
 if args.label_split == 1:
     # determination of the device datasets requires
     if args.labels_type == 'mild':
-        lpd = [random.sample(range(labels),3) for i in range(args.t_devices)]
-        # random.shuffle(lpd)
-        td_qty = np.round(np.random.dirichlet(5*np.ones(3),args.t_devices),2)
+        if args.dset_type == 'MM':
+            lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
+            # random.shuffle(lpd)
+            td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)        
+        else:
+            lpd = [random.sample(range(labels),3) for i in range(args.t_devices)]
+            # random.shuffle(lpd)
+            td_qty = np.round(np.random.dirichlet(5*np.ones(3),args.t_devices),2)
         ## if a row doesn't sum to 1
         for trow in td_qty:
             if np.round(sum(trow),2) < 1:
@@ -306,10 +311,17 @@ print('done')
 
 # %% save the results
 if args.dset_split == 0:
-    with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-        +'_'+args.div_nn\
-        +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-        pk.dump(lab2ulab_accs,f)
+    if args.dset_type == 'MM':
+        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
+            +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
+            pk.dump(lab2ulab_accs,f)
+    else:
+        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
+            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
+            pk.dump(lab2ulab_accs,f)        
+        
 else:
     with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\

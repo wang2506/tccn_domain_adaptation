@@ -26,7 +26,7 @@ def optim_parser():
                         help='avg labelled qty at labelled devices')
     parser.add_argument('--avg_lqty_u',type=int,default=200,\
                         help='avg unlabelled qty at labelled devices')
-
+    
     ## scaling
     parser.add_argument('--phi_s',type=float,default=1,\
                         help='scaling the source errors') #0.5
@@ -67,7 +67,7 @@ def optim_parser():
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
-    parser.add_argument('--dset_type',type=str,default='M',\
+    parser.add_argument('--dset_type',type=str,default='MM',\
                         choices=['M','S','U','MM'],\
                         help='{M:mnist,S:svhn,U:usps,MM:mnist-m}')
     
@@ -79,7 +79,7 @@ def optim_parser():
     
     # source training variables
     parser.add_argument('--st_time',type=int,default=100,\
-                        help='source training time')
+                        help='source training time') #100
     
     # nrg variables
     parser.add_argument('--p2bits',type=int,default=1e9,\

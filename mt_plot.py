@@ -50,10 +50,14 @@ if dset_split == 0: # only one dataset
                         +labels_type \
                           +'_'+nn_style+'_acc.csv')
             else:
-                acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
-                        +'seed_'+str(seed)+'_'+labels_type \
-                          +'_'+nn_style+'_acc.csv')
-            
+                if dset_type == 'MM':
+                    acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
+                            +'seed_'+str(seed)+'_'+labels_type \
+                              +'_'+nn_style+'_base_6_acc.csv')
+                else: 
+                    acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
+                            +'seed_'+str(seed)+'_'+labels_type \
+                              +'_'+nn_style+'_acc.csv')
             if ids == 0:
                 taccs[dset_type] = acc_df['ours'].tolist()
                 raccs[dset_type] = acc_df['rng'].tolist()
@@ -104,30 +108,6 @@ else:
         saccs[split_type] = acc_df['source'].tolist()
         om_accs[split_type] = acc_df['o2m'].tolist()     
 
-# # %% box-whisker plots
-# fig,ax = plt.subplots(1,3,figsize=(5,2),dpi=250,sharey=True)
-# # cats = 4
-# cats = 5
-# width = 0.8
-# spacing = np.round(width/cats,2)
-# x = list(range(3))
-
-# tv = []
-# rv = []
-# h1v = []
-# h2v = []
-# omv = []
-
-# if dset_split == 0:
-#     dset_vec = ['MNIST','USPS','MNIST-M']
-#     for idt,dset_type in enumerate(['M','U','MM']):
-#         ax[idt].boxplot([taccs[dset_type],raccs[dset_type],h1accs[dset_type],\
-#                 h2accs[dset_type]],\
-#                 whis=1,sym='')
-#         # ax[idt].boxplot(raccs[dset_type])
-#         # ax[idt].boxplot(h1accs[dset_type])
-#         # ax[idt].boxplot(h2accs[dset_type])
-
 # %%
 for idt,dset_type in enumerate(['M','U','MM']):
     ta_max[dset_type] = np.mean(ta_max[dset_type])
@@ -166,23 +146,6 @@ omv = []
 if dset_split == 0:
     dset_vec = ['MNIST','USPS','MNIST-M']
     for dset_type in ['M','U','MM']:
-        # tv.append(np.max(taccs[dset_type]))
-        # rv.append(np.max(raccs[dset_type]))
-        # h1v.append(np.max(h1accs[dset_type]))
-        # h2v.append(np.max(h2accs[dset_type]))    
-        # omv.append(np.max(om_accs[dset_type]))
-        
-        # tv.append(np.average(taccs[dset_type]))
-        # rv.append(np.average(raccs[dset_type]))
-        # h1v.append(np.average(h1accs[dset_type]))
-        # h2v.append(np.average(h2accs[dset_type]))    
-        # omv.append(np.average(om_accs[dset_type]))
-        
-        # tv.append(np.min(taccs[dset_type]))
-        # rv.append(np.min(raccs[dset_type]))  
-        # h1v.append(np.min(h1accs[dset_type]))
-        # h2v.append(np.min(h2accs[dset_type]))
-        # omv.append(np.min(om_accs[dset_type]))
         tv.append(ta_max[dset_type]) #np.max(taccs[dset_type]))
         rv.append(ra_max[dset_type]) #np.max(raccs[dset_type]))
         h1v.append(h1_max[dset_type]) #np.max(h1accs[dset_type]))
@@ -220,18 +183,6 @@ else:
         h1v.append(np.min(h1accs[split_type]))
         h2v.append(np.min(h2accs[split_type]))
         omv.append(np.min(om_accs[split_type]))
-
-# ax[0].bar(x-2*spacing,tv[:3],width=spacing,\
-#         color='darkblue',edgecolor='black',label=r'Our Method')
-# ax[0].bar(x-1*spacing,rv[:3],width=spacing,\
-#         color='sienna',edgecolor='black',label=r'Random-$\alpha$')
-# ax[0].bar(x+0*spacing,h1v[:3],width=spacing,\
-#         color='darkgreen',edgecolor='black',label='Qty-Scaled')
-# ax[0].bar(x+1*spacing,h2v[:3],width=spacing,\
-#         color='darkcyan',edgecolor='black',label='Uniform')
-# ax[0].bar(x+2*spacing,omv[:3],width=spacing,\
-#         color='purple',edgecolor='black',label='Avg-Degree')
-# ax[0].set_ylabel('Accuracy (%)')
 
 ax[0].bar([0],np.mean(taccs['M']),yerr=np.std(taccs['M']),ecolor='black',\
          capsize=5,width=width,\
@@ -306,9 +257,9 @@ leg2 = ax[0].legend(h[3:],l[3:],bbox_to_anchor=(-0.5,0.98,4,0.2),\
 ax[0].add_artist(leg1)
 
 # %% save figures
-# if dset_split == 0:
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+'2.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+'2.pdf',dpi=1000,bbox_inches='tight')
-# else:
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
+if dset_split == 0:
+    fig.savefig(cwd+'/mt_plots/'+labels_type+'_avg.png',dpi=1000,bbox_inches='tight')
+    fig.savefig(cwd+'/mt_plots/'+labels_type+'_avg.pdf',dpi=1000,bbox_inches='tight')
+else:
+    fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.png',dpi=1000,bbox_inches='tight')
+    fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.pdf',dpi=1000,bbox_inches='tight')    

@@ -121,8 +121,14 @@ rc_sr_alpha, rc_tr_alpha, joint_alpha_r, s_inds_r, t_inds_r  = rescale_alphas(ps
 rc_sest_alpha, tc_test_alpha, joint_alpha_est, s_inds_est, t_inds_est = \
     rescale_alphas(psi_vals_est,tc_alpha_div_est)
 
+# %% ovr plot settings
+gs_kw = dict(width_ratios=[1,1,1], height_ratios=[2,1,2])
+fig,ax = plt.subplots(3,3,figsize=(8,5),\
+        gridspec_kw=gs_kw,dpi=250) #sharex=True,
+# fig.tight_layout()
+plt.subplots_adjust(hspace=0.5)#25)
 # %% source/target classification plot [psi]
-fig,ax = plt.subplots(figsize=(5,1.5),dpi=250)
+# fig,ax = plt.subplots(figsize=(5,1.5),dpi=250)
 
 base_psi_x = list(range(len(psi_vals)))
 # cats = 4 #3
@@ -131,118 +137,139 @@ cats = 3
 width = 0.6
 spacing = np.round(width/cats,2)+5e-2
 
-ax.scatter([cval-1*spacing for cval in base_psi_x],psi_vals,marker='+',c='darkblue',\
+ax[1,0].scatter([cval for cval in base_psi_x],psi_vals,marker='+',c='darkblue',\
            label='Uniform',s=45)#36) edgecolor='black', 
-ax.scatter([cval-0*spacing for cval in base_psi_x],psi_vals_e,marker='x',c='forestgreen',\
+ax[1,1].scatter([cval for cval in base_psi_x],psi_vals_e,marker='x',c='forestgreen',\
            label='Extreme',s=36)#46) edgecolor='black', 
-ax.scatter([cval+1*spacing for cval in base_psi_x],psi_vals_r,marker='3',c='magenta',\
+ax[1,2].scatter([cval for cval in base_psi_x],psi_vals_r,marker='3',c='magenta',\
            label='Random',s=56) #edgecolor='black', 
 # ax.scatter([cval+1.5*spacing for cval in base_psi_x],psi_vals_est,marker='4',c='magenta',\
 #            label='Estimated',s=56) #edgecolor='black', 
 
-ax.set_xlabel('Device Number')
-# ax.set_ylabel('Source/Target Classification')
-# ax.set_title('Source/Target Classification')
+# r0_labels = ['Uniform Divergence - (A1)','Extreme Divergence - (B1)','Random Divergence - (C1)']
+# r1_labels = ['Uniform Divergence - (A2)','Extreme Divergence - (B2)','Random Divergence - (C2)']
+# r2_labels = ['Uniform Divergence - (A3)','Extreme Divergence - (B3)','Random Divergence - (C3)']
+r0_labels = ['Uniform Divergence\n(A1)','Extreme Divergence\n(B1)','Random Divergence\n(C1)']
+r1_labels = ['(A2)','(B2)','(C2)']
+r2_labels = ['(A3)','(B3)','(C3)']
+for i in range(3):
+    for j in range(3):
+        ax[i,j].set_xticks([0,2,4,6,8,10])
+        
+        ax[i,j].grid(True)
+        ax[i,j].set_axisbelow(True)
+    
+    ax[2,i].set_xticklabels(['1','3','5','7','9'])
+    ax[2,i].set_xlim([-1,10])
+    
+    ax[1,i].set_yticks([0,1])
+    ax[1,i].set_yticklabels(['Source\n'+r'$\psi_i=0$','Target\n'+r'$\psi_i=1$'])
+    ax[1,i].set_ylim(bottom=-0.2,top=1.2)    
+    ax[1,i].set_xlim([-1,10])
+    ax[1,i].set_xticklabels([])
+    
+    ax[0,i].set_title(r0_labels[i],fontsize=10.5)
+    ax[1,i].set_title(r1_labels[i],fontsize=10.5)
+    ax[2,i].set_title(r2_labels[i],fontsize=10.5)
 
-ax.set_xticks(range(10))
-ax.set_xticklabels(range(1,11))
+ax[1,1].set_yticklabels([])
+ax[1,2].set_yticklabels([])
+ax[1,0].set_ylabel('Classification')
 
-ax.set_yticks([0,1])
-ax.set_yticklabels(['Source','Target'])
+ax[2,0].set_xlabel('Device Number')#'\nUniform Divergence')
+ax[2,1].set_xlabel('Device Number')#'\nExtreme Divergence')
+ax[2,2].set_xlabel('Device Number')#'\nRandom Divergence')
 
-ax.set_ylim(bottom=-0.2,top=1.2)
+# %% plot div pairs
+for i in range(10):
+    div_pairs[i,i] = 0
+    div_pairs_e[i,i] = 0
+    div_pairs_r[i,i] = 0
+ax[0,0].pcolormesh(div_pairs,cmap='inferno_r')
+ax[0,1].pcolormesh(div_pairs_e,cmap='inferno_r')
+im = ax[0,2].pcolormesh(div_pairs_r,cmap='inferno_r')
+# fig.colorbar('inferno',orientation="horizontal", pad=0.2)
 
-# ax.legend(ncol=3,loc='center',bbox_to_anchor=(0,0.38,1,0.2))
-h,l = ax.get_legend_handles_labels()
-kw = dict(ncol=3,loc = 'lower center',frameon=False)
-# kw2 = dict(ncol=3,loc = 'lower center',frameon=False)
-#(x, y, width, height)
-leg1 = ax.legend(h,l,bbox_to_anchor=(0,1,1,0.2),\
-                        mode='expand',fontsize=10,**kw) #,**kw2)
-# leg2 = ax.legend(h[3::1],l[3::1],bbox_to_anchor=(-0.25,1.02,2.4,0.2),\
-                        # mode='expand',fontsize=10,**kw)
-ax.grid(True)
-ax.set_axisbelow(True)
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+# axins = inset_axes(ax[0,1],
+#                     width="340%",  
+#                     height="10%",
+#                     loc='upper center',
+#                     borderpad=-3.5
+#                    )
+cax = plt.axes([0.92, 0.48, 0.02, 0.4]) #[left, bottom, width, height]
+fig.colorbar(im, cax=cax)#, orientation="horizontal")
 
-# fig.savefig(cwd+'/ablation_plots/device_classification.png',dpi=1000,bbox_inches='tight')
-# fig.savefig(cwd+'/ablation_plots/device_classification.pdf',dpi=1000,bbox_inches='tight')
+for i in range(3):
+    ax[0,i].set_yticks(range(0,11,2))
+ax[0,0].set_ylabel('Divergence Pairs\n\nDevice Number')
 
-# %% alpha_sum plot [offloading breakdown graphic]
-fig2,ax2 = plt.subplots(3,1,figsize=(3,5),dpi=250,sharex=True) #vertically stacked bars
-width = 0.6 #0.69
-cats = 1#3 #each bar is a target
-spacing = np.round(width/cats,2)
-
+# %% alpha_sum plot [offloading breakdown graphic] 
+# fig2,ax2 = plt.subplots(3,1,figsize=(3,5),dpi=250,sharex=True) #vertically stacked bars
+# width = 0.6 #0.69
+# cats = 1#3 #each bar is a target
+# spacing = np.round(width/cats,2)
+spacing = 0.75
 x = np.arange(0,10,1)
 
 color_vec = ['mediumblue','forestgreen','maroon','magenta','orange',\
-             'tab:cyan','tab:olive','tab:pink','tab:gray','tab:brown']
+              'tab:cyan','tab:olive','tab:pink','tab:gray','tab:brown']
 
 r_sum = np.zeros(joint_alpha.shape[0])
 for j_ind,jar_col in enumerate(joint_alpha):
     if j_ind in s_inds:#:< 5:
-        ax2[0].bar(x-0*spacing,jar_col,width=spacing,\
-               color=color_vec[j_ind],edgecolor='black',\
-                   bottom=r_sum,label='S'+str(j_ind+1))
+        ax[2,0].bar(x,jar_col,width=spacing,\
+                color=color_vec[j_ind],edgecolor='black',\
+                    bottom=r_sum,label='D:'+str(j_ind+1))
     # print(jar_col)
     r_sum += jar_col
+ax[2,0].set_ylim([0,1.05]) 
+ax[2,0].set_yticks(np.arange(0,1.1,0.25))
+ax[2,0].set_ylabel('Received\nWeights'+r' $\alpha_{i,j}$')
 
 r_sum = np.zeros(joint_alpha.shape[0])
 for j_ind,jar_col in enumerate(joint_alpha_e):
     if j_ind in s_inds:#:< 5:
-        ax2[1].bar(x+0*spacing,jar_col,width=spacing,\
-               color=color_vec[j_ind],edgecolor='black',\
-                   bottom=r_sum)#,label='Source '+str(j_ind+1))
+        ax[2,1].bar(x,jar_col,width=spacing,\
+                color=color_vec[j_ind],edgecolor='black',\
+                    bottom=r_sum,label='From Device '+str(j_ind+1))#,label='Source '+str(j_ind+1))
     # print(jar_col)
     r_sum += jar_col
+ax[2,1].set_ylim([0,1.05]) 
+ax[2,1].set_yticklabels([])
 
 r_sum = np.zeros(joint_alpha_r.shape[0])
 for j_ind,jar_col in enumerate(joint_alpha_r):
     if j_ind in s_inds_r:
-        ax2[2].bar(x+0*spacing,jar_col,width=spacing,\
-               color=color_vec[j_ind],edgecolor='black',\
-                   bottom=r_sum)#,label='Source '+str(j_ind+1))
+        ax[2,2].bar(x,jar_col,width=spacing,\
+                color=color_vec[j_ind],edgecolor='black',\
+                    bottom=r_sum)#,label='D:'+str(j_ind+1))
     # print(jar_col)
     r_sum += jar_col
+ax[2,2].set_ylim([0,1.05]) 
+ax[2,2].set_yticklabels([])
 
-# ax2[0].set_xlabel('Target Device')
-fig2.text(0.5, 0.05, 'Target Device',ha='center',fontsize=12)
-ax2[0].set_xticks(range(10))
-ax2[0].set_xticklabels(range(1,11))
 
-ax2[0].set_xlim([-0.2,9.5])
-for i in range(3):
-    ax2[i].set_ylim([0,1.05])
-# ax2[1].set_ylim
-
-# ax2.set_ylabel(r'Model Weights at Targets $\alpha_{i,j}$')
-
-ax2[0].set_ylabel(r'Uniform')
-ax2[1].set_ylabel(r'Extreme')
-ax2[2].set_ylabel(r'Random')
-
-fig2.text(-0.15,0.35,r'Model Weights $\alpha_{i,j}$',rotation='vertical',fontsize=12)
-
-# ax2.set_title('Effect of Divergence Estimates on Alpha Value')
-
-# ax2.legend()
-h,l = ax2[0].get_legend_handles_labels()
-kw = dict(ncol=2,loc = 'lower center',frameon=False)
-kw2 = dict(ncol=3,loc = 'lower center',frameon=False)
+# ax[2,1].legend()
+h,l = ax[2,0].get_legend_handles_labels()
+kw = dict(ncol=1,loc = 'lower center',frameon=False)
+# kw2 = dict(ncol=3,loc = 'lower center',frameon=False)
 #(x, y, width, height)
-leg1 = ax2[0].legend(h[:3],l[:3],bbox_to_anchor=(-0.1,1.12,1.15,0.2),\
-                        mode='expand',fontsize=10,**kw2) #,**kw2)
-leg2 = ax2[0].legend(h[3:],l[3:],bbox_to_anchor=(-0.1,0.98,1.15,0.2),\
-                        mode='expand',fontsize=10,**kw)
-ax2[0].add_artist(leg1)
+leg1 = ax[2,2].legend(h,l,bbox_to_anchor=(1,0,0.42,0.2),\
+                        mode='expand',fontsize=10,**kw) #,**kw2)
+# leg2 = ax[2,1].legend(h[3:],l[3:],bbox_to_anchor=(-1.3,1.1,3.5,0.2),\
+#                         mode='expand',fontsize=10,**kw)
+ax[2,2].add_artist(leg1)
 
-for i in range(3):
-    ax2[i].grid(True)
-    ax2[i].set_axisbelow(True)
+# for i in range(3):
+#     ax2[i].grid(True)
+#     ax2[i].set_axisbelow(True)
 
-# fig2.savefig(cwd+'/ablation_plots/model_ratios.png',dpi=1000,bbox_inches='tight')
-# fig2.savefig(cwd+'/ablation_plots/model_ratios.pdf',dpi=1000,bbox_inches='tight')
+# # fig2.savefig(cwd+'/ablation_plots/model_ratios.png',dpi=1000,bbox_inches='tight')
+# # fig2.savefig(cwd+'/ablation_plots/model_ratios.pdf',dpi=1000,bbox_inches='tight')
 
+fig.savefig(cwd+'/ablation_plots/3x3.png',dpi=1000,bbox_inches='tight')
+fig.savefig(cwd+'/ablation_plots/3x3.pdf',dpi=1000,bbox_inches='tight')
 
 # %% backups
 # # tp_alpha = tc_alpha[:5,5:]
@@ -264,4 +291,51 @@ for i in range(3):
 
 
 
+# %% backups
 
+# # ax.set_ylabel('Source/Target Classification')
+# # ax.set_title('Source/Target Classification')
+
+# ax.set_xticks(range(10))
+# ax.set_xticklabels(range(1,11))
+
+# ax.set_yticks([0,1])
+# ax.set_yticklabels(['Source','Target'])
+
+# ax.set_ylim(bottom=-0.2,top=1.2)
+
+# # ax.legend(ncol=3,loc='center',bbox_to_anchor=(0,0.38,1,0.2))
+# h,l = ax.get_legend_handles_labels()
+# kw = dict(ncol=3,loc = 'lower center',frameon=False)
+# # kw2 = dict(ncol=3,loc = 'lower center',frameon=False)
+# #(x, y, width, height)
+# leg1 = ax.legend(h,l,bbox_to_anchor=(0,1,1,0.2),\
+#                         mode='expand',fontsize=10,**kw) #,**kw2)
+# # leg2 = ax.legend(h[3::1],l[3::1],bbox_to_anchor=(-0.25,1.02,2.4,0.2),\
+#                         # mode='expand',fontsize=10,**kw)
+# ax.grid(True)
+# ax.set_axisbelow(True)
+
+# fig.savefig(cwd+'/ablation_plots/device_classification.png',dpi=1000,bbox_inches='tight')
+# fig.savefig(cwd+'/ablation_plots/device_classification.pdf',dpi=1000,bbox_inches='tight')
+
+
+# # ax2[0].set_xlabel('Target Device')
+# fig2.text(0.5, 0.05, 'Target Device',ha='center',fontsize=12)
+# ax2[0].set_xticks(range(10))
+# ax2[0].set_xticklabels(range(1,11))
+
+# ax2[0].set_xlim([-0.2,9.5])
+# for i in range(3):
+#     ax2[i].set_ylim([0,1.05])
+# # ax2[1].set_ylim
+
+# # ax2.set_ylabel(r'Model Weights at Targets $\alpha_{i,j}$')
+
+# ax2[0].set_ylabel(r'Uniform')
+# ax2[1].set_ylabel(r'Extreme')
+# ax2[2].set_ylabel(r'Random')
+
+# fig2.text(-0.15,0.35,r'Model Weights $\alpha_{i,j}$',rotation='vertical',fontsize=12)
+
+# # ax2.set_title('Effect of Divergence Estimates on Alpha Value')
