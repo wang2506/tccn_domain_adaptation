@@ -43,20 +43,18 @@ if oargs.label_split == 0: #iid
 # mt_comp_full.
 #
 # %% load in optimization and divergence results
+psi_vals,alpha_vals = None, None
+tval_dict = {'psi_val':psi_vals,'alpha_val':alpha_vals}
+
 if oargs.nrg_mt == 0: 
     if oargs.dset_split == 0:
-        with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            psi_vals = pk.load(f)
+        for ie,entry in enumerate(tval_dict.keys()):
+            with open(cwd+'/optim_prob/optim_results/'+entry+'/devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.dset_type\
+                        +'_'+oargs.labels_type,'rb') as f:
+                tval_dict[entry] = pk.load(f)
         
-        with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            alpha_vals = pk.load(f)
-            
         ## load in the model parameters of all devices with labeled data
         with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
@@ -64,17 +62,12 @@ if oargs.nrg_mt == 0:
                     +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
             lmp = pk.load(f) #labeled model parameters        
     else:
-        with open(cwd+'/optim_prob/optim_results/psi_val/devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.split_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            psi_vals = pk.load(f)
-        
-        with open(cwd+'/optim_prob/optim_results/alpha_val/devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.split_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            alpha_vals = pk.load(f)    
+        for ie,entry in enumerate(tval_dict.keys()):
+            with open(cwd+'/optim_prob/optim_results/'+entry+'/devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.split_type\
+                        +'_'+oargs.labels_type,'rb') as f:
+                tval_dict[entry] = pk.load(f)
         
         with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
@@ -84,67 +77,42 @@ if oargs.nrg_mt == 0:
 else: #load in the phi_e results
     if oargs.dset_split == 0:
         if oargs.dset_type == 'MM':
-            with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
-                      'devices'+str(oargs.t_devices)+\
-                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                        +'_'+oargs.dset_type\
-                        +'_'+oargs.labels_type+'_base_6','rb') as f:
-                psi_vals = pk.load(f)
-            
-            with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
-                      'devices'+str(oargs.t_devices)+\
-                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                        +'_'+oargs.dset_type\
-                        +'_'+oargs.labels_type+'_base_6','rb') as f:
-                alpha_vals = pk.load(f)
-            
-            ## load in the model parameters of all devices with labeled data
-            with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                        +'_'+oargs.dset_type\
-                        +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn+'_base_6','rb') as f:
-                lmp = pk.load(f) #labeled model parameters                
+            end = '_base_6'
         else:
-            with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
+            end = ''
+        for ie,entry in enumerate(tval_dict.keys()):
+            with open(cwd+'/optim_prob/optim_results/'+entry+'/NRG_'+str(oargs.phi_e)+'_'+\
                       'devices'+str(oargs.t_devices)+\
                       '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                         +'_'+oargs.dset_type\
-                        +'_'+oargs.labels_type,'rb') as f:
-                psi_vals = pk.load(f)
-            
-            with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
-                      'devices'+str(oargs.t_devices)+\
-                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                        +'_'+oargs.dset_type\
-                        +'_'+oargs.labels_type,'rb') as f:
-                alpha_vals = pk.load(f)
-            
-            ## load in the model parameters of all devices with labeled data
-            with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
-                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                        +'_'+oargs.dset_type\
-                        +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
-                lmp = pk.load(f) #labeled model parameters        
+                        +'_'+oargs.labels_type+end,'rb') as f:
+                tval_dict[entry] = pk.load(f)
+        ## load in the model parameters of all devices with labeled data
+        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                    +'_'+oargs.dset_type\
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn+end,'rb') as f:
+            lmp = pk.load(f) #labeled model parameters                      
     else:
-        with open(cwd+'/optim_prob/optim_results/psi_val/NRG_'+str(oargs.phi_e)+'_'+\
-                  'devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.split_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            psi_vals = pk.load(f)
-        
-        with open(cwd+'/optim_prob/optim_results/alpha_val/NRG_'+str(oargs.phi_e)+'_'+\
-                  'devices'+str(oargs.t_devices)+\
-                  '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.split_type\
-                    +'_'+oargs.labels_type,'rb') as f:
-            alpha_vals = pk.load(f)    
-        
+        if 'MM' in oargs.split_type:
+            end = '_base_6'
+        else:
+            end = ''
+        for ie,entry in enumerate(tval_dict.keys()):
+            with open(cwd+'/optim_prob/optim_results/'+entry+'/NRG_'+str(oargs.phi_e)+'_'+\
+                      'devices'+str(oargs.t_devices)+\
+                      '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
+                        +'_'+oargs.split_type\
+                        +'_'+oargs.labels_type+end,'rb') as f:
+                tval_dict[entry] = pk.load(f)
         with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                     +'_'+oargs.split_type\
-                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn+end,'rb') as f:
             lmp = pk.load(f) #labeled model parameters      
+
+psi_vals = tval_dict['psi_val']
+alpha_vals = tval_dict['alpha_val']
 
 psi_vals = [int(np.round(j,0)) for j in psi_vals[len(psi_vals.keys())-1]]
 s_alpha,t_alpha,ovr_alpha,s_pv,t_pv= rescale_alphas(psi_vals,alpha_vals)
@@ -486,27 +454,19 @@ if oargs.nrg_mt == 0:
 
 else: ## adjust file name with nrg
     if oargs.dset_split == 0: # only one dataset
-        if oargs.dset_type == 'MM':
-            acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                      +'_'+oargs.div_nn+'_base_6_acc.csv')
-            nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                      +'_'+oargs.div_nn+'_base_6_nrg.csv')              
-        else:
-            acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                      +'_'+oargs.div_nn+'_acc.csv')
-            nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                      +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                      +'_'+oargs.div_nn+'_nrg.csv')                  
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+end+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+end+'_nrg.csv')                             
     else:
         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_acc.csv')
+                  +'_'+oargs.div_nn+end+'_acc.csv')
         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_nrg.csv') 
+                  +'_'+oargs.div_nn+end+'_nrg.csv') 
     
     
 

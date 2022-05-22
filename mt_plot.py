@@ -16,7 +16,7 @@ cwd = os.getcwd()
 # labels_type = 'iid'
 labels_type = 'mild'
 dset_split = 0
-# dset_split = 1
+dset_split = 1
 split_type = None
 nn_style = 'MLP'
 nrg_mt = 1
@@ -42,22 +42,23 @@ h2_max,h2_min,h2_avg = {},{},{}
 s_max,s_min,s_avg = {},{},{}
 om_max,om_min,om_avg = {},{},{}
 
-if dset_split == 0: # only one dataset
-    for idt,dset_type in enumerate(['M','U','MM']):
-        for ids,seed in enumerate(seeds): 
+for ids,seed in enumerate(seeds):
+    if dset_split == 0:
+        for idt,dset_type in enumerate(['M','U','MM']):
+            if dset_type == 'MM':
+                end = '_base_6'
+            else:
+                end = ''
+            
             if nrg_mt == 0:
                 acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/seed_'+str(seed)+'_'\
                         +labels_type \
-                          +'_'+nn_style+'_acc.csv')
+                          +'_'+nn_style+end+'_acc.csv')                
             else:
-                if dset_type == 'MM':
-                    acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
-                            +'seed_'+str(seed)+'_'+labels_type \
-                              +'_'+nn_style+'_base_6_acc.csv')
-                else: 
-                    acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
-                            +'seed_'+str(seed)+'_'+labels_type \
-                              +'_'+nn_style+'_acc.csv')
+                acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
+                        +'seed_'+str(seed)+'_'+labels_type \
+                          +'_'+nn_style+end+'_acc.csv')
+    
             if ids == 0:
                 taccs[dset_type] = acc_df['ours'].tolist()
                 raccs[dset_type] = acc_df['rng'].tolist()
@@ -78,7 +79,7 @@ if dset_split == 0: # only one dataset
                 h1accs[dset_type] += acc_df['max_qty'].tolist()
                 h2accs[dset_type] += acc_df['unif_ratio'].tolist()
                 # saccs[dset_type] += acc_df['source'].tolist()
-                om_accs[dset_type] += acc_df['o2m'].tolist()            
+                om_accs[dset_type] += acc_df['o2m'].tolist()
             
             ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type] \
                 = extract_mma(acc_df['ours'].tolist(),ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type])
@@ -91,42 +92,58 @@ if dset_split == 0: # only one dataset
             # s_max[dset_type],s_min[dset_type],s_avg[dset_type] \
             #     = extract_mma(acc_df['source'].tolist(),s_max[dset_type],s_min[dset_type],s_avg[dset_type])
             om_max[dset_type],om_min[dset_type],om_avg[dset_type] \
-                = extract_mma(acc_df['o2m'].tolist(),om_max[dset_type],om_min[dset_type],om_avg[dset_type])
-else:
-    for split_type in ['M+MM','M+U','MM+U']:
-        if nrg_mt == 0:
-            acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/'+labels_type \
-                      +'_'+nn_style+'_acc.csv')
-        else:
-            acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/NRG'+str(phi_e)+'_'\
-                    +labels_type \
-                      +'_'+nn_style+'_acc.csv')
-        taccs[split_type] = acc_df['ours'].tolist()
-        raccs[split_type] = acc_df['rng'].tolist()
-        h1accs[split_type] = acc_df['max_qty'].tolist()
-        h2accs[split_type] = acc_df['unif_ratio'].tolist()
-        saccs[split_type] = acc_df['source'].tolist()
-        om_accs[split_type] = acc_df['o2m'].tolist()     
-
-# %%
-for idt,dset_type in enumerate(['M','U','MM']):
-    ta_max[dset_type] = np.mean(ta_max[dset_type])
-    ra_max[dset_type] = np.mean(ra_max[dset_type])
-    h1_max[dset_type] = np.mean(h1_max[dset_type])
-    h2_max[dset_type] = np.mean(h2_max[dset_type])
-    om_max[dset_type] = np.mean(om_max[dset_type])
-    
-    ta_avg[dset_type] = np.mean(ta_avg[dset_type])
-    ra_avg[dset_type] = np.mean(ra_avg[dset_type])
-    h1_avg[dset_type] = np.mean(h1_avg[dset_type])
-    h2_avg[dset_type] = np.mean(h2_avg[dset_type])
-    om_avg[dset_type] = np.mean(om_avg[dset_type])    
-
-    ta_min[dset_type] = np.mean(ta_min[dset_type])
-    ra_min[dset_type] = np.mean(ra_min[dset_type])
-    h1_min[dset_type] = np.mean(h1_min[dset_type])
-    h2_min[dset_type] = np.mean(h2_min[dset_type])
-    om_min[dset_type] = np.mean(om_min[dset_type])    
+                = extract_mma(acc_df['o2m'].tolist(),om_max[dset_type],om_min[dset_type],om_avg[dset_type])              
+            
+    elif dset_split == 1 :
+        for split_type in ['M+MM','M+U','MM+U']:    
+            if 'MM' in split_type:
+                end = '_base_6'
+            else:
+                end = ''
+                
+            if nrg_mt == 0:
+                acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/seed_'+str(seed)+'_'\
+                        +labels_type \
+                          +'_'+nn_style+end+'_acc.csv')
+            else:
+                acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/NRG'+str(phi_e)+'_'\
+                        +'seed_'+str(seed)+'_'+labels_type \
+                          +'_'+nn_style+end+'_acc.csv')    
+  
+            if ids == 0:
+                taccs[split_type] = acc_df['ours'].tolist()
+                raccs[split_type] = acc_df['rng'].tolist()
+                h1accs[split_type] = acc_df['max_qty'].tolist()
+                h2accs[split_type] = acc_df['unif_ratio'].tolist()
+                # saccs[split_type] = acc_df['source'].tolist()
+                om_accs[split_type] = acc_df['o2m'].tolist()
+                
+                ta_max[split_type],ta_min[split_type],ta_avg[split_type] = [],[],[]
+                ra_max[split_type],ra_min[split_type],ra_avg[split_type] = [],[],[]
+                h1_max[split_type],h1_min[split_type],h1_avg[split_type] = [],[],[]
+                h2_max[split_type],h2_min[split_type],h2_avg[split_type] = [],[],[]
+                s_max[split_type],s_min[split_type],s_avg[split_type] = [],[],[]
+                om_max[split_type],om_min[split_type],om_avg[split_type] = [],[],[]
+            else:
+                taccs[split_type] += acc_df['ours'].tolist()
+                raccs[split_type] += acc_df['rng'].tolist()
+                h1accs[split_type] += acc_df['max_qty'].tolist()
+                h2accs[split_type] += acc_df['unif_ratio'].tolist()
+                # saccs[split_type] += acc_df['source'].tolist()
+                om_accs[split_type] += acc_df['o2m'].tolist()
+            
+            ta_max[split_type],ta_min[split_type],ta_avg[split_type] \
+                = extract_mma(acc_df['ours'].tolist(),ta_max[split_type],ta_min[split_type],ta_avg[split_type])
+            ra_max[split_type],ra_min[split_type],ra_avg[split_type] \
+                = extract_mma(acc_df['rng'].tolist(),ra_max[split_type],ra_min[split_type],ra_avg[split_type])
+            h1_max[split_type],h1_min[split_type],h1_avg[split_type] \
+                = extract_mma(acc_df['max_qty'].tolist(),h1_max[split_type],h1_min[split_type],h1_avg[split_type])
+            h2_max[split_type],h2_min[split_type],h2_avg[split_type] \
+                = extract_mma(acc_df['unif_ratio'].tolist(),h2_max[split_type],h2_min[split_type],h2_avg[split_type])
+            # s_max[split_type],s_min[split_type],s_avg[split_type] \
+            #     = extract_mma(acc_df['source'].tolist(),s_max[split_type],s_min[split_type],s_avg[split_type])
+            om_max[split_type],om_min[split_type],om_avg[split_type] \
+                = extract_mma(acc_df['o2m'].tolist(),om_max[split_type],om_min[split_type],om_avg[split_type])
 
 # %% plot bars for max-min
 fig,ax = plt.subplots(1,3,figsize=(5,2),dpi=250,sharey=True)
@@ -145,93 +162,45 @@ omv = []
 
 if dset_split == 0:
     dset_vec = ['MNIST','USPS','MNIST-M']
-    for dset_type in ['M','U','MM']:
-        tv.append(ta_max[dset_type]) #np.max(taccs[dset_type]))
-        rv.append(ra_max[dset_type]) #np.max(raccs[dset_type]))
-        h1v.append(h1_max[dset_type]) #np.max(h1accs[dset_type]))
-        h2v.append(h2_max[dset_type]) #np.max(h2accs[dset_type]))    
-        omv.append(om_max[dset_type]) #np.max(om_accs[dset_type]))
-        
-        tv.append(ta_avg[dset_type]) #np.average(taccs[dset_type]))
-        rv.append(ra_avg[dset_type]) #np.average(raccs[dset_type]))
-        h1v.append(h1_avg[dset_type]) #np.average(h1accs[dset_type]))
-        h2v.append(h2_avg[dset_type]) #np.average(h2accs[dset_type]))    
-        omv.append(om_avg[dset_type]) #np.average(om_accs[dset_type]))
-        
-        tv.append(ta_min[dset_type]) #np.min(taccs[dset_type]))
-        rv.append(ra_min[dset_type]) #np.min(raccs[dset_type]))  
-        h1v.append(h1_min[dset_type]) #np.min(h1accs[dset_type]))
-        h2v.append(h2_min[dset_type]) #np.min(h2accs[dset_type]))
-        omv.append(om_min[dset_type]) #np.min(om_accs[dset_type]))        
+    for i,j in enumerate(['M','U','MM']):
+        ax[i].bar([0],np.mean(taccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
+                 capsize=5,width=width,\
+                color='tab:blue',edgecolor='black',label=r'Our Method')
+        ax[i].bar([1],np.mean(raccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
+        ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
+        ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:brown',edgecolor='black',label=r'Uniform')  
+        ax[i].bar([4],np.mean(om_accs[j]),yerr=np.std(om_accs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:purple',edgecolor='black',label=r'Avg-Degree')
+        if i == 0: 
+            ax[i].set_ylabel('Average Accuracy (%)')
 else:
     dset_vec = ['M+MM','M+U','MM+U']
-    for split_type in ['M+MM','M+U','MM+U']:
-        tv.append(np.max(taccs[split_type]))
-        rv.append(np.max(raccs[split_type]))
-        h1v.append(np.max(h1accs[split_type]))
-        h2v.append(np.max(h2accs[split_type]))    
-        omv.append(np.max(om_accs[split_type]))
-        
-        tv.append(np.average(taccs[split_type]))
-        rv.append(np.average(raccs[split_type]))
-        h1v.append(np.average(h1accs[split_type]))
-        h2v.append(np.average(h2accs[split_type]))    
-        omv.append(np.average(om_accs[split_type]))        
-        
-        tv.append(np.min(taccs[split_type]))
-        rv.append(np.min(raccs[split_type]))  
-        h1v.append(np.min(h1accs[split_type]))
-        h2v.append(np.min(h2accs[split_type]))
-        omv.append(np.min(om_accs[split_type]))
+    for i,j in enumerate(dset_vec):
+        ax[i].bar([0],np.mean(taccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
+                 capsize=5,width=width,\
+                color='tab:blue',edgecolor='black',label=r'Our Method')
+        ax[i].bar([1],np.mean(raccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
+        ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
+        ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:brown',edgecolor='black',label=r'Uniform')  
+        ax[i].bar([4],np.mean(om_accs[j]),yerr=np.std(om_accs[j]),ecolor='black',\
+                  capsize=5,width=width,\
+                color='tab:purple',edgecolor='black',label=r'Avg-Degree')
+        if i == 0: 
+            ax[i].set_ylabel('Average Accuracy (%)')
 
-ax[0].bar([0],np.mean(taccs['M']),yerr=np.std(taccs['M']),ecolor='black',\
-         capsize=5,width=width,\
-        color='tab:blue',edgecolor='black',label=r'Our Method')
-ax[0].bar([1],np.mean(raccs['M']),yerr=np.std(taccs['M']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
-ax[0].bar([2],np.mean(h1accs['M']),yerr=np.std(h1accs['M']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
-ax[0].bar([3],np.mean(h2accs['M']),yerr=np.std(h2accs['M']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:brown',edgecolor='black',label=r'Uniform')  
-ax[0].bar([4],np.mean(om_accs['M']),yerr=np.std(om_accs['M']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:purple',edgecolor='black',label=r'Avg-Degree')
-ax[0].set_ylabel('Average Accuracy (%)')
-
-ax[1].bar([0],np.mean(taccs['U']),yerr=np.std(taccs['U']),ecolor='black',\
-         capsize=5,width=width,\
-        color='tab:blue',edgecolor='black',label=r'Our Method')
-ax[1].bar([1],np.mean(raccs['U']),yerr=np.std(taccs['U']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
-ax[1].bar([2],np.mean(h1accs['U']),yerr=np.std(h1accs['U']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
-ax[1].bar([3],np.mean(h2accs['U']),yerr=np.std(h2accs['U']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:brown',edgecolor='black',label=r'Uniform')  
-ax[1].bar([4],np.mean(om_accs['U']),yerr=np.std(om_accs['U']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:purple',edgecolor='black',label=r'Avg-Degree')
-
-ax[2].bar([0],np.mean(taccs['MM']),yerr=np.std(taccs['MM']),ecolor='black',\
-         capsize=5,width=width,\
-        color='tab:blue',edgecolor='black',label=r'Our Method')
-ax[2].bar([1],np.mean(raccs['MM']),yerr=np.std(taccs['MM']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
-ax[2].bar([2],np.mean(h1accs['MM']),yerr=np.std(h1accs['MM']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
-ax[2].bar([3],np.mean(h2accs['MM']),yerr=np.std(h2accs['MM']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:brown',edgecolor='black',label=r'Uniform')  
-ax[2].bar([4],np.mean(om_accs['MM']),yerr=np.std(om_accs['MM']),ecolor='black',\
-          capsize=5,width=width,\
-        color='tab:purple',edgecolor='black',label=r'Avg-Degree')
 
 for i in range(3):
     ax[i].set_xlabel(dset_vec[i])
@@ -257,9 +226,10 @@ leg2 = ax[0].legend(h[3:],l[3:],bbox_to_anchor=(-0.5,0.98,4,0.2),\
 ax[0].add_artist(leg1)
 
 # %% save figures
-if dset_split == 0:
-    fig.savefig(cwd+'/mt_plots/'+labels_type+'_avg.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/'+labels_type+'_avg.pdf',dpi=1000,bbox_inches='tight')
-else:
-    fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
+# if dset_split == 0:
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+'_avg.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+'_avg.pdf',dpi=1000,bbox_inches='tight')
+# else:
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
+

@@ -42,9 +42,28 @@ else:
     raise TypeError('wrong computation method')
 
 # data qty
-with open(cwd+'/data_div/devices'+str(args.t_devices)\
-          +'_seed'+str(args.seed)+'_data_qty','rb') as f:
-    alld_qty = pk.load(f)
+try: 
+    with open(cwd+'/data_div/devices'+str(args.t_devices)\
+              +'_seed'+str(args.seed)+'_data_qty','rb') as f:
+        alld_qty = pk.load(f)
+except:
+    all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
+                size=args.u_devices).astype(int) #all_unlabelled_qtys
+    split_lqtys = np.random.normal(args.avg_lqty_l,args.avg_lqty_l/6,\
+                size=args.l_devices).astype(int)
+    split_uqtys = np.random.normal(args.avg_lqty_u,args.avg_lqty_u/6,\
+                size=args.l_devices).astype(int)
+    net_l_qtys = split_lqtys + split_uqtys
+    data_qty_alld = list(net_l_qtys)+list(all_u_qtys)    
+    
+    alld_qty = data_qty_alld
+    
+    td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
+               '_split_uqtys':split_uqtys}        
+    for ie,entry in enumerate(td_dict.keys()):
+        with open(cwd+'/data_div/devices'+str(args.t_devices)+\
+                  '_seed'+str(args.seed)+entry,'wb') as f:
+            pk.dump(td_dict[entry],f)
 
 # dataset determination
 pwd = os.path.dirname(cwd)
@@ -130,10 +149,14 @@ d_train_ls = {i:np.where(d_train.targets==i)[0] for i in range(labels)}
 if args.label_split == 1:
     # determination of the device datasets requires
     if args.labels_type == 'mild':
-        if args.dset_type == 'MM':
+        if 'MM' in args.dset_type and args.dset_split == 0:
             lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
             # random.shuffle(lpd)
-            td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)        
+            td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)
+        elif 'MM' in args.split_type and args.dset_split == 1:
+            lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
+            # random.shuffle(lpd)
+            td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)
         else:
             lpd = [random.sample(range(labels),3) for i in range(args.t_devices)]
             # random.shuffle(lpd)
@@ -311,21 +334,22 @@ print('done')
 
 # %% save the results
 if args.dset_split == 0:
-    if args.dset_type == 'MM':
-        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
-            pk.dump(lab2ulab_accs,f)
+    if 'MM' in args.dset_type:
+        end = '_base_6'
     else:
-        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(lab2ulab_accs,f)        
-        
-else:
+        end = ''
     with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
-        +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
+        +'_'+args.dset_type+'_'+args.labels_type+end,'wb') as f:
+        pk.dump(lab2ulab_accs,f)     
+else:
+    if 'MM' in args.split_type:
+        end = '_base_6'
+    else:
+        end = ''
+    with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        +'_'+args.div_nn\
+        +'_'+args.split_type+'_'+args.labels_type+end,'wb') as f:
         pk.dump(lab2ulab_accs,f)
 
 # %% divergence calc

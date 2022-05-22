@@ -40,25 +40,40 @@ alpha = cp.Variable((args.t_devices,args.t_devices),pos=True)
 
 # %% shared entities
 ## data qty
-all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
-            size=args.u_devices).astype(int) #all_unlabelled_qtys
-
-split_lqtys = np.random.normal(args.avg_lqty_l,args.avg_lqty_l/6,\
-            size=args.l_devices).astype(int)
-split_uqtys = np.random.normal(args.avg_lqty_u,args.avg_lqty_u/6,\
-            size=args.l_devices).astype(int)
+try: 
+    data_qty_alld,split_lqtys,split_uqtys = 0,0,0    
+    td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
+               '_split_uqtys':split_uqtys}      
+    for ie,entry in enumerate(td_dict.keys()):
+        with open(cwd+'/data_div/devices'+str(args.t_devices)\
+                  +'_seed'+str(args.seed)+entry,'rb') as f:
+            td_dict[entry] = pk.load(f)
+    data_qty_alld = td_dict['_data_qty']
+    split_lqtys = td_dict['_split_lqtys']
+    split_uqtys = td_dict['_split_uqtys']
+    
+    net_l_qtys = split_lqtys + split_uqtys
+    all_u_qtys = data_qty_alld[args.l_devices:]
+except:
+    all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
+                size=args.u_devices).astype(int) #all_unlabelled_qtys
+    split_lqtys = np.random.normal(args.avg_lqty_l,args.avg_lqty_l/6,\
+                size=args.l_devices).astype(int)
+    split_uqtys = np.random.normal(args.avg_lqty_u,args.avg_lqty_u/6,\
+                size=args.l_devices).astype(int)
+    net_l_qtys = split_lqtys + split_uqtys
+    data_qty_alld = list(net_l_qtys)+list(all_u_qtys)
+    
+    td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
+               '_split_uqtys':split_uqtys}        
+    for ie,entry in enumerate(td_dict.keys()):
+        with open(cwd+'/data_div/devices'+str(args.t_devices)+\
+                  '_seed'+str(args.seed)+entry,'wb') as f:
+            pk.dump(td_dict[entry],f)
 
 print(all_u_qtys)
 print(split_lqtys)
 print(split_uqtys)
-
-net_l_qtys = split_lqtys + split_uqtys
-
-data_qty_alld = list(net_l_qtys)+list(all_u_qtys)
-
-with open(cwd+'/data_div/devices'+str(args.t_devices)+\
-          '_seed'+str(args.seed)+'_data_qty','wb') as f:
-    pk.dump(data_qty_alld,f)
 
 ## epsilon hat - empirical loss at as measured on s_devices' labelled data
 # full org datasets
@@ -248,24 +263,25 @@ if args.init_test != 1:
         hat_w[i] = params_w
     
     if args.dset_split == 0:
-        if args.dset_type == 'MM': 
-            with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+'_base_6',\
-                'wb') as f:
-                pk.dump(hat_w,f)            
+        if args.dset_type == 'MM':
+            end = '_base_6'
         else:
-            with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
-                'wb') as f:
-                pk.dump(hat_w,f)
-    else:
+            end = ''
         with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type+'_modelparams_'+args.div_nn,\
+            +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end,\
             'wb') as f:
-            pk.dump(hat_w,f)     
+            pk.dump(hat_w,f)            
+    else:
+        if 'MM' in args.split_type:
+            end = '_base_6'
+        else:
+            end = ''
+        with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn\
+            +'_'+args.split_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end,\
+            'wb') as f:
+            pk.dump(hat_w,f)
 else:
     # temporarily assign constant values
     # later, we will need to figure out a way to estimate them
@@ -300,23 +316,16 @@ for i in range(args.t_devices):
 ## divergence terms
 if args.div_flag == 1: #div flag is online
     if args.dset_split == 0: 
-        if args.dset_type == 'MM':
-            with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
-                +'_seed'+str(args.seed)+'_'+args.div_nn\
-                +'_'+args.dset_type\
-                +'_'+args.labels_type+'_base_6','rb') as f:
-                div_pairs = pk.load(f)
-        else:
-            with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
-                +'_seed'+str(args.seed)+'_'+args.div_nn\
-                +'_'+args.dset_type\
-                +'_'+args.labels_type,'rb') as f:
-                div_pairs = pk.load(f)
+        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
+            +'_seed'+str(args.seed)+'_'+args.div_nn\
+            +'_'+args.dset_type\
+            +'_'+args.labels_type+end,'rb') as f:
+            div_pairs = pk.load(f)
     else:
         with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
             +'_seed'+str(args.seed)+'_'+args.div_nn\
             +'_'+args.split_type\
-            +'_'+args.labels_type,'rb') as f:
+            +'_'+args.labels_type+end,'rb') as f:
             div_pairs = pk.load(f)
 else:
     div_pairs = np.ones((args.t_devices,args.t_devices))
@@ -734,80 +743,24 @@ for c_iter in range(args.approx_iters):
     nrg_vals.append(e_err.value)
 
 # %% saving some results 
+sav_dict = {'obj_val':obj_vals,'psi_val':psi_track,\
+            'hat_ep_val':hat_ep_alld,'alpha_val':alpha.value}
 if args.div_flag == 1: 
     if args.dset_split == 0:
-        if args.dset_type == 'MM':
-            with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
+        for ie,entry in enumerate(sav_dict.keys()):
+            with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
                 +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
                 +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
-                pk.dump(obj_vals,f)
-            
-            with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
-                pk.dump(psi_track,f)
-            
-            with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
-                pk.dump(hat_ep_alld,f)
-            
-            with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_base_6','wb') as f:
-                pk.dump(alpha.value,f)        
-        else: 
-            with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-                pk.dump(obj_vals,f)
-            
-            with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-                pk.dump(psi_track,f)
-            
-            with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-                pk.dump(hat_ep_alld,f)
-            
-            with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type,'wb') as f:
-                pk.dump(alpha.value,f)
+                +'_'+args.dset_type+'_'+args.labels_type+end,'wb') as f:
+                pk.dump(sav_dict[entry],f)
     else:
-        with open(cwd+'/optim_results/obj_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(obj_vals,f)
-        
-        with open(cwd+'/optim_results/psi_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(psi_track,f)
-        
-        with open(cwd+'/optim_results/hat_ep_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(hat_ep_alld,f)
-        
-        with open(cwd+'/optim_results/alpha_val/NRG_'+str(args.phi_e)+'_'\
-            +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type,'wb') as f:
-            pk.dump(alpha.value,f)
+        for ie,entry in enumerate(sav_dict.keys()):
+            with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
+                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn\
+                +'_'+args.split_type+'_'+args.labels_type+end,'wb') as f:
+                pk.dump(sav_dict[entry],f)
+
 else: #ablation cases for div_flag == 0
     with open(cwd+'/optim_results/obj_val/bgap_st1','wb') as f:
         pk.dump(obj_vals,f)

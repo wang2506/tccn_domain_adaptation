@@ -25,7 +25,7 @@ def optim_parser():
     parser.add_argument('--avg_lqty_l',type=int,default=800,\
                         help='avg labelled qty at labelled devices')
     parser.add_argument('--avg_lqty_u',type=int,default=200,\
-                        help='avg unlabelled qty at labelled devices')
+                        help='avg unlabelled qty at labelled devices') #200
     
     ## scaling
     parser.add_argument('--phi_s',type=float,default=1,\
@@ -61,13 +61,16 @@ def optim_parser():
     parser.add_argument('--div_bs',type=int,default=10)
     
     # div est data + label vars 
-    parser.add_argument('--dset_split',type=int,default=0,\
-                        help='whether there are multiple datasets')
+    parser.add_argument('--dset_split',type=int,default=1,\
+                        help='whether there are multiple datasets'+\
+                        '0:single dataset, 1: mixed dataset on device, 2: mixed '+\
+                        'datasets across network',\
+                        choices=[0,1,2])
     parser.add_argument('--split_type',type=str,default='M+MM',\
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
-    parser.add_argument('--dset_type',type=str,default='MM',\
+    parser.add_argument('--dset_type',type=str,default='M',\
                         choices=['M','S','U','MM'],\
                         help='{M:mnist,S:svhn,U:usps,MM:mnist-m}')
     
@@ -75,7 +78,7 @@ def optim_parser():
                         help='true:1 or false:0 (false = iid)')
     parser.add_argument('--labels_type',type=str,default='mild',\
                         choices=['mild','extreme'],\
-                        help='type of labels assignment')    
+                        help='type of labels assignment')
     
     # source training variables
     parser.add_argument('--st_time',type=int,default=100,\
