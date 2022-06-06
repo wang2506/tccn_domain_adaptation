@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 14 18:57:17 2022
-
-@author: ch5b2
-"""
 import numpy as np
 import random
 from copy import deepcopy
@@ -88,7 +83,6 @@ def test_img_ttest(net_g,bs,dset,indx,device):
 def alpha_avg(w,alphas):
     #w = {w_at_d1,w_at_d2,etc...}
     sources = w.keys()
-    # w_avg = deepcopy(sources[0])
     start = 1
     for i,j in enumerate(sources):
         if start == 1:
@@ -99,13 +93,4 @@ def alpha_avg(w,alphas):
                 w_avg[k] = w[j][k]*alphas[j]
             else:
                 w_avg[k] += w[j][k]*alphas[j]
-            
-            
-        
-    # for k in w_avg.keys():
-    #     for i in sources:
-    #         if i == 0:
-    #             w_avg[k] = w[i][k]*alphas[i]
-    #         else:# i != 0:
-    #             w_avg[k] += w[i][k]*alphas[i]
     return w_avg

@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-@author: ch5b2
-"""
-
 import os
 import cvxpy as cp
 import numpy as np

@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 24 00:51:23 2022
-
-@author: ch5b2
-"""
-
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -26,9 +20,7 @@ phi_e = 1e1
 pd.set_option('display.max_columns', None)
 # %% extract data
 seeds = [1,2,3,4,5]
-# seeds = [1]
 dsets = ['M','U','MM']
-# dsets = ['M']
 
 nrg_per_dset = pd.DataFrame()
 cols = ['ours','rng']

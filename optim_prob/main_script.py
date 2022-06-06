@@ -35,13 +35,13 @@ phi_s = args.phi_s # source errors
 phi_t = args.phi_t # target errors
 phi_e = args.phi_e # energy consumptions
 
-psi = cp.Variable(args.t_devices,pos=True)#,boolean=True)
+psi = cp.Variable(args.t_devices,pos=True)
 alpha = cp.Variable((args.t_devices,args.t_devices),pos=True)
 
 # %% shared entities
 ## data qty
 all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
-            size=args.u_devices).astype(int) #all_unlabelled_qtys
+            size=args.u_devices).astype(int)
 
 split_lqtys = np.random.normal(args.avg_lqty_l,args.avg_lqty_l/6,\
             size=args.l_devices).astype(int)
@@ -59,8 +59,6 @@ data_qty_alld = list(net_l_qtys)+list(all_u_qtys)
 with open(cwd+'/data_div/devices'+str(args.t_devices)+\
           '_seed'+str(args.seed)+'_data_qty','wb') as f:
     pk.dump(data_qty_alld,f)
-
-# input('a')
 
 ## epsilon hat - empirical loss at as measured on s_devices' labelled data
 # full org datasets
@@ -209,7 +207,6 @@ if args.init_test != 1:
     ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
     print('training at devices with labeled data - find all possible source errors')
     for i in range(args.l_devices):
-        # start_net.load_state_dict(start_w)
         # train the source model on labeled data
         params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
                 d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
@@ -236,36 +233,25 @@ if args.init_test != 1:
             'wb') as f:
             pk.dump(hat_w,f)     
 else:
-    # temporarily assign constant values
-    # later, we will need to figure out a way to estimate them
-    # hat_ep = []
-    # min_ep_vect = 1e-3
-    # max_ep_vect = 5e-1
-    # temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
-    #                 *np.random.rand(args.t_devices)).tolist()
-    # for i in range(args.l_devices):
-    #     t_hat_ep = random.sample(temp_ep_vect,1)
-    #     hat_ep.extend(t_hat_ep)
-    hat_ep = [0.04,0.27,0.45,0.09,0.45] 
+    hat_ep = []
+    min_ep_vect = 1e-3
+    max_ep_vect = 5e-1
+    temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
+                    *np.random.rand(args.t_devices)).tolist()
+    for i in range(args.l_devices):
+        t_hat_ep = random.sample(temp_ep_vect,1)
+        hat_ep.extend(t_hat_ep)
 
 ## ordering devices (labelled and unlabelled combined)
-# for now, just sequentially, all labelled, then unlabelled
 device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
 
 hat_ep_alld = []
 for i in range(args.t_devices):
     if i < args.l_devices:
-        # hat_ep[2] = 80
-        hat_ep_alld.append(hat_ep[i]) #*1e3)
+        hat_ep_alld.append(hat_ep[i])
     else: 
-        # temp_factor = np.round(np.log(max(hat_ep)))+6
-        # hat_ep_alld.append(np.power(10,temp_factor))
-        # hat_ep_alld.append(1e4) #1e3
         hat_ep_alld.append(1e3)
-
-## empirical hypothesis mismatch error - calculate iteratively
-# as it depends on the current instance's alpha values
-
+        
 ## divergence terms
 if args.div_flag == 1: #div flag is online
     if args.dset_split == 0: 

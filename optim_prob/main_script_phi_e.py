@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-@author: ch5b2
-"""
-
 import os
 import cvxpy as cp
 import numpy as np
@@ -18,7 +14,8 @@ from torch.utils.data import DataLoader,Dataset
 
 from optim_utils.optim_parser import optim_parser
 from div_utils.neural_nets import init_source_train, MLP, CNN, \
-    test_img_strain, GCNN, wAvg_weighted, d2d_mismatch_test
+    test_img_strain, GCNN, wAvg_weighted, d2d_mismatch_test, \
+    feature_extract, class_classifier, GRL, train_gr, test_img_gr
 from mnist_m import MNISTM
 
 cwd = os.getcwd()
@@ -35,7 +32,7 @@ phi_s = args.phi_s # source errors
 phi_t = args.phi_t # target errors
 phi_e = args.phi_e # energy consumptions
 
-psi = cp.Variable(args.t_devices,pos=True)#,boolean=True)
+psi = cp.Variable(args.t_devices,pos=True)
 alpha = cp.Variable((args.t_devices,args.t_devices),pos=True)
 
 # %% shared entities
@@ -56,7 +53,7 @@ try:
     all_u_qtys = data_qty_alld[args.l_devices:]
 except:
     all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
-                size=args.u_devices).astype(int) #all_unlabelled_qtys
+                size=args.u_devices).astype(int)
     split_lqtys = np.random.normal(args.avg_lqty_l,args.avg_lqty_l/6,\
                 size=args.l_devices).astype(int)
     split_uqtys = np.random.normal(args.avg_lqty_u,args.avg_lqty_u/6,\
@@ -111,7 +108,7 @@ if args.dset_split == 0:
                          transform=tx_dat)        
     else:
         raise TypeError('Dataset exceeds sims')
-elif args.dset_split == 1:
+else: 
     tx_m = torchvision.transforms.Compose([transforms.ToTensor()])
     tx_mm = torchvision.transforms.Compose([transforms.ToTensor(),\
                 transforms.Grayscale()])
@@ -131,24 +128,45 @@ elif args.dset_split == 1:
                         transform=tx_u)
     d_u.targets = torch.tensor(d_u.targets)    
     
-    if args.split_type == 'M+MM':
-        print('Using MNIST + MNIST-M')
-        d_train = d_m+d_mm
-        d_train.targets = torch.concat([d_m.targets,d_mm.targets])
-    elif args.split_type == 'M+U':
-        print('Using MNIST + USPS')
-        d_train = d_m+d_u
-        d_train.targets = torch.concat([d_m.targets,d_u.targets])
-    elif args.split_type == 'MM+U':
-        print('Using MNIST-M + USPS')
-        d_train = d_mm+d_u       
-        d_train.targets = torch.concat([d_mm.targets,d_u.targets])
-    elif args.split_type == 'A':
-        print('Using MNIST + MNIST-M + USPS')
-        d_train = d_m+d_mm+d_u
-        d_train.targets = torch.concat([d_m.targets,d_mm.targets,d_u.targets])
-    else:
-        raise TypeError('Datasets exceed sims')
+    if args.dset_split == 1:
+        if args.split_type == 'M+MM':
+            print('Using MNIST + MNIST-M')
+            d_train = d_m+d_mm
+            d_train.targets = torch.concat([d_m.targets,d_mm.targets])
+        elif args.split_type == 'M+U':
+            print('Using MNIST + USPS')
+            d_train = d_m+d_u
+            d_train.targets = torch.concat([d_m.targets,d_u.targets])
+        elif args.split_type == 'MM+U':
+            print('Using MNIST-M + USPS')
+            d_train = d_mm+d_u       
+            d_train.targets = torch.concat([d_mm.targets,d_u.targets])
+        elif args.split_type == 'A':
+            print('Using MNIST + MNIST-M + USPS')
+            d_train = d_m+d_mm+d_u
+            d_train.targets = torch.concat([d_m.targets,d_mm.targets,d_u.targets])
+        else:
+            raise TypeError('Datasets exceed sims')
+    elif args.dset_split == 2: 
+        with open(cwd+'/data_div/d2dset_devices'+str(args.t_devices)+\
+                  '_seed'+str(args.seed),'rb') as f:
+            d2dset = pk.load(f)
+        d_train_dict = {}
+        
+        if args.split_type == 'M+MM':
+            d0,d1= d_m,d_mm
+        elif args.split_type == 'M+U':
+            d0,d1 = d_m,d_u
+        elif args.split_type == 'MM+U':
+            d0,d1 = d_mm,d_u
+        else:
+            raise TypeError('datasets exceed sims')
+        
+        for ind,dc in enumerate(np.where(d2dset==0)[0]):
+            d_train_dict[dc] = d0
+        for ind,dc in enumerate(np.where(d2dset==1)[0]):
+            d_train_dict[dc] = d1
+        d_train_dict = dict(sorted(d_train_dict.items()))
 
 # data processing
 if args.dset_split == 0:
@@ -161,14 +179,18 @@ if args.dset_split == 0:
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
         d_dsets = pk.load(f)
 else:
-    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+    if args.dset_split == 1:
+        pre = ''
+    elif args.dset_split == 2:
+        pre = 'total_' 
+    with open(cwd+'/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.split_type+'_'+args.labels_type+'_lpd','rb') as f:
         lpd = pk.load(f)
-    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+    with open(cwd+'/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
-        d_dsets = pk.load(f)    
+        d_dsets = pk.load(f)
 
 # random sampling to determine the labelled datasets
 ld_sets = {}
@@ -185,83 +207,126 @@ if args.init_test != 1:
         device = torch.device('cuda:'+str(args.div_gpu_num))
     else:
         device = torch.device('cpu')
-    if args.div_nn == 'MLP':
-        d_in = np.prod(d_train[0][0].shape)
-        d_h = 64
-        d_out = 10
-        start_net = MLP(d_in,d_h,d_out).to(device)
-    
+        
+    if args.grad_rev == True:
+        feature_net_base = feature_extract().to(device)
+        features_2_class_base = class_classifier().to(device)
+        GRL_base = GRL().to(device)
         try:
-            with open(cwd+'/optim_utils/MLP_start_w','rb') as f:
-                start_w = pk.load(f)
-            start_net.load_state_dict(start_w)
+            with open(cwd+'/optim_utils/fnet_base_w','rb') as f:
+                fnet_base_w = pk.load(f)
+            with open(cwd+'/optim_utils/f2c_base_w','rb') as f:
+                f2c_base_w = pk.load(f)
+            with open(cwd+'/optim_utils/GRL_base_w','rb') as f:
+                GRL_base_w = pk.load(f)                
+            feature_net_base.load_state_dict(fnet_base_w)     
+            features_2_class_base.load_state_dict(f2c_base_w)
+            GRL_base.load_state_dict(GRL_base_w)
         except:
-            start_w = start_net.state_dict()
-            with open(cwd+'/optim_utils/MLP_start_w','wb') as f:
-                pk.dump(start_w,f)
-    elif args.div_nn == 'CNN':
-        nchannels = 1
-        nclasses = 10
-        start_net = CNN(nchannels,nclasses).to(device)
-        try:
-            with open(cwd+'/optim_utils/CNN_start_w','rb') as f:
-                start_w = pk.load(f)
-            start_net.load_state_dict(start_w)
-        except:
-            start_w = start_net.state_dict()
-            with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
-                pk.dump(start_w,f)
+            fnet_base_w = feature_net_base.state_dict()     
+            f2c_base_w = features_2_class_base.state_dict()
+            GRL_base_w = GRL_base.state_dict()
+            with open(cwd+'/optim_utils/fnet_base_w','wb') as f:
+                pk.dump(fnet_base_w,f)
+            with open(cwd+'/optim_utils/f2c_base_w','wb') as f:
+                pk.dump(f2c_base_w,f)
+            with open(cwd+'/optim_utils/GRL_base_w','wb') as f:
+                pk.dump(GRL_base_w,f)              
     else:
-        nchannels = 1
-        nclasses = 10
-        start_net = GCNN(nchannels,nclasses).to(device)    
+        if args.div_nn == 'MLP':
+            if args.dset_split < 2:
+                d_in = np.prod(d_train[0][0].shape)
+            elif args.dset_split == 2:
+                d_in = np.prod(d0[0][0].shape)
+            d_h = 64
+            d_out = 10
+            start_net = MLP(d_in,d_h,d_out).to(device)
+        
+            try:
+                with open(cwd+'/optim_utils/MLP_start_w','rb') as f:
+                    start_w = pk.load(f)
+                start_net.load_state_dict(start_w)
+            except:
+                start_w = start_net.state_dict()
+                with open(cwd+'/optim_utils/MLP_start_w','wb') as f:
+                    pk.dump(start_w,f)
+        elif args.div_nn == 'CNN':
+            nchannels = 1
+            nclasses = 10
+            start_net = CNN(nchannels,nclasses).to(device)
+            try:
+                with open(cwd+'/optim_utils/CNN_start_w','rb') as f:
+                    start_w = pk.load(f)
+                start_net.load_state_dict(start_w)
+            except:
+                start_w = start_net.state_dict()
+                with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
+                    pk.dump(start_w,f)
+        else:
+            nchannels = 1
+            nclasses = 10
+            start_net = GCNN(nchannels,nclasses).to(device)    
     
     # # sequential storage
     hat_ep = []
     hat_w = {}
-    ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
-    print('training at devices with labeled data - find all possible source errors')
     
-    # ovr_w = deepcopy(start_w)
-    # for la in range(args.l_aggs):
-    #     ld_params_all = []
-    #     for i in range(args.l_devices):
-    #         if la > 0:
-    #             ld_nets[i].load_state_dict(deepcopy(ovr_w))
-                
-    #         params_w,_ = init_source_train(ld_sets[i],args=args,\
-    #             d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
-    #         ld_params_all.append(params_w)
-    #         # print(params_w['layer_hidden.bias'])
+    if args.grad_rev == True:
+        fnets_all = [deepcopy(feature_net_base) for i in range(args.l_devices)]
+        f2c_all = [deepcopy(features_2_class_base) for i in range(args.l_devices)]
+        grl_all = [deepcopy(GRL_base) for i in range(args.l_devices)]
         
-    #     if la < args.l_aggs-1:
-    #         ovr_w = wAvg_weighted(ld_params_all,split_lqtys/sum(split_lqtys))
-    # # last agg result isn't used
+        ovr_t_dset = []
+        for idt, temp_dset in enumerate(d_dsets.values()):
+            if idt >= args.l_devices:
+                ovr_t_dset.append(temp_dset)
+        ovr_t_dset = np.concatenate(ovr_t_dset,0).tolist()
+        for i in range(args.l_devices):
+            if args.dset_split < 2:
+                fn_w,f2c_w,grl_w = train_gr(s_dset=ld_sets[i],t_dset=ovr_t_dset,\
+                        args=args,d_train=d_train,\
+                        nnet1=fnets_all[i],nnet2=f2c_all[i],nnet3=grl_all[i],\
+                        device=device)
+                t_net1 = deepcopy(fnets_all[i])
+                t_net2 = deepcopy(f2c_all[i])
+                t_net1.load_state_dict(fn_w)
+                t_net2.load_state_dict(f2c_w)
+                acc_i,ce_loss = test_img_gr(t_net1,t_net2,\
+                            args.div_bs,d_train,indx=d_dsets[i],device=device)
+            
+            hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+            hat_w[i] = [fn_w,f2c_w]
+    else:
+        ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
+        print('training at devices with labeled data - find all possible source errors')
+        for i in range(args.l_devices):
+            # train the source model on labeled data
+            if args.dset_split < 2: 
+                params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
+                        d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
+                # obtain the source accuracy on the full local dataset
+                t_net = deepcopy(ld_nets[i])
+                t_net.load_state_dict(params_w)
+                acc_i,ce_loss = test_img_strain(t_net,\
+                            args.div_bs,d_train,indx=d_dsets[i],device=device)
+            elif args.dset_split == 2:
+                params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
+                        d_train=d_train_dict[i],nnet=deepcopy(ld_nets[i]),device=device)
+                # obtain the source accuracy on the full local dataset
+                t_net = deepcopy(ld_nets[i])
+                t_net.load_state_dict(params_w)
+                acc_i,ce_loss = test_img_strain(t_net,\
+                            args.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)            
+            
+            # adjust hat_ep to make sure it only accounts for the labeled data        
+            hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+            # print(acc_i)
+            hat_w[i] = params_w
     
-    # for i in range(args.l_devices):
-    #     acc_i,ce_loss = test_img_strain(deepcopy(ld_nets[i]),\
-    #                 args.div_bs,d_train,indx=d_dsets[i],device=device)        
-    #     hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
-    #     hat_w[i] = deepcopy(ld_params_all[i])
-    
-    for i in range(args.l_devices):
-        # start_net.load_state_dict(start_w)
-        # train the source model on labeled data
-        params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
-                d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
-        # obtain the source accuracy on the full local dataset
-        t_net = deepcopy(ld_nets[i])
-        t_net.load_state_dict(params_w)
-        acc_i,ce_loss = test_img_strain(t_net,\
-                    args.div_bs,d_train,indx=d_dsets[i],device=device)
-        
-        # hat_ep.append((100-acc_i)/100) # need to replace with the final training error
-        
-        # adjust hat_ep to make sure it only accounts for the labeled data        
-        hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
-        # print(acc_i)
-        hat_w[i] = params_w
-    
+    if args.grad_rev == True:
+        end2 = 'gr'
+    else:
+        end2 = ''
     if args.dset_split == 0:
         if args.dset_type == 'MM':
             end = '_base_6'
@@ -269,7 +334,7 @@ if args.init_test != 1:
             end = ''
         with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end,\
+            +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
             pk.dump(hat_w,f)            
     else:
@@ -277,23 +342,20 @@ if args.init_test != 1:
             end = '_base_6'
         else:
             end = ''
-        with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        with open(cwd+'/source_errors/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end,\
+            +'_'+args.split_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
             pk.dump(hat_w,f)
 else:
-    # temporarily assign constant values
-    # later, we will need to figure out a way to estimate them
-    # hat_ep = []
-    # min_ep_vect = 1e-3
-    # max_ep_vect = 5e-1
-    # temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
-    #                 *np.random.rand(args.t_devices)).tolist()
-    # for i in range(args.l_devices):
-    #     t_hat_ep = random.sample(temp_ep_vect,1)
-    #     hat_ep.extend(t_hat_ep)
-    hat_ep = [0.04,0.27,0.45,0.09,0.45] 
+    hat_ep = []
+    min_ep_vect = 1e-3
+    max_ep_vect = 5e-1
+    temp_ep_vect = (min_ep_vect+(max_ep_vect-min_ep_vect) \
+                    *np.random.rand(args.t_devices)).tolist()
+    for i in range(args.l_devices):
+        t_hat_ep = random.sample(temp_ep_vect,1)
+        hat_ep.extend(t_hat_ep)
 
 ## ordering devices (labelled and unlabelled combined)
 # for now, just sequentially, all labelled, then unlabelled
@@ -302,16 +364,9 @@ device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
 hat_ep_alld = []
 for i in range(args.t_devices):
     if i < args.l_devices:
-        # hat_ep[2] = 80
-        hat_ep_alld.append(hat_ep[i]) #*1e3)
+        hat_ep_alld.append(hat_ep[i])
     else: 
-        # temp_factor = np.round(np.log(max(hat_ep)))+6
-        # hat_ep_alld.append(np.power(10,temp_factor))
-        # hat_ep_alld.append(1e4) #1e3
         hat_ep_alld.append(1e3)
-
-## empirical hypothesis mismatch error - calculate iteratively
-# as it depends on the current instance's alpha values
 
 ## divergence terms
 if args.div_flag == 1: #div flag is online
@@ -322,7 +377,7 @@ if args.div_flag == 1: #div flag is online
             +'_'+args.labels_type+end,'rb') as f:
             div_pairs = pk.load(f)
     else:
-        with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)\
+        with open(cwd+'/div_results/div_vals/'+pre+'devices'+str(args.t_devices)\
             +'_seed'+str(args.seed)+'_'+args.div_nn\
             +'_'+args.split_type\
             +'_'+args.labels_type+end,'rb') as f:
@@ -330,13 +385,13 @@ if args.div_flag == 1: #div flag is online
 else:
     div_pairs = np.ones((args.t_devices,args.t_devices))
 
-# divergence normalization (by low end - 50)
+# divergence normalization
 d_min = np.min(div_pairs[np.nonzero(div_pairs)])
-d_max = np.max(div_pairs) #100
+d_max = np.max(div_pairs)
 for ir,row in enumerate(div_pairs):
     for iv,cval in enumerate(row):
         if cval != 0:
-            cval = np.abs(cval-50)*2 #(cval-d_min)
+            cval = np.abs(cval-50)*2
             row[iv] = cval
             div_pairs[ir] = row
 
@@ -356,13 +411,13 @@ sqrt_alld = sqrt_s+sqrt_t
 ## fxn name --> posy_err_calc
 def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                rads=rad_alld,sqrts=sqrt_alld,hat_ep=hat_ep_alld,\
-                div_vals=None,args=args,s_params=hat_w,base_net=start_net): #ep_mis=ep_mismatch,
+                div_vals=None,args=args,s_params=hat_w):
     err_denoms = []
     if err_type == 's':
         chi_scale = np.array(hat_ep) + 2*np.array(rads) + np.array(sqrts)
         
         chi_init = np.divide(chi_init,chi_scale)
-        chi_var_scale = [chi[itsc]/tcs for itsc,tcs in enumerate(chi_scale)] #np.divide(chi,chi_scale)
+        chi_var_scale = [chi[itsc]/tcs for itsc,tcs in enumerate(chi_scale)]
         ovr_init = psi_init + chi_init
         
         for i in range(args.t_devices):
@@ -372,13 +427,12 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                                     chi_init[i]/ovr_init[i])
             err_denoms.append(err_denom)
             
-        return err_denoms,chi_scale #chi_scale for debug
+        return err_denoms,chi_scale
     
     elif err_type == 't':
-        chi_scale = {} # need a unique scaling for each i,j pair
-        chi_scale_init = {} # for alpha_init
+        chi_scale = {}
+        chi_scale_init = {}
         err_denoms = {}
-        # chi_init_lists = []
         for j in range(args.t_devices):
             chi_scale[j] = []
             chi_scale_init[j] = []        
@@ -386,18 +440,13 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
             for i in range(args.t_devices):                
                 if div_flag == False:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                                +4*rad_alld[j]+sqrts[j] #+ ep_mis#[j][i]
+                                +4*rad_alld[j]+sqrts[j]
                 else:
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
                                 +4*rad_alld[j]+sqrts[j]+\
                                 0.5*2*div_vals[i,j]/100+\
                                 2*(rad_alld[i]+rad_alld[j]) + \
-                                sqrts[i]+sqrts[j] #+ep_mis#[j][i]
-                    
-                    # by defn, divergence is 2*(1-min error)
-                    # equiv 2*(accuracy/100), and its scaled by 1/2 in our obj fxn
-                    
-                # print(cs_factor)
+                                sqrts[i]+sqrts[j]
                 
                 t_chi_scale = alpha[i,j] * cs_factor
                 t_chi_scale_init = alpha_init[i,j] * cs_factor
@@ -408,9 +457,8 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
             chi_scale_init[j] = np.array(chi_scale_init[j])
             
             temp_chi_init = np.divide(chi_init[:][j],chi_scale_init[j])
-            # chi[:,j] = cp.multiply(chi[:,j],cp.power(cp.hstack(chi_scale[j]),-1))
             temp_chi = cp.multiply(chi[:,j],cp.power(cp.hstack(chi_scale[j]),-1))
-            ovr_init = psi_init + temp_chi_init #chi_init[:,j]
+            ovr_init = psi_init + temp_chi_init
             
             err_denoms[j] = []
             for i in range(args.t_devices):
@@ -432,21 +480,17 @@ chi_t = cp.Variable((args.t_devices,args.t_devices),pos=True)
 constraints = []
 
 # auxiliary vars for these two constraints
-chi_c1 = cp.Variable(pos=True) #args.t_devices,pos=True)
-chi_c2 = cp.Variable(pos=True) #(args.t_devices,args.t_devices),pos=True)
-# chi_c3 = cp.Variable(pos=True)
+chi_c1 = cp.Variable(pos=True)
+chi_c2 = cp.Variable(pos=True)
 
 # alpha constraints
 con_alpha = []
 for i in range(args.t_devices):
     for j in range(args.t_devices):
         con_alpha.append(alpha[i,j] <= 1)
-        # con_alpha.append(alpha[i,j] >= 1e-3) #1e-3) #1e-6)
-        # con_alpha.append(psi[i]*alpha[i,j] <= 1e-3) #1e-2) #1e-3)
-        con_alpha.append(alpha[i,j] >= 1e-3) #1e-3) #1e-6)
-        con_alpha.append(psi[i]*alpha[i,j] <= 1e-3) #chi_c3) #1e-3)
+        con_alpha.append(alpha[i,j] >= 1e-3)
+        con_alpha.append(psi[i]*alpha[i,j] <= 1e-3)
     con_alpha.append(cp.sum(alpha[:,i]) <= 1+1e-6)
-    # con_alpha.append(psi[i]*cp.sum(alpha[:,i]) <= 1+1e-6)
 constraints.extend(con_alpha)
 
 # psi constraints
@@ -456,18 +500,11 @@ for i in range(args.t_devices):
     con_psi.append(psi[i] >= 1e-6)
 constraints.extend(con_psi)
 
-# cent_epsilon = 1e-2 #1e-1 #5e-2 #5e-2 #1e-1 #5e-2 #5e-2 #4e-2 #7e-3 #1e-2 #5e-3
 cent_epsilon = 1e-2
 
 con_prev = []
-con_prev.append(chi_c1 <= 1e-4) #1e-3)#1e-6)
+con_prev.append(chi_c1 <= 1e-4)
 con_prev.append(chi_c1 >= 1e-8)
-# for j in range(args.t_devices):
-#     # con_prev.append(chi_c1 <= 1e-1)
-#     # for i in range(args.t_devices):
-#     #     # con_prev.append(chi_c2 <= 1e-3) #1e-3)#1e-6)
-#     #     con_prev.append(chi_c2 <= 1e-4)
-#     #     con_prev.append(chi_c2 >= 1e-8)
 
 constraints.extend(con_prev)
 
@@ -498,9 +535,7 @@ def con_posy_denom_calc(chi,chi_init,psi,psi_init,alpha,alpha_init,cp_type,\
     elif cp_type == 2: #second constraints, return both pos and neg
         pos_t_con_denoms = {}
         neg_t_con_denoms = {}    
-        
-        # t_pos_epsilon = 2e-2 #1e-2
-        
+
         for i in range(args.t_devices):
             pos_t_con_denoms[i] = []
             neg_t_con_denoms[i] = []
@@ -556,11 +591,9 @@ def build_ts_posy_cons(pos_denoms,neg_denoms,chi,cp_type,\
 # fxn to repeat build source constraints
 def build_posy_cons(denoms,args=args):
     s_list = []
-    
     for c_denom in denoms:
         s_list.append(1/c_denom <= 1)
     return s_list
-
 
 # %% posynomial approximation fxn
 def posy_init(iter_num,cp_vars,args=args):
@@ -571,8 +604,8 @@ def posy_init(iter_num,cp_vars,args=args):
         chi_s_init = 100*np.ones(args.t_devices)
         chi_t_init = (100*np.ones((args.t_devices,args.t_devices))).tolist()
         alpha_init = 1e-2*np.ones((args.t_devices,args.t_devices))
-        chi_c1 = 1e-7#*np.ones(args.t_devices)
-        chi_c2 = 1e-7#*np.ones((args.t_devices,args.t_devices))
+        chi_c1 = 1e-7
+        chi_c2 = 1e-7
         
     else:
         psi_init = cp_vars['psi'].value
@@ -608,7 +641,7 @@ except:
     path_loss_alpha = 2
     psi_tx = 11.95
     beta_tx = 0.14
-    dist_d2d_max = 100 #dist_d2d meters
+    dist_d2d_max = 100 #meters
     dist_d2d_min = 25
     
     # tx_rates
@@ -639,10 +672,10 @@ except:
 
 def c_nrg_calc(var_dict,t_args,a_init,M=args.p2bits,d2d_tx_rates=d2d_tx_rates):
     # setup needed variables
-    ep_E = 1e-3# if alpha smaller than 1e-3, this should zero things out
+    ep_E = 1e-3
     vd = var_dict
     tc_alpha = vd['alpha']
-    tc_st = vd['psi'] #temp_nrg_source_target
+    tc_st = vd['psi']
     param_2_bits = M
     
     # calculate energy used for model transferring
@@ -650,8 +683,6 @@ def c_nrg_calc(var_dict,t_args,a_init,M=args.p2bits,d2d_tx_rates=d2d_tx_rates):
     
     for i in range(t_args.t_devices):
          for j in range(t_args.t_devices):
-             # temp rescaled alpha to 0 or 1 (if alpha > alpha_min -> 1, else 0)
-             # ts_alpha = tc_alpha[i,j]/(tc_alpha[i,j]+ep_E)
              # rescaled alpha need a posynomial approximation
              rs_alpha_init = ep_E + a_init[i,j]
              ts_alpha = cp.power(tc_alpha[i,j]*rs_alpha_init/(alpha_init[i,j]), \
@@ -711,7 +742,6 @@ for c_iter in range(args.approx_iters):
     net_con = constraints + posy_con 
     net_con += pos_prev_con1 + neg_prev_con1
     
-    # TODO 
     e_err = c_nrg_calc(t_dict,args,a_init=alpha_init)
     e_err = phi_e*e_err
     
@@ -719,24 +749,24 @@ for c_iter in range(args.approx_iters):
     prob = cp.Problem(cp.Minimize(obj_fxn),constraints=net_con)
     prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
     
-    # print checking
-    print('\n current iteration: '+str(c_iter))
-    print('prob value:')
-    print(prob.value)
-    print('psi:')
-    print(psi.value)
-    # print('chi_s:')
-    # print(chi_s.value)
-    # print('chi_t:')
-    # print(chi_t.value)
-    print('alpha:')
-    print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
-    print('chi_c1:')
-    print(chi_c1.value)
-    # print('chi_c2:')
-    # print(chi_c2.value) #[0,:].value)
-    # print('chi_c3:')
-    # print(chi_c3.value)
+    # # print checking
+    # print('\n current iteration: '+str(c_iter))
+    # print('prob value:')
+    # print(prob.value)
+    # print('psi:')
+    # print(psi.value)
+    # # print('chi_s:')
+    # # print(chi_s.value)
+    # # print('chi_t:')
+    # # print(chi_t.value)
+    # print('alpha:')
+    # print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
+    # print('chi_c1:')
+    # print(chi_c1.value)
+    # # print('chi_c2:')
+    # # print(chi_c2.value) #[0,:].value)
+    # # print('chi_c3:')
+    # # print(chi_c3.value)
     
     obj_vals.append(prob.value)
     psi_track[c_iter] = psi.value
@@ -751,14 +781,14 @@ if args.div_flag == 1:
             with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
                 +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
                 +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+end,'wb') as f:
+                +'_'+args.dset_type+'_'+args.labels_type+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
     else:
         for ie,entry in enumerate(sav_dict.keys()):
             with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
-                +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+                +pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
                 +'_'+args.div_nn\
-                +'_'+args.split_type+'_'+args.labels_type+end,'wb') as f:
+                +'_'+args.split_type+'_'+args.labels_type+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
 
 else: #ablation cases for div_flag == 0

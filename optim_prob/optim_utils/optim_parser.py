@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-@author: ch5b2
-"""
-
 import argparse
 
 # %% parser function
@@ -13,7 +9,7 @@ def optim_parser():
     parser.add_argument('--optim_save',type=bool,default=False,\
                         help='save the run data or not')
     
-    ## devices and their characteristics    
+    ## devices and their characteristics
     parser.add_argument('--t_devices',type=int,default=10,\
                         help='total_networked_devices') #10
     parser.add_argument('--l_devices',type=int,default=5,\
@@ -25,7 +21,7 @@ def optim_parser():
     parser.add_argument('--avg_lqty_l',type=int,default=800,\
                         help='avg labelled qty at labelled devices')
     parser.add_argument('--avg_lqty_u',type=int,default=200,\
-                        help='avg unlabelled qty at labelled devices') #200
+                        help='avg unlabelled qty at labelled devices') 
     
     ## scaling
     parser.add_argument('--phi_s',type=float,default=1,\
@@ -66,7 +62,7 @@ def optim_parser():
                         '0:single dataset, 1: mixed dataset on device, 2: mixed '+\
                         'datasets across network',\
                         choices=[0,1,2])
-    parser.add_argument('--split_type',type=str,default='M+MM',\
+    parser.add_argument('--split_type',type=str,default='M+U',\
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
@@ -83,7 +79,9 @@ def optim_parser():
     # source training variables
     parser.add_argument('--st_time',type=int,default=100,\
                         help='source training time') #100
-    
+    parser.add_argument('--grad_rev',type=bool,default=True,\
+                        help='gradient reversal layer, yes/no')
+
     # nrg variables
     parser.add_argument('--p2bits',type=int,default=1e9,\
                         help='model 2 bits')
@@ -106,21 +104,6 @@ def div_ablate_parser():
                         choices=['random','extreme','estimated'])
     args = parser.parse_args()
     return args
-
-# %% temp
-
-    # parser.add_argument('--data_style',type=str,default='FMNIST',\
-    #                     choices=['FMNIST','MNIST','CIFAR10'])
-    # parser.add_argument('--iid_style',type=str,default='mild',\
-    #                     choices=['extreme','mild','iid'],\
-    #                     help='noniid/iid styles')
-    
-    # parser.add_argument('--params_dim',type=int,default=1e3,\
-    #                     help='dimension of hypothesis space')
-    
-    # parser.add_argument('--gtime',type=int,default=10,\
-    #                     help='total num of global iterations') #default=2
-        
     
     
     
