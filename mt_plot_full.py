@@ -11,13 +11,13 @@ cwd = os.getcwd()
 labels_type = 'mild'
 dset_split = 0
 dset_split = 1
-# dset_split = 2
+dset_split = 2
 nrg_mt = 1
 split_type = None
 nn_style = 'MLP'
 phi_e = 1e1
-# grad_rv = False
-grad_rv = True
+grad_rv = False
+# grad_rv = True
 
 seeds = [1,2,3,4,5]
 
@@ -125,7 +125,7 @@ for ids,seed in enumerate(seeds):
                 raccs[split_type] = acc_df2['rng'].dropna().tolist()
                 h1accs[split_type] = acc_df2['geq_avg_acc'].dropna().tolist()
                 h2accs[split_type] = acc_df2['max_acc'].tolist()
-                saccs[split_type] = acc_df1['source'].tolist()                
+                # saccs[split_type] = acc_df1['source'].tolist()                
                 oo_accs[split_type] = acc_df1['o2o'].tolist()
             
                 ta_max[split_type],ta_min[split_type],ta_avg[split_type] = [],[],[]
@@ -138,7 +138,7 @@ for ids,seed in enumerate(seeds):
                 raccs[split_type] += acc_df2['rng'].dropna().tolist()
                 h1accs[split_type] += acc_df2['geq_avg_acc'].dropna().tolist()
                 h2accs[split_type] += acc_df2['max_acc'].tolist()
-                saccs[split_type] += acc_df1['source'].tolist()                
+                # saccs[split_type] += acc_df1['source'].tolist()                
                 oo_accs[split_type] += acc_df1['o2o'].tolist()                      
             
             ta_max[split_type],ta_min[split_type],ta_avg[split_type] \
@@ -257,12 +257,12 @@ if grad_rv == True:
     pend = 'gr'
 else:
     pend = ''
-if dset_split == 0:
-    fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg.pdf',dpi=1000,bbox_inches='tight')
-elif dset_split == 1:
-    fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
-elif dset_split == 2:
-    fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split.pdf',dpi=1000,bbox_inches='tight')        
+# if dset_split == 0:
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg.pdf',dpi=1000,bbox_inches='tight')
+# elif dset_split == 1:
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
+# elif dset_split == 2:
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split.pdf',dpi=1000,bbox_inches='tight')        
