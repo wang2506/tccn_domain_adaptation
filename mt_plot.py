@@ -11,13 +11,13 @@ cwd = os.getcwd()
 labels_type = 'mild'
 dset_split = 0
 dset_split = 1
-# dset_split = 2
+dset_split = 2
 split_type = None
 nn_style = 'MLP'
 nrg_mt = 1
 phi_e = 1e1
-# grad_rv = False
-grad_rv = True
+grad_rv = False
+# grad_rv = True
 
 seeds = [1,2,3,4,5]
 
@@ -116,21 +116,21 @@ for ids,seed in enumerate(seeds):
                 raccs[split_type] = acc_df['rng'].tolist()
                 h1accs[split_type] = acc_df['max_qty'].tolist()
                 h2accs[split_type] = acc_df['unif_ratio'].tolist()
-                saccs[split_type] = acc_df['source'].tolist()
+                # saccs[split_type] = acc_df['source'].tolist()
                 om_accs[split_type] = acc_df['o2m'].tolist()
                 
                 ta_max[split_type],ta_min[split_type],ta_avg[split_type] = [],[],[]
                 ra_max[split_type],ra_min[split_type],ra_avg[split_type] = [],[],[]
                 h1_max[split_type],h1_min[split_type],h1_avg[split_type] = [],[],[]
                 h2_max[split_type],h2_min[split_type],h2_avg[split_type] = [],[],[]
-                s_max[split_type],s_min[split_type],s_avg[split_type] = [],[],[]
+                # s_max[split_type],s_min[split_type],s_avg[split_type] = [],[],[]
                 om_max[split_type],om_min[split_type],om_avg[split_type] = [],[],[]
             else:
                 taccs[split_type] += acc_df['ours'].tolist()
                 raccs[split_type] += acc_df['rng'].tolist()
                 h1accs[split_type] += acc_df['max_qty'].tolist()
                 h2accs[split_type] += acc_df['unif_ratio'].tolist()
-                saccs[split_type] += acc_df['source'].tolist()
+                # saccs[split_type] += acc_df['source'].tolist()
                 om_accs[split_type] += acc_df['o2m'].tolist()
             
             ta_max[split_type],ta_min[split_type],ta_avg[split_type] \
@@ -141,8 +141,8 @@ for ids,seed in enumerate(seeds):
                 = extract_mma(acc_df['max_qty'].tolist(),h1_max[split_type],h1_min[split_type],h1_avg[split_type])
             h2_max[split_type],h2_min[split_type],h2_avg[split_type] \
                 = extract_mma(acc_df['unif_ratio'].tolist(),h2_max[split_type],h2_min[split_type],h2_avg[split_type])
-            s_max[split_type],s_min[split_type],s_avg[split_type] \
-                = extract_mma(acc_df['source'].tolist(),s_max[split_type],s_min[split_type],s_avg[split_type])
+            # s_max[split_type],s_min[split_type],s_avg[split_type] \
+            #     = extract_mma(acc_df['source'].tolist(),s_max[split_type],s_min[split_type],s_avg[split_type])
             om_max[split_type],om_min[split_type],om_avg[split_type] \
                 = extract_mma(acc_df['o2m'].tolist(),om_max[split_type],om_min[split_type],om_avg[split_type])
 
@@ -247,12 +247,12 @@ if grad_rv == True:
     pend = 'gr'
 else:
     pend = ''
-if dset_split == 0:
-    fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg.pdf',dpi=1000,bbox_inches='tight')
-elif dset_split == 1:
-    fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
-elif dset_split == 2:
-    fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split.png',dpi=1000,bbox_inches='tight')
-    fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split.pdf',dpi=1000,bbox_inches='tight')      
+# if dset_split == 0:
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg.pdf',dpi=1000,bbox_inches='tight')
+# elif dset_split == 1:
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
+# elif dset_split == 2:
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split.pdf',dpi=1000,bbox_inches='tight')      
