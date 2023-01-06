@@ -322,17 +322,16 @@ if args.init_test != 1:
             if args.dset_split < 2:
                 post_fl_params,fl_params = fl_subprocess(ld_sets,args=args,\
                         d_train=d_train,nnet=deepcopy(ld_nets),device=device)
+                for i in range(args.l_devices):
+                    t_net = ld_nets[i]
+                    t_net.load_state_dict(post_fl_params[i])
+                    acc_i,ce_loss = test_img_strain(t_net,\
+                                args.div_bs,d_train,indx=d_dsets[i],device=device)
+                    
+                    hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+                    hat_w[i] = post_fl_params[i]
             else: 
                 raise TypeError('Not coded yet')
-            
-            for i in range(args.l_devices):
-                t_net = ld_nets[i]
-                t_net.load_state_dict(post_fl_params[i])
-                acc_i,ce_loss = test_img_strain(t_net,\
-                            args.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)
-                
-                hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
-                hat_w[i] = post_fl_params[i]
     
     if args.grad_rev == True:
         end2 = 'gr'
