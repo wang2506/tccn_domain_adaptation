@@ -436,7 +436,7 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
             for i in range(args.l_devices):
                 nnet[i].load_state_dict(w_avg)
             
-    return all_w
+    return all_w,w_avg
 
 # def fl_subprocess_gr():
 

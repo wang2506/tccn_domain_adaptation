@@ -320,7 +320,7 @@ if args.init_test != 1:
                 hat_w[i] = params_w
         else:
             if args.dset_split < 2:
-                post_fl_params = fl_subprocess(ld_sets,args=args,\
+                post_fl_params,fl_params = fl_subprocess(ld_sets,args=args,\
                         d_train=d_train,nnet=deepcopy(ld_nets),device=device)
             else: 
                 raise TypeError('Not coded yet')
@@ -341,6 +341,20 @@ if args.init_test != 1:
         
     if args.fl == True:
         pre = 'fl'
+        if args.dset_split == 0:
+            with open(cwd+'/source_errors/flparams_devices'\
+                +str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
+                +args.div_nn,\
+                'wb') as f:
+                pk.dump(fl_params,f)
+        else:
+            with open(cwd+'/source_errors/flparams_devices'\
+                +str(args.t_devices)+'_seed'+str(args.seed)\
+                +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
+                +args.div_nn,\
+                'wb') as f:
+                pk.dump(fl_params,f)            
     else:
         pre = ''
     
