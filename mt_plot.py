@@ -10,10 +10,11 @@ cwd = os.getcwd()
 # labels_type = 'iid'
 labels_type = 'mild'
 dset_split = 0
-dset_split = 1
-dset_split = 2
+# dset_split = 1
+# dset_split = 2
 split_type = None
 nn_style = 'MLP'
+nn_style = 'CNN'
 nrg_mt = 1
 phi_e = 1e1
 grad_rv = False
@@ -61,7 +62,7 @@ for ids,seed in enumerate(seeds):
                 raccs[dset_type] = acc_df['rng'].tolist()
                 h1accs[dset_type] = acc_df['max_qty'].tolist()
                 h2accs[dset_type] = acc_df['unif_ratio'].tolist()
-                saccs[dset_type] = acc_df['source'].tolist()
+                # saccs[dset_type] = acc_df['source'].tolist()
                 om_accs[dset_type] = acc_df['o2m'].tolist()
                 
                 ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type] = [],[],[]
@@ -75,7 +76,7 @@ for ids,seed in enumerate(seeds):
                 raccs[dset_type] += acc_df['rng'].tolist()
                 h1accs[dset_type] += acc_df['max_qty'].tolist()
                 h2accs[dset_type] += acc_df['unif_ratio'].tolist()
-                saccs[dset_type] += acc_df['source'].tolist()
+                # saccs[dset_type] += acc_df['source'].tolist()
                 om_accs[dset_type] += acc_df['o2m'].tolist()
             
             ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type] \
@@ -86,8 +87,8 @@ for ids,seed in enumerate(seeds):
                 = extract_mma(acc_df['max_qty'].tolist(),h1_max[dset_type],h1_min[dset_type],h1_avg[dset_type])
             h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type] \
                 = extract_mma(acc_df['unif_ratio'].tolist(),h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type])
-            s_max[dset_type],s_min[dset_type],s_avg[dset_type] \
-                = extract_mma(acc_df['source'].tolist(),s_max[dset_type],s_min[dset_type],s_avg[dset_type])
+            # s_max[dset_type],s_min[dset_type],s_avg[dset_type] \
+            #     = extract_mma(acc_df['source'].tolist(),s_max[dset_type],s_min[dset_type],s_avg[dset_type])
             om_max[dset_type],om_min[dset_type],om_avg[dset_type] \
                 = extract_mma(acc_df['o2m'].tolist(),om_max[dset_type],om_min[dset_type],om_avg[dset_type])              
             

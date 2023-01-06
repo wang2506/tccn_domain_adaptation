@@ -15,7 +15,8 @@ from torch.utils.data import DataLoader,Dataset
 from optim_utils.optim_parser import optim_parser
 from div_utils.neural_nets import init_source_train, MLP, CNN, \
     test_img_strain, GCNN, wAvg_weighted, d2d_mismatch_test, \
-    feature_extract, class_classifier, GRL, train_gr, test_img_gr
+    feature_extract, class_classifier, GRL, train_gr, test_img_gr,\
+    fl_subprocess
 from mnist_m import MNISTM
 
 cwd = os.getcwd()
@@ -241,31 +242,25 @@ if args.init_test != 1:
             d_h = 64
             d_out = 10
             start_net = MLP(d_in,d_h,d_out).to(device)
-        
-            try:
-                with open(cwd+'/optim_utils/MLP_start_w','rb') as f:
-                    start_w = pk.load(f)
-                start_net.load_state_dict(start_w)
-            except:
-                start_w = start_net.state_dict()
-                with open(cwd+'/optim_utils/MLP_start_w','wb') as f:
-                    pk.dump(start_w,f)
+            os_append = 'MLP_start_w'
         elif args.div_nn == 'CNN':
             nchannels = 1
             nclasses = 10
             start_net = CNN(nchannels,nclasses).to(device)
-            try:
-                with open(cwd+'/optim_utils/CNN_start_w','rb') as f:
-                    start_w = pk.load(f)
-                start_net.load_state_dict(start_w)
-            except:
-                start_w = start_net.state_dict()
-                with open(cwd+'/optim_utils/CNN_start_w','wb') as f:
-                    pk.dump(start_w,f)
-        else:
+            os_append = 'CNN_start_w'
+        elif args.div_nn == 'GCNN':
             nchannels = 1
             nclasses = 10
             start_net = GCNN(nchannels,nclasses).to(device)    
+            os_append = 'GCNN_start_w'
+        try:
+            with open(cwd+'/optim_utils/{}'.format(os_append),'rb') as f:
+                start_w = pk.load(f)
+            start_net.load_state_dict(start_w)
+        except:
+            start_w = start_net.state_dict()
+            with open(cwd+'/optim_utils/{}'.format(os_append),'wb') as f:
+                pk.dump(start_w,f)
     
     # # sequential storage
     hat_ep = []
@@ -299,52 +294,74 @@ if args.init_test != 1:
     else:
         ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
         print('training at devices with labeled data - find all possible source errors')
-        for i in range(args.l_devices):
-            # train the source model on labeled data
-            if args.dset_split < 2: 
-                params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
-                        d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
-                # obtain the source accuracy on the full local dataset
-                t_net = deepcopy(ld_nets[i])
-                t_net.load_state_dict(params_w)
-                acc_i,ce_loss = test_img_strain(t_net,\
-                            args.div_bs,d_train,indx=d_dsets[i],device=device)
-            elif args.dset_split == 2:
-                params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
-                        d_train=d_train_dict[i],nnet=deepcopy(ld_nets[i]),device=device)
-                # obtain the source accuracy on the full local dataset
-                t_net = deepcopy(ld_nets[i])
-                t_net.load_state_dict(params_w)
-                acc_i,ce_loss = test_img_strain(t_net,\
-                            args.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)            
+        if args.fl == False:
+            for i in range(args.l_devices):
+                # train the source model on labeled data
+                if args.dset_split < 2: 
+                    params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
+                            d_train=d_train,nnet=deepcopy(ld_nets[i]),device=device)
+                    # obtain the source accuracy on the full local dataset
+                    t_net = deepcopy(ld_nets[i])
+                    t_net.load_state_dict(params_w)
+                    acc_i,ce_loss = test_img_strain(t_net,\
+                                args.div_bs,d_train,indx=d_dsets[i],device=device)
+                elif args.dset_split == 2:
+                    params_w,ce_loss_t = init_source_train(ld_sets[i],args=args,\
+                            d_train=d_train_dict[i],nnet=deepcopy(ld_nets[i]),device=device)
+                    # obtain the source accuracy on the full local dataset
+                    t_net = deepcopy(ld_nets[i])
+                    t_net.load_state_dict(params_w)
+                    acc_i,ce_loss = test_img_strain(t_net,\
+                                args.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)            
+                
+                # adjust hat_ep to make sure it only accounts for the labeled data        
+                hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+                # print(acc_i)
+                hat_w[i] = params_w
+        else:
+            if args.dset_split < 2:
+                post_fl_params = fl_subprocess(ld_sets,args=args,\
+                        d_train=d_train,nnet=deepcopy(ld_nets),device=device)
+            else: 
+                raise TypeError('Not coded yet')
             
-            # adjust hat_ep to make sure it only accounts for the labeled data        
-            hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
-            # print(acc_i)
-            hat_w[i] = params_w
+            for i in range(args.l_devices):
+                t_net = ld_nets[i]
+                t_net.load_state_dict(post_fl_params[i])
+                acc_i,ce_loss = test_img_strain(t_net,\
+                            args.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)
+                
+                hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+                hat_w[i] = post_fl_params[i]
     
     if args.grad_rev == True:
         end2 = 'gr'
     else:
         end2 = ''
+        
+    if args.fl == True:
+        pre = 'fl'
+    else:
+        pre = ''
+    
     if args.dset_split == 0:
         if args.dset_type == 'MM':
             end = '_base_6'
         else:
             end = ''
         with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.dset_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end+end2,\
+            +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
+            +'_'+pre+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
-            pk.dump(hat_w,f)            
+            pk.dump(hat_w,f)
     else:
         if 'MM' in args.split_type:
             end = '_base_6'
         else:
             end = ''
         with open(cwd+'/source_errors/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type+'_modelparams_'+args.div_nn+end+end2,\
+            +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
+            +'_'+pre+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
             pk.dump(hat_w,f)
 else:
@@ -780,15 +797,15 @@ if args.div_flag == 1:
         for ie,entry in enumerate(sav_dict.keys()):
             with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
                 +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+end+end2,'wb') as f:
+                +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
+                +pre+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
     else:
         for ie,entry in enumerate(sav_dict.keys()):
             with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
                 +pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-                +'_'+args.div_nn\
-                +'_'+args.split_type+'_'+args.labels_type+end+end2,'wb') as f:
+                +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
+                +pre+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
 
 else: #ablation cases for div_flag == 0

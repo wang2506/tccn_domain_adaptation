@@ -34,6 +34,7 @@ class CNN(nn.Module):
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, nclasses)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
@@ -42,7 +43,8 @@ class CNN(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.softmax(x, dim=1)
+        return self.softmax(x) 
+    #F.softmax(x, dim=1)
 
 class feature_extract(nn.Module):
     def __init__(self):
@@ -398,3 +400,51 @@ def test_img_strain(net_g,bs,dset,indx,device):
     accuracy = 100*correct.item() / len(indx)
     
     return accuracy, test_loss
+
+# %% FL subprocess for optim
+def fl_ind_train(ld_set,args,d_train,nnet,device,agg_period):
+    # print('starting the training for new device with labeled data')
+    train_obj = LocalUpdate_strain(device=torch.device(device),\
+                bs=args.div_bs,lr=args.div_lr, \
+                epochs=agg_period,dataset=d_train,indexes=ld_set)
+    _,c_w,loss = train_obj.train(nnet)
+    return c_w,loss
+
+
+def fl_subprocess(ld_sets,args,d_train,nnet,device):
+    agg_period = 10
+    more_lt = 1
+    
+    weights = []
+    for i in range(args.l_devices):
+        weights.append(len(ld_sets[i])) 
+    t_weight = sum(weights)
+    weights = [i/t_weight for i in weights]
+    
+    for t in range(1,round(args.st_time/10)+more_lt):
+        ## train
+        all_w = []
+        for i in range(args.l_devices):
+            params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+                    d_train=d_train,nnet=nnet[i],device=device,agg_period=agg_period)
+            all_w.append(params_w)
+        
+        ## aggregate if necessary
+        if t <= args.st_time: #t%agg_period == 0 and
+            w_avg = wAvg_weighted(all_w,weights)
+            
+            for i in range(args.l_devices):
+                nnet[i].load_state_dict(w_avg)
+            
+    return all_w
+
+# def fl_subprocess_gr():
+
+
+
+
+
+
+
+
+

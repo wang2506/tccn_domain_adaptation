@@ -270,30 +270,25 @@ else:
         d_h = 64
         d_out = 10
         start_net = MLP(d_in,d_h,d_out).to(device)
-        try:
-            with open(cwd+'/optim_prob/optim_utils/MLP_start_w','rb') as f:
-                start_w = pk.load(f)
-            start_net.load_state_dict(start_w)
-        except:
-            start_w = start_net.state_dict()
-            with open(cwd+'/optim_prob/optim_utils/MLP_start_w','wb') as f:
-                pk.dump(start_w,f)
+        os_append = 'MLP_start_w'
     elif oargs.div_nn == 'CNN':
         nchannels = 1
         nclasses = 10
         start_net = CNN(nchannels,nclasses).to(device)
-        try:
-            with open(cwd+'/optim_prob/optim_utils/CNN_start_w','rb') as f:
-                start_w = pk.load(f)
-            start_net.load_state_dict(start_w)
-        except:
-            start_w = start_net.state_dict()
-            with open(cwd+'/optim_prob/optim_utils/CNN_start_w','wb') as f:
-                pk.dump(start_w,f)
-    else:
+        os_append = 'CNN_start_w'
+    elif oargs.div_nn == 'GCNN':
         nchannels = 1
         nclasses = 10
         start_net = GCNN(nchannels,nclasses).to(device)    
+        os_append = 'GCNN_start_w'
+    try:
+        with open(cwd+'/optim_prob/optim_utils/{}'.format(os_append),'rb') as f:
+            start_w = pk.load(f)
+        start_net.load_state_dict(start_w)
+    except:
+        start_w = start_net.state_dict()
+        with open(cwd+'/optim_prob/optim_utils/{}'.format(os_append),'wb') as f:
+            pk.dump(start_w,f)
 
 # %% energy compute fxn + load in vars
 with open(cwd+'/optim_prob/nrg_constants/devices'+str(oargs.t_devices)\
@@ -583,37 +578,37 @@ nrg_df['unif_ratio'] = [h2_nrg]
 nrg_df['o2o'] = [oo_nrg]
 nrg_df['o2m'] = [sm_nrg]
 
-# if oargs.nrg_mt == 0:
-#     if oargs.dset_split == 0: # only one dataset
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_nrg.csv')
-#     else:
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_nrg.csv')
+if oargs.nrg_mt == 0:
+    if oargs.dset_split == 0: # only one dataset
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv')
+    else:
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv')
 
-# else: ## adjust file name with nrg
-#     if oargs.dset_split == 0: # only one dataset
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_nrg.csv')                             
-#     else:
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_nrg.csv') 
+else: ## adjust file name with nrg
+    if oargs.dset_split == 0: # only one dataset
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+end+end2+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+end+end2+'_nrg.csv')                             
+    else:
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+end+end2+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+end+end2+'_nrg.csv') 
 
 
 

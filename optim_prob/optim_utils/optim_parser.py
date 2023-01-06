@@ -28,7 +28,7 @@ def optim_parser():
                         help='scaling the source errors') #0.5
     parser.add_argument('--phi_t',type=float,default=50,\
                         help='scaling the target errors') #50 #0.5
-    parser.add_argument('--phi_e',type=float,default=1e1,\
+    parser.add_argument('--phi_e',type=float,default=1e0,\
                         help='scaling the energy term') #1e1
     
     ## optimization constants
@@ -50,14 +50,14 @@ def optim_parser():
                         help='based on your devices')
     parser.add_argument('--div_ttime',type=int,default=10,\
                         help='divergence estimation total iteration loops')        
-    parser.add_argument('--div_nn',type=str,default='MLP',\
+    parser.add_argument('--div_nn',type=str,default='CNN',\
                         choices=['MLP','CNN','GCNN'],\
                         help='neural network for divergence estimation')
     parser.add_argument('--div_lr',type=float,default=1e-2)    
     parser.add_argument('--div_bs',type=int,default=10)
     
     # div est data + label vars 
-    parser.add_argument('--dset_split',type=int,default=1,\
+    parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets'+\
                         '0:single dataset, 1: mixed dataset on device, 2: mixed '+\
                         'datasets across network',\
@@ -79,8 +79,10 @@ def optim_parser():
     # source training variables
     parser.add_argument('--st_time',type=int,default=100,\
                         help='source training time') #100
-    parser.add_argument('--grad_rev',type=bool,default=True,\
+    parser.add_argument('--grad_rev',type=bool,default=False,\
                         help='gradient reversal layer, yes/no')
+    parser.add_argument('--fl',type=bool,default=True,\
+                        help='FL style pre-training')
 
     # nrg variables
     parser.add_argument('--p2bits',type=int,default=1e9,\

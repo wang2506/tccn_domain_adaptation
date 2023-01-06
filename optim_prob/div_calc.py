@@ -298,31 +298,25 @@ if args.div_nn == 'MLP':
     d_h = 64
     d_out = 2
     start_net = MLP(d_in,d_h,d_out).to(device)
-    try:
-        with open(cwd+'/div_utils/MLP_start_w','rb') as f:
-            start_w = pk.load(f)
-        start_net.load_state_dict(start_w)
-    except:
-        start_w = start_net.state_dict()
-        with open(cwd+'/div_utils/MLP_start_w','wb') as f:
-            pk.dump(start_w,f)
+    os_append = 'MLP_start_w'
 elif args.div_nn == 'CNN':
     nchannels = 1
     nclasses = 2
     start_net = CNN(nchannels,nclasses).to(device)
-    try:
-        with open(cwd+'/div_utils/CNN_start_w','rb') as f:
-            start_w = pk.load(f)
-        start_net.load_state_dict(start_w)
-    except:
-        start_w = start_net.state_dict()
-        with open(cwd+'/div_utils/CNN_start_w','wb') as f:
-            pk.dump(start_w,f)
-else:
+    os_append = 'CNN_start_w'
+elif args.div_nn == 'GCNN':
     nchannels = 1
     nclasses = 2 
     start_net = GCNN(nchannels,nclasses).to(device)
-
+    os_append = 'GCNN_start_w'
+try:
+    with open(cwd+'/div_utils/{}'.format(os_append),'rb') as f:
+        start_w = pk.load(f)
+    start_net.load_state_dict(start_w)
+except:
+    start_w = start_net.state_dict()
+    with open(cwd+'/div_utils/{}'.format(os_append),'wb') as f:
+        pk.dump(start_w,f)
 print(start_net)
 
 # %% pairwise training loops
