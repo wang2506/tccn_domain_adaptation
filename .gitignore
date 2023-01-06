@@ -7,7 +7,7 @@ __pycache__/
 data/mnist/MNIST/processed/
 data/mnist/MNIST/raw/
 data/mnist/processed/
-data/mnist/raw
+data/mnist/raw/
 data/svhn/
 data/usps/
 data/MNISTM/
