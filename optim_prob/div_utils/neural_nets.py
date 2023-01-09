@@ -412,16 +412,17 @@ def fl_ind_train(ld_set,args,d_train,nnet,device,agg_period):
 
 
 def fl_subprocess(ld_sets,args,d_train,nnet,device):
-    agg_period = 2
+    agg_period = 2 #10
     more_lt = 1
     
+    ## temporary - Only for l_devices = sources
     weights = []
     for i in range(args.l_devices):
         weights.append(len(ld_sets[i])) 
     t_weight = sum(weights)
     weights = [i/t_weight for i in weights]
     
-    for t in range(1,round(args.st_time/10)+more_lt):
+    for t in range(1,round(args.st_time/agg_period)+more_lt):
         ## train
         all_w = []
         for i in range(args.l_devices):
