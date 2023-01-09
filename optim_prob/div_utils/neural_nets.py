@@ -412,7 +412,7 @@ def fl_ind_train(ld_set,args,d_train,nnet,device,agg_period):
 
 
 def fl_subprocess(ld_sets,args,d_train,nnet,device):
-    agg_period = 10
+    agg_period = 2
     more_lt = 1
     
     weights = []
