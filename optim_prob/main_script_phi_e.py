@@ -44,7 +44,8 @@ try:
                '_split_uqtys':split_uqtys}      
     for ie,entry in enumerate(td_dict.keys()):
         with open(cwd+'/data_div/devices'+str(args.t_devices)\
-                  +'_seed'+str(args.seed)+entry,'rb') as f:
+                  +'_seed'+str(args.seed)+entry\
+            +'_'+args.avg_size,'rb') as f:
             td_dict[entry] = pk.load(f)
     data_qty_alld = td_dict['_data_qty']
     split_lqtys = td_dict['_split_lqtys']
@@ -66,7 +67,8 @@ except:
                '_split_uqtys':split_uqtys}        
     for ie,entry in enumerate(td_dict.keys()):
         with open(cwd+'/data_div/devices'+str(args.t_devices)+\
-                  '_seed'+str(args.seed)+entry,'wb') as f:
+                  '_seed'+str(args.seed)+entry\
+                +'_'+args.avg_size,'wb') as f:
             pk.dump(td_dict[entry],f)
 
 print(all_u_qtys)

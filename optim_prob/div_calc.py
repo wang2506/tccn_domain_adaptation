@@ -39,7 +39,8 @@ else:
 # data qty
 try: 
     with open(cwd+'/data_div/devices'+str(args.t_devices)\
-              +'_seed'+str(args.seed)+'_data_qty','rb') as f:
+              +'_seed'+str(args.seed)+'_data_qty_'\
+            +args.avg_size,'rb') as f:
         alld_qty = pk.load(f)
 except:
     all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
@@ -57,7 +58,8 @@ except:
                '_split_uqtys':split_uqtys}        
     for ie,entry in enumerate(td_dict.keys()):
         with open(cwd+'/data_div/devices'+str(args.t_devices)+\
-                  '_seed'+str(args.seed)+entry,'wb') as f:
+                  '_seed'+str(args.seed)+entry\
+                +'_'+args.avg_size,'wb') as f:
             pk.dump(td_dict[entry],f)
 
 # dataset determination
