@@ -337,9 +337,9 @@ if args.init_test != 1:
         end2 = 'gr'
     else:
         end2 = ''
-        
+    
     if args.fl == True:
-        pre = 'fl'
+        prefl = 'fl'
         if args.dset_split == 0:
             with open(cwd+'/source_errors/flparams_devices'\
                 +str(args.t_devices)+'_seed'+str(args.seed)\
@@ -355,7 +355,7 @@ if args.init_test != 1:
                 'wb') as f:
                 pk.dump(fl_params,f)            
     else:
-        pre = ''
+        prefl = ''
     
     if args.dset_split == 0:
         if args.dset_type == 'MM':
@@ -364,7 +364,7 @@ if args.init_test != 1:
             end = ''
         with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
-            +'_'+pre+'_modelparams_'+args.div_nn+end+end2,\
+            +'_'+prefl+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
             pk.dump(hat_w,f)
     else:
@@ -374,7 +374,7 @@ if args.init_test != 1:
             end = ''
         with open(cwd+'/source_errors/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
-            +'_'+pre+'_modelparams_'+args.div_nn+end+end2,\
+            +'_'+prefl+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
             pk.dump(hat_w,f)
 else:
@@ -811,14 +811,14 @@ if args.div_flag == 1:
             with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
                 +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
                 +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
-                +pre+end+end2,'wb') as f:
+                +prefl+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
     else:
         for ie,entry in enumerate(sav_dict.keys()):
             with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
                 +pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
                 +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
-                +pre+end+end2,'wb') as f:
+                +prefl+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
 
 else: #ablation cases for div_flag == 0

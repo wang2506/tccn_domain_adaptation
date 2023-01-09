@@ -42,8 +42,8 @@ if oargs.nrg_mt == 0:
         ## load in the model parameters of all devices with labeled data
         with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn,'rb') as f:
+                    +'_'+oargs.dset_type+'_'+oargs.labels_type\
+                    +'_modelparams_'+oargs.div_nn,'rb') as f:
             lmp = pk.load(f) #labeled model parameters        
     else:
         if oargs.dset_split == 1:
@@ -67,6 +67,11 @@ else: #load in the phi_e results
         end2 = 'gr'
     else:
         end2 = ''
+        
+    if oargs.fl == True:
+        prefl = 'fl'
+    else:
+        prefl = ''
     if oargs.dset_split == 0:
         if oargs.dset_type == 'MM':
             end = '_base_6'
@@ -77,13 +82,13 @@ else: #load in the phi_e results
                       'devices'+str(oargs.t_devices)+\
                       '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                         +'_'+oargs.dset_type\
-                        +'_'+oargs.labels_type+end+end2,'rb') as f:
+                        +'_'+oargs.labels_type+prefl+end+end2,'rb') as f:
                 tval_dict[entry] = pk.load(f)
         ## load in the model parameters of all devices with labeled data
         with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.dset_type\
-                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
+                    +'_'+oargs.dset_type+'_'+oargs.labels_type\
+                    +prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
             lmp = pk.load(f) #labeled model parameters                      
     else:
         if oargs.dset_split == 1:
@@ -99,12 +104,12 @@ else: #load in the phi_e results
                       +pre+'devices'+str(oargs.t_devices)+\
                       '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                         +'_'+oargs.split_type\
-                        +'_'+oargs.labels_type+end+end2,'rb') as f:
+                        +'_'+oargs.labels_type+prefl+end+end2,'rb') as f:
                 tval_dict[entry] = pk.load(f)
         with open(cwd+'/optim_prob/source_errors/'+pre+'devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
-                    +'_'+oargs.split_type\
-                    +'_'+oargs.labels_type+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
+                    +'_'+oargs.split_type+'_'+oargs.labels_type\
+                    +prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
             lmp = pk.load(f) #labeled model parameters      
 
 psi_vals = tval_dict['psi_val']
@@ -578,37 +583,37 @@ nrg_df['unif_ratio'] = [h2_nrg]
 nrg_df['o2o'] = [oo_nrg]
 nrg_df['o2m'] = [sm_nrg]
 
-if oargs.nrg_mt == 0:
-    if oargs.dset_split == 0: # only one dataset
-        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
-                +'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_acc.csv')
-        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
-                +'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_nrg.csv')
-    else:
-        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
-                +'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_acc.csv')
-        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
-                +'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+'_nrg.csv')
+# if oargs.nrg_mt == 0:
+#     if oargs.dset_split == 0: # only one dataset
+#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
+#                 +'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+'_acc.csv')
+#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
+#                 +'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+'_nrg.csv')
+#     else:
+#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+#                 +'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+'_acc.csv')
+#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+#                 +'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+'_nrg.csv')
 
-else: ## adjust file name with nrg
-    if oargs.dset_split == 0: # only one dataset
-        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+end+end2+'_acc.csv')
-        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+end+end2+'_nrg.csv')                             
-    else:
-        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+end+end2+'_acc.csv')
-        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-                  +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-                  +'_'+oargs.div_nn+end+end2+'_nrg.csv') 
+# else: ## adjust file name with nrg
+#     if oargs.dset_split == 0: # only one dataset
+#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+#                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+end+end2+'_acc.csv')
+#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+#                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+end+end2+'_nrg.csv')                             
+#     else:
+#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+#                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+end+end2+'_acc.csv')
+#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+#                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+#                   +'_'+oargs.div_nn+end+end2+'_nrg.csv') 
 
 
 
