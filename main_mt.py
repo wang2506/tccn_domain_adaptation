@@ -347,6 +347,7 @@ target_models = {}
 rt_models = {}
 h1_models = {} #heuristic ratio/scale by data qty 
 h2_models = {} #heuristic - uniform
+fl_models = {}
 
 target_accs = {}
 rt_accs = {}
@@ -354,6 +355,7 @@ h1_accs = {}
 h2_accs = {}
 oo_accs = {} #single source to single target
 sm_accs = {} #single source to multi-target
+fl_accs = {} #comparison to FL
 
 source_models = {}
 source_accs = {}
@@ -569,7 +571,7 @@ import pandas as pd
 acc_df = pd.DataFrame()
 acc_df['ours'] = list(target_accs.values()) 
 acc_df['rng'] = list(rt_accs.values()) 
-acc_df['max_qty'] = list(h1_accs.values()) 
+acc_df['max_qty'] = list(h1_accs.values()) # this is standard FL
 acc_df['unif_ratio'] = list(h2_accs.values())
 acc_df['o2o'] = list(oo_accs.values()) 
 acc_df['o2m'] = list(sm_accs.values())

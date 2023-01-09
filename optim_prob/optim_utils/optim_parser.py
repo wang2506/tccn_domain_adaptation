@@ -16,9 +16,10 @@ def optim_parser():
                         help='devices w labelled data') #5
     # 'devices w/out labelled data' - see bottom
     
+    # 1000, 800, 200
     parser.add_argument('--avg_uqty',type=int,default=1000,\
                         help='avg data qty at fully unlabeled devices')
-    parser.add_argument('--avg_lqty_l',type=int,default=800,\
+    parser.add_argument('--avg_lqty_l',type=int,default=2000,\
                         help='avg labelled qty at labelled devices')
     parser.add_argument('--avg_lqty_u',type=int,default=200,\
                         help='avg unlabelled qty at labelled devices') 
