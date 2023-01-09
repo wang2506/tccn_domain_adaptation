@@ -132,7 +132,7 @@ if oargs.dset_split == 0:
               +'_seed'+str(oargs.seed)\
             +'_'+oargs.div_nn\
             +'_'+oargs.dset_type+'_'+oargs.labels_type+'_dindexsets','rb') as f:
-        d_dsets = pk.load(f)    
+        d_dsets = pk.load(f)
 else:
     with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(oargs.t_devices)\
               +'_seed'+str(oargs.seed)\
