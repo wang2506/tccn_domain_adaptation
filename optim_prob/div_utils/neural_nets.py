@@ -423,21 +423,31 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
     weights = [i/t_weight for i in weights]
     
     for t in range(1,round(args.st_time/agg_period)+more_lt):
-        ## train
-        all_w = []
-        for i in range(args.l_devices):
-            params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
-                    d_train=d_train,nnet=nnet[i],device=device,agg_period=agg_period)
-            all_w.append(params_w)
-        
-        tt2 = deepcopy(all_w)
-        ## aggregate if necessary
-        if t <= args.st_time: #t%agg_period == 0 and
+        if t <= round(args.st_time/agg_period): #t%agg_period == 0 and        
+            ## train
+            all_w = []
+            for i in range(args.l_devices):
+                params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+                        d_train=d_train,nnet=nnet[i],device=device,agg_period=agg_period)
+                all_w.append(params_w)
+            
+            tt2 = deepcopy(all_w)
+            
+            ## aggregate if necessary
             w_avg = wAvg_weighted(all_w,weights)
             
             for i in range(args.l_devices):
                 nnet[i].load_state_dict(w_avg)
+        else:
+            all_w = []
+            for i in range(args.l_devices):
+                params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+                        d_train=d_train,nnet=nnet[i],device=device,\
+                        agg_period=agg_period*more_lt)
+                all_w.append(params_w)
             
+            tt2 = deepcopy(all_w)            
+        
     return tt2,w_avg
 
 # def fl_subprocess_gr():

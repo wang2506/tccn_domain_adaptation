@@ -72,7 +72,7 @@ def optim_parser():
                         choices=['M','S','U','MM'],\
                         help='{M:mnist,S:svhn,U:usps,MM:mnist-m}')
     
-    parser.add_argument('--label_split',type=int,default=0,\
+    parser.add_argument('--label_split',type=int,default=1,\
                         help='true:1 or false:0 (false = iid)') # 1
     parser.add_argument('--labels_type',type=str,default='mild',\
                         choices=['mild','extreme'],\
