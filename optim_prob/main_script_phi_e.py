@@ -333,8 +333,6 @@ if args.init_test != 1:
             else: 
                 raise TypeError('Not coded yet')
     
-    input('stop')
-    
     if args.grad_rev == True:
         end2 = 'gr'
     else:
