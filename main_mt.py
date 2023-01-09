@@ -88,7 +88,7 @@ else: #load in the phi_e results
         with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                     +'_'+oargs.dset_type+'_'+oargs.labels_type\
-                    +prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
+                    +'_'+prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
             lmp = pk.load(f) #labeled model parameters                      
     else:
         if oargs.dset_split == 1:
@@ -109,7 +109,7 @@ else: #load in the phi_e results
         with open(cwd+'/optim_prob/source_errors/'+pre+'devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                     +'_'+oargs.split_type+'_'+oargs.labels_type\
-                    +prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
+                    +'_'+prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
             lmp = pk.load(f) #labeled model parameters      
 
 psi_vals = tval_dict['psi_val']

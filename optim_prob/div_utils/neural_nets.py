@@ -429,6 +429,7 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
                     d_train=d_train,nnet=nnet[i],device=device,agg_period=agg_period)
             all_w.append(params_w)
         
+        tt2 = deepcopy(all_w)
         ## aggregate if necessary
         if t <= args.st_time: #t%agg_period == 0 and
             w_avg = wAvg_weighted(all_w,weights)
@@ -436,7 +437,7 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
             for i in range(args.l_devices):
                 nnet[i].load_state_dict(w_avg)
             
-    return all_w,w_avg
+    return tt2,w_avg
 
 # def fl_subprocess_gr():
 
