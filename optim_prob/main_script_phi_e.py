@@ -804,6 +804,7 @@ for c_iter in range(args.approx_iters):
     psi_track[c_iter] = psi.value
     nrg_vals.append(e_err.value)
 
+print(c_iter)
 # %% saving some results 
 sav_dict = {'obj_val':obj_vals,'psi_val':psi_track,\
             'hat_ep_val':hat_ep_alld,'alpha_val':alpha.value}
