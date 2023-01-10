@@ -417,6 +417,9 @@ if args.div_flag == 1: #div flag is online
 else:
     div_pairs = np.ones((args.t_devices,args.t_devices))
 
+print(div_pairs)
+input('init div pairs')
+
 # divergence normalization
 d_min = np.min(div_pairs[np.nonzero(div_pairs)])
 d_max = np.max(div_pairs)
@@ -428,8 +431,8 @@ for ir,row in enumerate(div_pairs):
             div_pairs[ir] = row
 
 # test scale
-# div_pairs = div_pairs*5e1
-div_pairs = div_pairs*1e2
+div_pairs = div_pairs*5e1
+# div_pairs = div_pairs*1e2
 print(div_pairs)
 input('stop')
 
