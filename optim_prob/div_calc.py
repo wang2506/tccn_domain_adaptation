@@ -182,7 +182,7 @@ if args.label_split == 1:
         else:
             # lpd = [random.sample(range(labels),3) for i in range(args.t_devices)]
             lpd = [random.sample(range(labels),3) for i in range(args.l_devices)]
-            print(random.sample(range(args.l_devices))[0])
+            print(random.sample(range(args.l_devices),1)[0])
             lpd_u = [lpd[random.sample(range(args.l_devices))[0]] for i in range(args.u_devices)]
             td_qty = np.round(np.random.dirichlet(5*np.ones(3),args.t_devices),2)
         for trow in td_qty:
