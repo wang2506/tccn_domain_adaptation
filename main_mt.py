@@ -120,7 +120,7 @@ s_alpha,t_alpha,ovr_alpha,s_pv,t_pv= rescale_alphas(psi_vals,alpha_vals)
 
 ## load in the device data characteristics
 with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)+\
-          '_seed'+str(oargs.seed)+'_data_qty','rb') as f:
+          '_seed'+str(oargs.seed)+'_data_qty'+'_'+oargs.avg_size,'rb') as f:
     data_qty = pk.load(f)
 if oargs.dset_split == 0:
     with open(cwd+'/optim_prob/data_div/devices'+str(oargs.t_devices)\
