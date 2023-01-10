@@ -34,7 +34,7 @@ def optim_parser():
                         help='scaling the energy term') #1e1
     
     ## optimization constants
-    parser.add_argument('--approx_iters',type=int,default=10,\
+    parser.add_argument('--approx_iters',type=int,default=30,\
                         help='posynomial approximation iterations') #50
     parser.add_argument('--l_delta',type=float,default=1e-3,\
                         help='probabiliy 1-\delta term, accuracy metric') #1e-2
@@ -83,7 +83,7 @@ def optim_parser():
                         help='source training time') #100
     parser.add_argument('--grad_rev',type=bool,default=False,\
                         help='gradient reversal layer, yes/no')
-    parser.add_argument('--fl',type=bool,default=False,\
+    parser.add_argument('--fl',type=bool,default=True,\
                         help='FL style pre-training')
 
     # nrg variables

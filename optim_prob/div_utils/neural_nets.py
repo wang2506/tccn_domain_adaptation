@@ -413,7 +413,7 @@ def fl_ind_train(ld_set,args,d_train,nnet,device,agg_period):
 
 def fl_subprocess(ld_sets,args,d_train,nnet,device):
     agg_period = 10 #10
-    more_lt = 1
+    more_lt = round(args.st_time/2)
     
     ## temporary - Only for l_devices = sources
     weights = []
@@ -422,8 +422,8 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
     t_weight = sum(weights)
     weights = [i/t_weight for i in weights]
     
-    for t in range(1,round(args.st_time/agg_period)+more_lt):
-        if t <= round(args.st_time/agg_period): #t%agg_period == 0 and        
+    for t in range(1,round(args.st_time/(2*agg_period))+more_lt):
+        if t <= round(args.st_time/(2*agg_period)): #t%agg_period == 0 and        
             ## train
             all_w = []
             for i in range(args.l_devices):
@@ -443,7 +443,7 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
             for i in range(args.l_devices):
                 params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
                         d_train=d_train,nnet=nnet[i],device=device,\
-                        agg_period=agg_period*more_lt)
+                        agg_period=more_lt)
                 all_w.append(params_w)
             
             tt2 = deepcopy(all_w)            
