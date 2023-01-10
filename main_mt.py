@@ -588,6 +588,7 @@ nrg_df['o2o'] = [oo_nrg]
 nrg_df['o2m'] = [sm_nrg]
 
 print(acc_df)
+print(nrg_df)
 # if oargs.nrg_mt == 0:
 #     if oargs.dset_split == 0: # only one dataset
 #         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \

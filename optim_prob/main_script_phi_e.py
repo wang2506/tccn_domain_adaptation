@@ -428,7 +428,8 @@ for ir,row in enumerate(div_pairs):
             div_pairs[ir] = row
 
 # test scale
-div_pairs = div_pairs*5e1
+# div_pairs = div_pairs*5e1
+div_pairs = div_pairs*1e2
 
 ## rademacher estimates
 rad_s = [np.sqrt(2*np.log(net_l_qtys[i])/net_l_qtys[i]) for i in range(args.l_devices)]
