@@ -333,7 +333,7 @@ def calc_sm_alphas(deg,ovr_alpha=ovr_alpha,psi_vals=psi_vals,oargs=oargs):
             for td in td_vec:
                 temp_alpha_vec[td] = np.random.rand()
             tsm_alphas[i,:] = temp_alpha_vec
-            
+    
     # normalize over columns
     for i,j in enumerate(psi_vals):
         if j == 1:
@@ -389,8 +389,9 @@ for i,j in enumerate(psi_vals):
             rt_models[i][1].load_state_dict(rwp2)
             
             # heuristic qty
-            h1_alpha = np.round(np.array(data_qty)[s_pv]/max(data_qty),5)
-            h1_alpha /= sum(h1_alpha)
+            # h1_alpha = np.round(np.array(data_qty)[s_pv]/max(data_qty),5)
+            # h1_alpha /= sum(h1_alpha)
+            h1_alpha = np.round(np.array(data_qty)[s_pv]/sum(np.array(data_qty)[s_pv]),5)
             h1wp1 = alpha_avg(lmp1,h1_alpha)
             h1wp2 = alpha_avg(lmp2,h1_alpha)
             h1_models[i] = [deepcopy(feature_net_base),deepcopy(features_2_class_base)]
@@ -437,8 +438,9 @@ for i,j in enumerate(psi_vals):
             rt_models[i].load_state_dict(rwp)
             
             # heuristic qty
-            h1_alpha = np.round(np.array(data_qty)[s_pv]/max(data_qty),5)
-            h1_alpha /= sum(h1_alpha)
+            # h1_alpha = np.round(np.array(data_qty)[s_pv]/max(data_qty),5)
+            # h1_alpha /= sum(h1_alpha)
+            h1_alpha = np.round(np.array(data_qty)[s_pv]/sum(np.array(data_qty)[s_pv]),5)
             h1wp = alpha_avg(lmp,h1_alpha)
             h1_models[i] = deepcopy(start_net)
             h1_models[i].load_state_dict(h1wp)
@@ -571,7 +573,7 @@ import pandas as pd
 acc_df = pd.DataFrame()
 acc_df['ours'] = list(target_accs.values()) 
 acc_df['rng'] = list(rt_accs.values()) 
-acc_df['max_qty'] = list(h1_accs.values()) # this is standard FL
+acc_df['max_qty'] = list(h1_accs.values()) # this is standard FL now
 acc_df['unif_ratio'] = list(h2_accs.values())
 acc_df['o2o'] = list(oo_accs.values()) 
 acc_df['o2m'] = list(sm_accs.values())

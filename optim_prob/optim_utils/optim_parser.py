@@ -24,7 +24,7 @@ def optim_parser():
     parser.add_argument('--avg_lqty_u',type=int,default=200,\
                         help='avg unlabelled qty at labelled devices') 
     parser.add_argument('--avg_size',type=str,default='large')
-        
+    
     ## scaling
     parser.add_argument('--phi_s',type=float,default=1,\
                         help='scaling the source errors') #0.5
@@ -34,7 +34,7 @@ def optim_parser():
                         help='scaling the energy term') #1e1
     
     ## optimization constants
-    parser.add_argument('--approx_iters',type=int,default=50,\
+    parser.add_argument('--approx_iters',type=int,default=10,\
                         help='posynomial approximation iterations') #50
     parser.add_argument('--l_delta',type=float,default=1e-3,\
                         help='probabiliy 1-\delta term, accuracy metric') #1e-2
@@ -83,7 +83,7 @@ def optim_parser():
                         help='source training time') #100
     parser.add_argument('--grad_rev',type=bool,default=False,\
                         help='gradient reversal layer, yes/no')
-    parser.add_argument('--fl',type=bool,default=True,\
+    parser.add_argument('--fl',type=bool,default=False,\
                         help='FL style pre-training')
 
     # nrg variables
