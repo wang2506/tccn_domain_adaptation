@@ -37,30 +37,30 @@ else:
     raise TypeError('wrong computation method')
 
 # data qty
-try: 
-    with open(cwd+'/data_div/devices'+str(args.t_devices)\
-              +'_seed'+str(args.seed)+'_data_qty_'\
-            +args.avg_size,'rb') as f:
-        alld_qty = pk.load(f)
-except:
-    all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
-                size=args.u_devices).astype(int) #all_unlabelled_qtys
-    split_lqtys = np.random.normal(args.avg_lqty_l,args.avg_lqty_l/6,\
-                size=args.l_devices).astype(int)
-    split_uqtys = np.random.normal(args.avg_lqty_u,args.avg_lqty_u/6,\
-                size=args.l_devices).astype(int)
-    net_l_qtys = split_lqtys + split_uqtys
-    data_qty_alld = list(net_l_qtys)+list(all_u_qtys)    
-    
-    alld_qty = data_qty_alld
-    
-    td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
-               '_split_uqtys':split_uqtys}        
-    for ie,entry in enumerate(td_dict.keys()):
-        with open(cwd+'/data_div/devices'+str(args.t_devices)+\
-                  '_seed'+str(args.seed)+entry\
-                +'_'+args.avg_size,'wb') as f:
-            pk.dump(td_dict[entry],f)
+# try: 
+#     with open(cwd+'/data_div/devices'+str(args.t_devices)\
+#               +'_seed'+str(args.seed)+'_data_qty_'\
+#             +args.avg_size,'rb') as f:
+#         alld_qty = pk.load(f)
+# except:
+all_u_qtys = np.random.normal(args.avg_uqty,args.avg_uqty/6,\
+            size=args.u_devices).astype(int) #all_unlabelled_qtys
+split_lqtys = np.random.normal(args.avg_lqty_l,args.avg_lqty_l/6,\
+            size=args.l_devices).astype(int)
+split_uqtys = np.random.normal(args.avg_lqty_u,args.avg_lqty_u/6,\
+            size=args.l_devices).astype(int)
+net_l_qtys = split_lqtys + split_uqtys
+data_qty_alld = list(net_l_qtys)+list(all_u_qtys)    
+
+alld_qty = data_qty_alld
+
+td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
+           '_split_uqtys':split_uqtys}        
+for ie,entry in enumerate(td_dict.keys()):
+    with open(cwd+'/data_div/devices'+str(args.t_devices)+\
+              '_seed'+str(args.seed)+entry\
+            +'_'+args.avg_size,'wb') as f:
+        pk.dump(td_dict[entry],f)
 
 # dataset determination
 pwd = os.path.dirname(cwd)

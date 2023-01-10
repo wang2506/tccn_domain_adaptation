@@ -23,7 +23,7 @@ def optim_parser():
                         help='avg labelled qty at labelled devices')
     parser.add_argument('--avg_lqty_u',type=int,default=200,\
                         help='avg unlabelled qty at labelled devices') 
-    parser.add_argument('--avg_size',type=str,default='large')
+    parser.add_argument('--avg_size',type=str,default='small')
     
     ## scaling
     parser.add_argument('--phi_s',type=float,default=1,\
