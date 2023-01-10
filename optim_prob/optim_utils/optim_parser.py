@@ -50,8 +50,8 @@ def optim_parser():
                         choices=['cpu','gpu'])
     parser.add_argument('--div_gpu_num',type=int,default=0,\
                         help='based on your devices')
-    parser.add_argument('--div_ttime',type=int,default=20,\
-                        help='divergence estimation total iteration loops') #10
+    parser.add_argument('--div_ttime',type=int,default=50,\
+                        help='divergence estimation total iteration loops') #10, 20
     parser.add_argument('--div_nn',type=str,default='CNN',\
                         choices=['MLP','CNN','GCNN'],\
                         help='neural network for divergence estimation')
