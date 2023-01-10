@@ -6,6 +6,11 @@ import numpy as np
 
 # from optim_utils.optim_parser import optim_parser
 
+import matplotlib
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+
 cwd = os.getcwd()
 pwd = os.path.dirname(cwd)
 

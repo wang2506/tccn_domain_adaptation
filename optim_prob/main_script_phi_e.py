@@ -791,7 +791,8 @@ for c_iter in range(args.approx_iters):
     # # print(chi_s.value)
     # # print('chi_t:')
     # # print(chi_t.value)
-    # print('alpha:')
+    print('alpha:')
+    print(alpha.value)      
     # print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
     # print('chi_c1:')
     # print(chi_c1.value)
@@ -804,7 +805,7 @@ for c_iter in range(args.approx_iters):
     psi_track[c_iter] = psi.value
     nrg_vals.append(e_err.value)
 
-print(c_iter)
+# print(c_iter)
 # %% saving some results 
 sav_dict = {'obj_val':obj_vals,'psi_val':psi_track,\
             'hat_ep_val':hat_ep_alld,'alpha_val':alpha.value}

@@ -4,6 +4,10 @@ import numpy as np
 import os
 import pickle as pk
 import pandas as pd
+import matplotlib
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 cwd = os.getcwd()
 pwd = os.path.dirname(cwd)
@@ -337,7 +341,7 @@ fig2.subplots_adjust(wspace=0.2)
 # fig.savefig(cwd+'/nrg_plots/nrg_model_ratios'+dataset+'.png',dpi=1000,bbox_inches='tight')
 # fig.savefig(cwd+'/nrg_plots/nrg_model_ratios'+dataset+'.pdf',dpi=1000,bbox_inches='tight')
 
-# fig2.savefig(cwd+'/nrg_plots/nrg_norm_nrg'+dataset+'.png',dpi=1000,bbox_inches='tight')
-# fig2.savefig(cwd+'/nrg_plots/nrg_norm_nrg'+dataset+'.pdf',dpi=1000,bbox_inches='tight')
+fig2.savefig(cwd+'/nrg_plots/nrg_norm_nrg'+dataset+'.png',dpi=1000,bbox_inches='tight')
+fig2.savefig(cwd+'/nrg_plots/nrg_norm_nrg'+dataset+'.pdf',dpi=1000,bbox_inches='tight')
 
     

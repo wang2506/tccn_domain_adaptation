@@ -4,7 +4,10 @@ import numpy as np
 import os
 import pickle as pk
 import pandas as pd
+import matplotlib
 
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 cwd = os.getcwd()
 # %% settings
 # labels_type = 'iid'
