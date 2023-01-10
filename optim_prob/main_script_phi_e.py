@@ -794,8 +794,8 @@ for c_iter in range(args.approx_iters):
     # # print(chi_s.value)
     # # print('chi_t:')
     # # print(chi_t.value)
-    print('alpha:')
-    print(alpha.value)      
+    # print('alpha:')
+    # print(alpha.value)      
     # print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
     # print('chi_c1:')
     # print(chi_c1.value)
@@ -807,6 +807,9 @@ for c_iter in range(args.approx_iters):
     obj_vals.append(prob.value)
     psi_track[c_iter] = psi.value
     nrg_vals.append(e_err.value)
+
+print('alpha:')
+print(alpha.value)    
 
 # print(c_iter)
 # %% saving some results 
