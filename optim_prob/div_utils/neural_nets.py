@@ -446,7 +446,7 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
     for i in range(args.l_devices):
         params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
                 d_train=d_train,nnet=nnet[i],device=device,\
-                agg_period=more_lt)
+                agg_period=1)#more_lt)
         all_w.append(params_w)
     
     tt2 = deepcopy(all_w)
