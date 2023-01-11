@@ -10,9 +10,9 @@ def optim_parser():
                         help='save the run data or not')
     
     ## devices and their characteristics
-    parser.add_argument('--t_devices',type=int,default=10,\
+    parser.add_argument('--t_devices',type=int,default=15,\
                         help='total_networked_devices') #10, 15
-    parser.add_argument('--l_devices',type=int,default=5,\
+    parser.add_argument('--l_devices',type=int,default=10,\
                         help='devices w labelled data') #5, 10
     # 'devices w/out labelled data' - see bottom
     
