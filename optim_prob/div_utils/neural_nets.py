@@ -444,11 +444,12 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
     
     all_w = []
     for i in range(args.l_devices):
-        params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
-                d_train=d_train,nnet=nnet[i],device=device,\
-                agg_period=1)#more_lt)
-        all_w.append(params_w)
+        # params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+        #         d_train=d_train,nnet=nnet[i],device=device,\
+        #         agg_period=1)#more_lt)
+        # all_w.append(params_w)
     
+        all_w.append(w_avg)
     tt2 = deepcopy(all_w)
     
     return tt2,w_avg
