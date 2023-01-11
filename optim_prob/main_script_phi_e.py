@@ -432,8 +432,8 @@ for ir,row in enumerate(div_pairs):
 
 # test scale
 # div_pairs = div_pairs*1e1
-div_pairs = div_pairs*5e1
-# div_pairs = div_pairs*1e2
+# div_pairs = div_pairs*5e1
+div_pairs = div_pairs*1e2
 print(div_pairs)
 # input('stop')
 
