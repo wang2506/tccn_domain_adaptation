@@ -577,7 +577,7 @@ acc_df['max_qty'] = list(h1_accs.values()) # this is standard FL now
 acc_df['unif_ratio'] = list(h2_accs.values())
 acc_df['o2o'] = list(oo_accs.values()) 
 acc_df['o2m'] = list(sm_accs.values())
-acc_df['source'] = list(source_accs.values())
+# acc_df['source'] = list(source_accs.values())
 
 nrg_df = pd.DataFrame()
 nrg_df['ours'] = [our_nrg]
