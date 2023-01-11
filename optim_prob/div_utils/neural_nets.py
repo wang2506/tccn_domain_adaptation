@@ -58,7 +58,7 @@ class feature_extract(nn.Module):
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = x.view(-1, x.shape[1]*x.shape[2]*x.shape[3])
         return x
-    
+
 class class_classifier(nn.Module):
     def __init__(self):
         super(class_classifier,self).__init__()
