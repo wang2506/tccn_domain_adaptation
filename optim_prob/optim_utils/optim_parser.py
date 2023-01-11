@@ -10,10 +10,10 @@ def optim_parser():
                         help='save the run data or not')
     
     ## devices and their characteristics
-    parser.add_argument('--t_devices',type=int,default=15,\
-                        help='total_networked_devices') #10
-    parser.add_argument('--l_devices',type=int,default=10,\
-                        help='devices w labelled data') #5
+    parser.add_argument('--t_devices',type=int,default=10,\
+                        help='total_networked_devices') #10, 15
+    parser.add_argument('--l_devices',type=int,default=5,\
+                        help='devices w labelled data') #5, 10
     # 'devices w/out labelled data' - see bottom
     
     # 1000, 800, 200
@@ -48,8 +48,8 @@ def optim_parser():
     # div est infrastructure vars
     parser.add_argument('--div_comp',type=str,default='gpu',\
                         choices=['cpu','gpu'])
-    parser.add_argument('--div_gpu_num',type=int,default=0,\
-                        help='based on your devices')
+    parser.add_argument('--div_gpu_num',type=int,default=2,\
+                        help='based on your devices') #0
     parser.add_argument('--div_ttime',type=int,default=50,\
                         help='divergence estimation total iteration loops') #10, 20
     parser.add_argument('--div_nn',type=str,default='CNN',\
