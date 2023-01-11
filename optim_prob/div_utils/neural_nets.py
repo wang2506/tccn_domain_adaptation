@@ -413,7 +413,8 @@ def fl_ind_train(ld_set,args,d_train,nnet,device,agg_period):
 
 def fl_subprocess(ld_sets,args,d_train,nnet,device):
     agg_period = 10 #10
-    num_aggs = 2
+    # num_aggs = 2
+    num_aggs = 10
     more_lt = round(args.st_time-num_aggs*agg_period)
     
     ## temporary - Only for l_devices = sources
