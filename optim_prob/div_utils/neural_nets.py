@@ -424,7 +424,8 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
     t_weight = sum(weights)
     weights = [i/t_weight for i in weights]
     
-    for t in range(1,round(args.st_time/(num_aggs*agg_period))): #+more_lt):
+    # for t in range(1,round(args.st_time/(num_aggs*agg_period))): #+more_lt):
+    for t in range(1,num_aggs): #+more_lt):
         # if t <= round(args.st_time/(num_aggs*agg_period)): #t%agg_period == 0 and        
         ## train
         all_w = []
