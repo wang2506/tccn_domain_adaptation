@@ -181,11 +181,11 @@ if args.label_split == 1:
             td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)            
         else:
             # lpd = [random.sample(range(labels),3) for i in range(args.t_devices)]
-            lpd = [random.sample(range(labels),3) for i in range(args.l_devices)]
+            lpd = [random.sample(range(labels),4) for i in range(args.l_devices)]
             lpd_u = [lpd[random.sample(range(args.l_devices),1)[0]] for i in range(args.u_devices)]
             lpd += lpd_u
             print(lpd)
-            td_qty = np.round(np.random.dirichlet(5*np.ones(3),args.t_devices),2)
+            td_qty = np.round(np.random.dirichlet(5*np.ones(4),args.t_devices),2)
         for trow in td_qty:
             if np.round(sum(trow),2) < 1:
                 ind_min = np.argmin(trow)
