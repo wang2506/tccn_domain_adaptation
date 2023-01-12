@@ -589,37 +589,37 @@ nrg_df['o2m'] = [sm_nrg]
 
 print(acc_df)
 print(nrg_df)
-# if oargs.nrg_mt == 0:
-#     if oargs.dset_split == 0: # only one dataset
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_nrg.csv')
-#     else:
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
-#                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_nrg.csv')
+if oargs.nrg_mt == 0:
+    if oargs.dset_split == 0: # only one dataset
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv')
+    else:
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+                +'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+'_nrg.csv')
 
-# else: ## adjust file name with nrg
-#     if oargs.dset_split == 0: # only one dataset
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_nrg.csv')                             
-#     else:
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
-#                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+end+end2+'_nrg.csv') 
+else: ## adjust file name with nrg
+    if oargs.dset_split == 0: # only one dataset
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+prefl+end+end2+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+prefl+end+end2+'_nrg.csv')                             
+    else:
+        acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+prefl+end+end2+'_acc.csv')
+        nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+                  +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
+                  +'_'+oargs.div_nn+prefl+end+end2+'_nrg.csv') 
 
 
 

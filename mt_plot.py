@@ -16,9 +16,11 @@ split_type = None
 nn_style = 'MLP'
 nn_style = 'CNN'
 nrg_mt = 1
-phi_e = 1e1
+# phi_e = 1e1
+phi_e = 1e0
 grad_rv = False
 # grad_rv = True
+fl = True
 
 seeds = [1,2,3,4,5]
 
@@ -44,11 +46,16 @@ else:
     end2 = ''
 for ids,seed in enumerate(seeds):
     if dset_split == 0:
-        for idt,dset_type in enumerate(['M','U','MM']):
+        for idt,dset_type in enumerate(['M']):#,'U','MM']):
             if dset_type == 'MM':
                 end = '_base_6'
             else:
                 end = ''
+            if fl == True:
+                prefl = 'fl'
+            else:
+                prefl = ''
+            
             if nrg_mt == 0:
                 acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/seed_'+str(seed)+'_'\
                         +labels_type \
@@ -56,7 +63,7 @@ for ids,seed in enumerate(seeds):
             else:
                 acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
                         +'seed_'+str(seed)+'_'+labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')
+                          +'_'+nn_style+prefl+end+end2+'_acc.csv')
             if ids == 0:
                 taccs[dset_type] = acc_df['ours'].tolist()
                 raccs[dset_type] = acc_df['rng'].tolist()
@@ -102,7 +109,7 @@ for ids,seed in enumerate(seeds):
                 end = '_base_6'
             else:
                 end = ''
-                
+            
             if nrg_mt == 0:
                 acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/'+pre+'seed_'+str(seed)+'_'\
                         +labels_type \
