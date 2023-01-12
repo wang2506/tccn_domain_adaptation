@@ -176,7 +176,8 @@ if args.label_split == 1:
             lpd_u = [lpd[random.sample(range(args.l_devices),1)[0]] for i in range(args.u_devices)]
             lpd += lpd_u
             print(lpd)
-            td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)
+            # td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)
+            td_qty = np.round(np.random.dirichlet(5*np.ones(4),args.t_devices),2)
         elif 'MM' in args.split_type and args.dset_split == 1:
             lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
             td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)
