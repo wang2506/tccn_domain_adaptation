@@ -169,7 +169,7 @@ omv = []
 
 if dset_split == 0:
     dset_vec = ['MNIST','USPS','MNIST-M']
-    for i,j in enumerate(['M','U','MM']):
+    for i,j in enumerate(['M','U']):#,'MM']):
         ax[i].bar([0],np.mean(taccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
                  capsize=5,width=width,\
                 color='tab:blue',edgecolor='black',label=r'Our Method')
@@ -178,10 +178,10 @@ if dset_split == 0:
                 color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
         ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
                   capsize=5,width=width,\
-                color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
-        ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
-                  capsize=5,width=width,\
-                color='tab:brown',edgecolor='black',label=r'Uniform')  
+                color='tab:green',edgecolor='black',label=r'FedAvg')    
+        # ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
+        #           capsize=5,width=width,\
+        #         color='tab:brown',edgecolor='black',label=r'Uniform')  
         ax[i].bar([4],np.mean(om_accs[j]),yerr=np.std(om_accs[j]),ecolor='black',\
                   capsize=5,width=width,\
                 color='tab:purple',edgecolor='black',label=r'Avg-Degree')
