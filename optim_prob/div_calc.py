@@ -91,8 +91,8 @@ if args.dset_split == 0:
         d_train.targets = np.array(d_train.targets)
     elif args.dset_type == 'MM':
         print('Using MNIST-M \n')
-        tx_dat =  torchvision.transforms.Compose([transforms.ToTensor(),\
-                    transforms.Grayscale()])
+        tx_dat =  torchvision.transforms.Compose([transforms.ToTensor()])#,\
+                    # transforms.Grayscale()])
         d_train = MNISTM(pwd+'/data/',train=True,download=True,\
                          transform=tx_dat)
     else:
@@ -172,10 +172,10 @@ if args.label_split == 1:
     if args.labels_type == 'mild':
         if 'MM' in args.dset_type and args.dset_split == 0:
             # lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
-            lpd = [random.sample(range(labels),6) for i in range(args.l_devices)]
+            lpd = [random.sample(range(labels),4) for i in range(args.l_devices)]
             lpd_u = [lpd[random.sample(range(args.l_devices),1)[0]] for i in range(args.u_devices)]
             lpd += lpd_u
-            print(lpd)            
+            print(lpd)
             td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)
         elif 'MM' in args.split_type and args.dset_split == 1:
             lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]

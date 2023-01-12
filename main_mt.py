@@ -277,10 +277,16 @@ else:
         start_net = MLP(d_in,d_h,d_out).to(device)
         os_append = 'MLP_start_w'
     elif oargs.div_nn == 'CNN':
-        nchannels = 1
-        nclasses = 10
-        start_net = CNN(nchannels,nclasses).to(device)
-        os_append = 'CNN_start_w'
+        if oargs.dset_type in ['M','U']:
+            nchannels = 1
+            nclasses = 10
+            start_net = CNN(nchannels,nclasses).to(device)
+            os_append = 'CNN_start_w_1c'
+        else:
+            nchannels = 3
+            nclasses = 10
+            start_net = CNN(nchannels,nclasses).to(device)
+            os_append = 'CNN_start_w_3c'
     elif oargs.div_nn == 'GCNN':
         nchannels = 1
         nclasses = 10
