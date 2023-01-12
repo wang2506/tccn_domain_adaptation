@@ -46,7 +46,7 @@ else:
     end2 = ''
 for ids,seed in enumerate(seeds):
     if dset_split == 0:
-        for idt,dset_type in enumerate(['M']):#,'U','MM']):
+        for idt,dset_type in enumerate(['M','U']):#,'MM']):
             if dset_type == 'MM':
                 end = '_base_6'
             else:
