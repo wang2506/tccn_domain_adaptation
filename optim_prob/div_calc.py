@@ -171,7 +171,11 @@ if args.label_split == 1:
     # determination of the device datasets requires
     if args.labels_type == 'mild':
         if 'MM' in args.dset_type and args.dset_split == 0:
-            lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
+            # lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
+            lpd = [random.sample(range(labels),6) for i in range(args.l_devices)]
+            lpd_u = [lpd[random.sample(range(args.l_devices),1)[0]] for i in range(args.u_devices)]
+            lpd += lpd_u
+            print(lpd)            
             td_qty = np.round(np.random.dirichlet(5*np.ones(6),args.t_devices),2)
         elif 'MM' in args.split_type and args.dset_split == 1:
             lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
@@ -254,7 +258,7 @@ if args.dset_split == 0:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','wb') as f:
-        pk.dump(d_dsets,f)    
+        pk.dump(d_dsets,f)
 elif args.dset_split == 1:
     with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
@@ -399,7 +403,7 @@ if args.dset_split == 0:
     with open(cwd+'/div_results/div_vals/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+end,'wb') as f:
-        pk.dump(lab2ulab_accs,f)     
+        pk.dump(lab2ulab_accs,f)
 else:
     if 'MM' in args.split_type:
         end = '_base_6'
