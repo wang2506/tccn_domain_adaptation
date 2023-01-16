@@ -212,7 +212,7 @@ class GCNN(nn.Module):
         x = self.fc3(x)
         return F.softmax(x, dim=1)
 
-    
+
 # %%
 class segmentdataset(Dataset):
     def __init__(self,dataset,indexes):

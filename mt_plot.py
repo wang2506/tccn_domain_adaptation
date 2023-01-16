@@ -46,7 +46,7 @@ else:
     end2 = ''
 for ids,seed in enumerate(seeds):
     if dset_split == 0:
-        for idt,dset_type in enumerate(['M','U']):#,'MM']):
+        for idt,dset_type in enumerate(['M','U','MM']):
             if dset_type == 'MM':
                 end = '_base_6'
             else:
@@ -167,23 +167,21 @@ h1v = []
 h2v = []
 omv = []
 
+# yerr=np.std(taccs[j]),ecolor='black',\
+#                  capsize=5,width=width,
+
 if dset_split == 0:
     dset_vec = ['MNIST','USPS','MNIST-M']
-    for i,j in enumerate(['M','U']):#,'MM']):
-        ax[i].bar([0],np.mean(taccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
-                 capsize=5,width=width,\
+    for i,j in enumerate(['M','U','MM']):
+        ax[i].bar([0],np.mean(taccs[j]),\
                 color='tab:blue',edgecolor='black',label=r'Our Method')
-        ax[i].bar([1],np.mean(raccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
-                  capsize=5,width=width,\
+        ax[i].bar([1],np.mean(raccs[j]),\
                 color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
-        ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
-                  capsize=5,width=width,\
+        ax[i].bar([2],np.mean(h1accs[j]),\
                 color='tab:green',edgecolor='black',label=r'FedAvg')    
-        # ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
-        #           capsize=5,width=width,\
+        # ax[i].bar([3],np.mean(h2accs[j]),\
         #         color='tab:brown',edgecolor='black',label=r'Uniform')  
-        ax[i].bar([4],np.mean(om_accs[j]),yerr=np.std(om_accs[j]),ecolor='black',\
-                  capsize=5,width=width,\
+        ax[i].bar([4],np.mean(om_accs[j]),\
                 color='tab:purple',edgecolor='black',label=r'Avg-Degree')
         if i == 0: 
             ax[i].set_ylabel('Average Accuracy (%)')
@@ -227,6 +225,7 @@ else:
 
 dset_vec2 = ['M//MM','M//U','MM//U']
 for i in range(3):
+    ax[i].set_ylim([0,85])
     if dset_split < 2 : 
         ax[i].set_xlabel(dset_vec[i])
     elif dset_split == 2:

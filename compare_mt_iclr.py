@@ -323,7 +323,7 @@ class iclr_method(object):
 
 
 # %%
-if __name__ == '__main__':    
+if __name__ == '__main__':
     args = optim_parser()
     np.random.seed(args.seed)
     random.seed(args.seed)
