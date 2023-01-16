@@ -21,11 +21,12 @@ from torch.utils.data import DataLoader,Dataset
 
 # from comp_iclr_utils import Generator, Disentangler, Classifier, \
 #     Feature_Discriminator, Reconstructor, Mine
-from iclr_utils import Generator, Disentangler, Classifier, \
+from utils.iclr_utils import Generator, Disentangler, Classifier, \
     Feature_Discriminator, Reconstructor, Mine
 from optim_prob.optim_utils.optim_parser import optim_parser
 from optim_prob.mnist_m import MNISTM
 from sklearn.cluster import KMeans
+
 
 # %%
 class segmentdataset(Dataset):
