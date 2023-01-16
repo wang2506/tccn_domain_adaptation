@@ -2,8 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 # from grad_reverse import grad_reverse
 
-def Generator(pixelda=False):
-    return Feature()
+def Generator(pixelda=False,nchannels=None):
+    return Feature(nchannels)
 
 def Disentangler():
     return Feature_disentangle()

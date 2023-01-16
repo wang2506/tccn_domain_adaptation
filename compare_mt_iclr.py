@@ -184,39 +184,40 @@ class iclr_method(object):
                     d_train_dict[dc] = d1
                 d_train_dict = dict(sorted(d_train_dict.items()))
         
-        
-        data_qty_alld,split_lqtys,split_uqtys = 0,0,0    
-        td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
-                   '_split_uqtys':split_uqtys}      
-        for ie,entry in enumerate(td_dict.keys()):
-            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
-                +'_seed'+str(args.seed)+entry\
-                +'_'+args.avg_size,'rb') as f:
-                td_dict[entry] = pk.load(f)
-        data_qty_alld = td_dict['_data_qty']
-        split_lqtys = td_dict['_split_lqtys']
-        split_uqtys = td_dict['_split_uqtys']    
-        
-        ld_sets = {}
-        for i in d_dsets.keys():
-            if i >= args.l_devices:
-                break
-            else:
-                ld_sets[i] = random.sample(d_dsets[i],split_lqtys[i])
-        self.ld_sets = ld_sets
-        
-        device_datasets_batched = {}
-        for i in range(args.l_devices):
-            device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
-                batch_size=args.div_bs,shuffle=True)
-        self.dd_batched = device_datasets_batched
-        
-        ud_batched = {}
-        for i in range(args.u_devices):
-            ud_batched[i] = DataLoader(segmentdataset(d_train_dict[args.l_devices+i],\
-                d_dsets[args.l_devices+i]),\
-                batch_size=args.div_bs,shuffle=True)
-        self.ud_batched = ud_batched
+                print('faulty stuff within this loop')
+                
+            data_qty_alld,split_lqtys,split_uqtys = 0,0,0    
+            td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
+                       '_split_uqtys':split_uqtys}      
+            for ie,entry in enumerate(td_dict.keys()):
+                with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+                    +'_seed'+str(args.seed)+entry\
+                    +'_'+args.avg_size,'rb') as f:
+                    td_dict[entry] = pk.load(f)
+            data_qty_alld = td_dict['_data_qty']
+            split_lqtys = td_dict['_split_lqtys']
+            split_uqtys = td_dict['_split_uqtys']    
+            
+            ld_sets = {}
+            for i in d_dsets.keys():
+                if i >= args.l_devices:
+                    break
+                else:
+                    ld_sets[i] = random.sample(d_dsets[i],split_lqtys[i])
+            self.ld_sets = ld_sets
+            
+            device_datasets_batched = {}
+            for i in range(args.l_devices):
+                device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
+                    batch_size=args.div_bs,shuffle=True)
+            self.dd_batched = device_datasets_batched
+            
+            ud_batched = {}
+            for i in range(args.u_devices):
+                ud_batched[i] = DataLoader(segmentdataset(d_train_dict[args.l_devices+i],\
+                    d_dsets[args.l_devices+i]),\
+                    batch_size=args.div_bs,shuffle=True)
+            self.ud_batched = ud_batched
         
         print('building models')
         self.G_s = []
@@ -228,7 +229,7 @@ class iclr_method(object):
         self.M = []
         
         for i, j in enumerate(range(args.l_devices)):
-            self.G_s.append(Generator()) ## source generators, (feature extractors) G_i
+            self.G_s.append(Generator(nchannels=1)) ## source generators, (feature extractors) G_i
             self.C_s.append(Classifier()) ## source classifiers, C_i 
             self.FD.append(Feature_Discriminator()) ## domain identifiers, DI_i
             self.D.append(Disentangler()) ## source disentanglers, (separates the domain invariant and domain specific features), D_i
@@ -239,7 +240,7 @@ class iclr_method(object):
         self.G_t = []
         self.C_t = []
         for i in range(args.u_devices):
-            self.G_t.append( Generator()) ## target generator
+            self.G_t.append( Generator(nchannels=1)) ## target generator
             self.C_t.append( Classifier()) ## target classifier
         print('building models finished')
         
