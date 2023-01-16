@@ -48,7 +48,7 @@ class iclr_method(object):
         self.dataset_test_s = []
         cwd = os.getcwd()
         
-        if args.dset_split == 1:
+        if args.dset_split < 2: #==1
             pre = ''
         elif args.dset_split == 2:
             pre = 'total_'      
