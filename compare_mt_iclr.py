@@ -48,22 +48,51 @@ class iclr_method(object):
         self.dataset_test_s = []
         cwd = os.getcwd()
         
-        if args.dset_split < 2: #==1
-            pre = ''
-        elif args.dset_split == 2:
-            pre = 'total_'      
+        if args.grad_rev == True:
+            end2 = 'gr'
+        else:
+            end2 = ''
         
-        with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type+'_lpd','rb') as f:
-            lpd = pk.load(f)
-        with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            +'_'+args.div_nn\
-            +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
-            d_dsets = pk.load(f)
+        if args.fl == True:
+            prefl = 'fl'
+        else:
+            prefl = ''
+        
+        
+        if args.dset_split == 0:
+            if args.dset_type == 'MM':
+                end = '_base_6'
+            else:
+                end = ''
+                
+            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+                +'_seed'+str(args.seed)+'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_lpd','rb') as f:
+                lpd = pk.load(f)
+            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+                +'_seed'+str(args.seed)+'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
+                d_dsets = pk.load(f) 
+                
+        elif args.dset_split == 1:
+            pre = ''
+            raise TypeError('tbd')
+        elif args.dset_split == 2:
+            pre = 'total_'
+            raise TypeError('tbd')
+            # with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            #     +'_'+args.div_nn\
+            #     +'_'+args.split_type+'_'+args.labels_type+'_lpd','rb') as f:
+            #     lpd = pk.load(f)
+            # with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            #     +'_'+args.div_nn\
+            #     +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
+            #     d_dsets = pk.load(f)
         
         self.d_dsets = d_dsets #image indexes
         
+        
+        print('formatting')
         if args.dset_split == 0:
             if args.dset_type == 'M':
                 print('Using MNIST \n')
@@ -161,7 +190,8 @@ class iclr_method(object):
                    '_split_uqtys':split_uqtys}      
         for ie,entry in enumerate(td_dict.keys()):
             with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
-                      +'_seed'+str(args.seed)+entry,'rb') as f:
+                +'_seed'+str(args.seed)+entry\
+                +'_'+args.avg_size,'rb') as f:
                 td_dict[entry] = pk.load(f)
         data_qty_alld = td_dict['_data_qty']
         split_lqtys = td_dict['_split_lqtys']
