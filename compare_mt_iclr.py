@@ -25,7 +25,7 @@ from utils.iclr_utils import Generator, Disentangler, Classifier, \
     Feature_Discriminator, Reconstructor, Mine
 from optim_prob.optim_utils.optim_parser import optim_parser
 from optim_prob.mnist_m import MNISTM
-# from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans
 
 
 # %%
@@ -42,7 +42,18 @@ class segmentdataset(Dataset):
 # %%
 class iclr_method(object):
     def __init__(self,args):
-        self.args = args        
+        self.args = args
+        self.coefficient_matrix=[[np.round(1/args.l_devices,2)]*args.l_devices \
+            for i in range(args.u_devices)]
+        self.pre_inertia = -1
+        self.inertia = [0]*args.l_devices
+        self.src_domain_code = np.repeat(np.array([[*([1]), *([0])]]), args.div_bs, axis=0)
+        self.tgt_domain_code = np.repeat(np.array([[*([0]), *([1])]]), args.div_bs, axis=0)
+        self.src_domain_code = Variable(\
+            torch.FloatTensor(self.src_domain_code).cuda(), requires_grad=False)
+        self.tgt_domain_code = Variable(\
+            torch.FloatTensor(self.tgt_domain_code).cuda(), requires_grad=False)
+        self.softmax = lambda z:np.exp(z)/np.sum(np.exp(z))
         print('pulling datasets and quantities')   
         self.dataset_s = []
         self.dataset_test_s = []
@@ -73,9 +84,19 @@ class iclr_method(object):
                 +'_seed'+str(args.seed)+'_'+args.div_nn\
                 +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
                 d_dsets = pk.load(f) 
-                
+        
         elif args.dset_split == 1:
             pre = ''
+            
+            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+                +'_seed'+str(args.seed)+'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_lpd','rb') as f:
+                lpd = pk.load(f)
+            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+                +'_seed'+str(args.seed)+'_'+args.div_nn\
+                +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
+                d_dsets = pk.load(f)             
+            
             raise TypeError('tbd')
         elif args.dset_split == 2:
             pre = 'total_'
@@ -92,7 +113,7 @@ class iclr_method(object):
         self.d_dsets = d_dsets #image indexes
         
         
-        print('formatting')
+        print('dataset + minibatch formatting')
         if args.dset_split == 0:
             if args.dset_type == 'M':
                 print('Using MNIST \n')
@@ -185,39 +206,52 @@ class iclr_method(object):
                 d_train_dict = dict(sorted(d_train_dict.items()))
         
                 print('faulty stuff within this loop')
-                
-            data_qty_alld,split_lqtys,split_uqtys = 0,0,0    
-            td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
-                       '_split_uqtys':split_uqtys}      
-            for ie,entry in enumerate(td_dict.keys()):
-                with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
-                    +'_seed'+str(args.seed)+entry\
-                    +'_'+args.avg_size,'rb') as f:
-                    td_dict[entry] = pk.load(f)
-            data_qty_alld = td_dict['_data_qty']
-            split_lqtys = td_dict['_split_lqtys']
-            split_uqtys = td_dict['_split_uqtys']    
-            
-            ld_sets = {}
-            for i in d_dsets.keys():
-                if i >= args.l_devices:
-                    break
-                else:
-                    ld_sets[i] = random.sample(d_dsets[i],split_lqtys[i])
-            self.ld_sets = ld_sets
-            
-            device_datasets_batched = {}
-            for i in range(args.l_devices):
+        
+        data_qty_alld,split_lqtys,split_uqtys = 0,0,0
+        td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
+                   '_split_uqtys':split_uqtys}
+        for ie,entry in enumerate(td_dict.keys()):
+            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+                +'_seed'+str(args.seed)+entry\
+                +'_'+args.avg_size,'rb') as f:
+                td_dict[entry] = pk.load(f)
+        data_qty_alld = td_dict['_data_qty']
+        split_lqtys = td_dict['_split_lqtys']
+        split_uqtys = td_dict['_split_uqtys']
+        
+        ld_sets = {}
+        for i in d_dsets.keys():
+            if i >= args.l_devices:
+                break
+            else:
+                ld_sets[i] = random.sample(self.d_dsets[i],split_lqtys[i])
+        self.ld_sets = ld_sets
+        
+        ## this assumes that you have already determined the source/target split
+        ## HARD CODED!!!
+        ## TODO 
+        device_datasets_batched = {}
+        for i in range(args.l_devices):
+            if args.dset_split > 1: 
                 device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
                     batch_size=args.div_bs,shuffle=True)
-            self.dd_batched = device_datasets_batched
-            
-            ud_batched = {}
-            for i in range(args.u_devices):
+            else:
+                device_datasets_batched[i] = DataLoader(segmentdataset(d_train,ld_sets[i]),\
+                    batch_size=args.div_bs,shuffle=True)
+        self.dd_batched = device_datasets_batched
+        
+        ud_batched = {}
+        for i in range(args.u_devices):
+            if args.dset_split > 1:
                 ud_batched[i] = DataLoader(segmentdataset(d_train_dict[args.l_devices+i],\
                     d_dsets[args.l_devices+i]),\
                     batch_size=args.div_bs,shuffle=True)
-            self.ud_batched = ud_batched
+            else:
+                ud_batched[i] = DataLoader(segmentdataset(d_train,\
+                    d_dsets[args.l_devices+i]),\
+                    batch_size=args.div_bs,shuffle=True)
+        self.ud_batched = ud_batched
+        print('dataset + batch formatting finished')
         
         print('building models')
         self.G_s = []
@@ -227,7 +261,7 @@ class iclr_method(object):
         self.DC = []
         self.R = []
         self.M = []
-        
+
         for i, j in enumerate(range(args.l_devices)):
             self.G_s.append(Generator(nchannels=1)) ## source generators, (feature extractors) G_i
             self.C_s.append(Classifier()) ## source classifiers, C_i 
@@ -280,9 +314,10 @@ class iclr_method(object):
         self.opt_g_t = []
         self.opt_c_t = []
         for G_t,C_t in zip(self.G_t,self.C_t):
-            self.opt_g_t.append(optim.SGD(self.G_t.parameters(), lr=args.div_lr))
-            self.opt_c_t.append(optim.SGD(self.C_t.parameters(), lr=args.div_lr))
+            self.opt_g_t.append(optim.SGD(G_t.parameters(), lr=args.div_lr))
+            self.opt_c_t.append(optim.SGD(C_t.parameters(), lr=args.div_lr))
         
+        print('check')
         # initilize parameters
         for G in self.G_s:
             for G_t in self.G_t:
@@ -306,29 +341,34 @@ class iclr_method(object):
     def discrepancy(self, out1, out2):
         return torch.mean(torch.abs(F.softmax(out1) - F.softmax(out2)))    
     
-    # def group_step(self, step_list):
-    #     for i in range(len(step_list)):
-    #         step_list[i].step()
-    #     self.reset_grad()
+    def group_step(self, step_list):
+        for i in range(len(step_list)):
+            step_list[i].step()
+        self.reset_grad()
     
-    # def reset_grad(self):
-    #     for (opt_g_s,opt_c_s,opt_fd, opt_d, opt_dc, opt_m,opt_r) in \
-    #             zip(self.opt_g_s, self.opt_c_s, self.opt_fd, self.opt_d, self.opt_dc, self.opt_m,self.opt_r):
-    #         opt_g_s.zero_grad()
-    #         opt_c_s.zero_grad()
-    #         opt_fd.zero_grad()
-    #         opt_d.zero_grad()
-    #         opt_dc.zero_grad()
-    #         opt_m.zero_grad()
-    #         opt_r.zero_grad()
-    #     self.opt_c_t.zero_grad()
-    #     self.opt_g_t.zero_grad()
+    def reset_grad(self):
+        for (opt_g_s,opt_c_s,opt_fd, opt_d, opt_dc, opt_m,opt_r) in \
+                zip(self.opt_g_s, self.opt_c_s, self.opt_fd, self.opt_d, self.opt_dc, self.opt_m,self.opt_r):
+            opt_g_s.zero_grad()
+            opt_c_s.zero_grad()
+            opt_fd.zero_grad()
+            opt_d.zero_grad()
+            opt_dc.zero_grad()
+            opt_m.zero_grad()
+            opt_r.zero_grad()
+        
+        for (opt_c_t,opt_g_t) in \
+            zip(self.opt_c_t,self.opt_g_t):
+            opt_c_t.zero_grad()
+            opt_g_t.zero_grad()
 
     def train(self,epoch):
         criterion=nn.CrossEntropyLoss().cuda()
         adv_loss = nn.BCEWithLogitsLoss().cuda()
 
-        for G, C, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, self.D, self.DC, self.R, self.M):
+        for G, C, FD, D, DC, R, M in \
+            zip(self.G_s, self.C_s, self.FD, self.D, self.DC, self.R, self.M):
+            # for i in range(len(G)):
             G.train()
             C.train()
             FD.train()
@@ -336,25 +376,124 @@ class iclr_method(object):
             DC.train()
             R.train()
             M.train()
-        self.G_t.train()
-        self.C_t.train()
+            
+        for Gt, Ct in zip(self.G_t, self.C_t):
+            Gt.train()
+            Ct.train()
         
         for t_d in range(args.u_devices):
             zip_struct = []
             for i in range(args.l_devices):
-                zip_struct.append(self.dd_batched[i])
-            zip_struct.append(self.ud_batched[t_d])
+                zip_struct.append(list(self.dd_batched[i]))
+            zip_struct.append(list(self.ud_batched[t_d]))
             
-            for batch_idx, all_bd in enumerate(zip(zip_struct)):
-                print('a')
-                # for device_bd in all_bd:
-                #     if device_bd[0]
-                
+            mb_sizes = []
+            for i in zip_struct:
+                mb_sizes.append(len(i))
+            t_batches = min(mb_sizes)-1
             
-            # for s_d in range(args.l_devices):
-            #     for batch_idx, batched_d in enumerate(self.dd_batched[s_d]):
-        
+            loss_record = []
+            loss_t_record = []
+            
+            for c_batch in range(t_batches):
+                for i in range(args.l_devices):
+                    data_s,label_s = zip_struct[i][c_batch][0].cuda(),zip_struct[i][c_batch][-1].cuda()
+                    data_t,label_t = zip_struct[-1][c_batch][0].cuda(),zip_struct[-1][c_batch][-1].cuda()
+                    self.reset_grad()
+                    feat = self.G_s[i](data_s)
+                    feat_fc2 = feat['f_fc2']
+                    output = self.C_s[i](feat_fc2)
 
+                    feat_t = self.G_t[t_d](data_t)
+                    feat_fc2_t = feat_t['f_fc2']
+                    output_t = self.C_t[t_d](feat_fc2_t)
+
+                    loss_s = criterion(output, label_s)
+                    loss_t = criterion(output_t, label_t)
+                    loss_record.append(loss_s.item())
+                    loss_t_record.append(loss_t.item())
+    
+                    loss_s.backward(retain_graph=True)
+
+                    feat_conv3 = feat['f_conv3']
+                    output_d=self.DC[i](self.D[i](feat_conv3))
+                    loss_s = criterion(output, label_s)
+                    loss_dis = self.discrepancy(output,output_d)
+                    loss_s -= loss_dis
+                    loss_s.backward(retain_graph=True)
+                    
+                    for net1, net2 in \
+                        zip(self.G_s[i].named_parameters(), self.G_t[t_d].named_parameters()):
+                        if net1[1].grad is not None:
+                            net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[t_d][i] 
+                    for net1, net2 in \
+                        zip(self.C_s[i].named_parameters(), self.C_t[t_d].named_parameters()):
+                        if net1[1].grad is not None:
+                            net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[t_d][i] 
+                    self.group_step([self.opt_d[i], self.opt_dc[i], self.opt_g_t[t_d], \
+                            self.opt_c_t[t_d], self.opt_g_s[i], self.opt_c_s[i]])
+                    
+                    features_list = self.G_s[i](data_s)
+                    dis_features = self.D[i](features_list['f_conv3'])
+                    dis_features_shuffle = torch.index_select(dis_features,0,\
+                        Variable(torch.randperm(dis_features.shape[0]).cuda()))
+                    features_fc2 = features_list['f_fc2']
+                    MI = self.mutual_information_estimator(i, features_fc2, \
+                        dis_features, dis_features_shuffle) / args.div_bs
+                    entropy_s = self.ent(dis_features) / args.div_bs
+                    recon_features = self.R[i](torch.cat((features_fc2, dis_features),1)) \
+                        / args.div_bs
+                    recon_loss =  self.reconstruct_loss(features_list['f_conv3'], \
+                        recon_features) / args.div_bs
+                    total_loss = (MI - entropy_s + recon_loss ) * 0.1
+                    total_loss.backward()
+                    self.group_step([self.opt_d[i], self.opt_r[i], \
+                                     self.opt_m[i], self.opt_g_s[i]])
+
+                    test_batch = zip_struct[-1][np.random.randint(0,len(zip_struct[-1])-1)]
+                    test_img = test_batch[0].cuda()
+                    # img = Variable(img.cuda())
+                    feat_torch = self.G_t[t_d](test_img)['f_fc2']
+                    feat = feat_torch.data.cpu().numpy()
+
+                    kmeans = KMeans(n_clusters=10, max_iter=1000).fit(feat)
+
+                    cur_inertia = kmeans.inertia_ / 1e3
+                    if self.pre_inertia == -1:
+                        self.pre_inertia = cur_inertia
+                        continue
+                    else:
+                        inertia_gain = (self.pre_inertia - cur_inertia)\
+                            /self.coefficient_matrix[t_d][i]*(np.round(1/args.l_devices,2))
+                        self.inertia[i] = inertia_gain + self.inertia[i]
+                        self.pre_inertia = cur_inertia
+
+                    src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
+                    tgt_domain_pred = self.FD[i](self.G_t[t_d](data_t)['f_fc2'])
+
+                    df_loss_src = adv_loss(src_domain_pred, self.src_domain_code)
+                    df_loss_tgt = adv_loss(tgt_domain_pred, self.tgt_domain_code)
+
+                    loss = (df_loss_src + df_loss_tgt)/args.div_bs
+                    loss.backward()
+                    self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[t_d]])
+
+                    src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
+                    tgt_domain_pred = self.FD[i](self.G_t[t_d](data_t)['f_fc2'])
+    
+                    df_loss_src = adv_loss(src_domain_pred, 1-self.src_domain_code)
+                    df_loss_tgt = adv_loss(tgt_domain_pred, 1-self.tgt_domain_code)
+                    loss = (df_loss_src + df_loss_tgt)/args.div_bs
+                    loss.backward()
+                    self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[t_d]])
+
+            coefficient_matrix_diff = self.softmax(self.inertia)
+            tc_mat_diff = [0.20 + 0.2 * tmp for tmp in coefficient_matrix_diff]
+            self.coefficient_matrix[t_d] = [tcmd/sum(tc_mat_diff) \
+                for tcmd in tc_mat_diff]
+        print(self.coefficient_matrix)
+        
+        return self.coefficient_matrix
 
 # %%
 if __name__ == '__main__':
@@ -364,7 +503,7 @@ if __name__ == '__main__':
     
     test = iclr_method(args)
 
-
+    results = test.train(100)
 
 
 

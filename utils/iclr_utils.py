@@ -10,8 +10,9 @@ def Disentangler():
 
 def Classifier():
     return Predictor()
-def Feature_Discriminator(input_dim=2048):
-    return Feature_discriminator(input_dim)
+
+def Feature_Discriminator():
+    return Feature_discriminator()
 
 def Reconstructor():
     return Reconstructor()
@@ -27,26 +28,37 @@ class Feature(nn.Module):
         self.bn1 = nn.BatchNorm2d(10)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5, stride=1, padding=2)
         self.bn2 = nn.BatchNorm2d(20)
+
+        self.fc1 = nn.Linear(3920, 200)
+        self.bn1_fc = nn.BatchNorm1d(200)
+        self.fc2 = nn.Linear(200, 50)
+        self.bn2_fc = nn.BatchNorm1d(50)
         
-        self.fc1 = nn.Linear(320, 50)
-        self.bn1_fc = nn.BatchNorm1d(50)
-        self.fc2 = nn.Linear(50, 10)
-        self.bn2_fc = nn.BatchNorm1d(10)
+        # self.fc1 = nn.Linear(320, 50)
+        # self.bn1_fc = nn.BatchNorm1d(50)
+        # self.fc2 = nn.Linear(50, 10)
+        # self.bn2_fc = nn.BatchNorm1d(10)
 
     def forward(self, x,reverse=False):
         x = F.max_pool2d(F.relu(self.bn1(self.conv1(x))), stride=2, kernel_size=3, padding=1)
+        # print('a')
         x = F.relu(self.bn2(self.conv2(x)))
-        f_conv3 = x.view(x.size(0), 320)
+        # print('b')
+        f_conv3 = x.view(x.size(0), 3920) #320
+        # print('c')
         f_fc1 = F.relu(self.bn1_fc(self.fc1(f_conv3)))
+        # print('d')
         x = F.dropout(f_fc1, training=self.training)
+        # print('e')
         f_fc2 = F.relu(self.bn2_fc(self.fc2(x)))
+        # print('f')
         return {'f_conv3':f_conv3, 'f_fc1':f_fc1, 'f_fc2':f_fc2}
 
 
 class Predictor(nn.Module):
     def __init__(self, prob=0.5):
         super(Predictor, self).__init__()
-        self.fc3 = nn.Linear(10, 10)
+        self.fc3 = nn.Linear(50, 10)
         self.bn_fc3 = nn.BatchNorm1d(10)
         self.prob = prob
 
@@ -58,22 +70,33 @@ class Predictor(nn.Module):
         return x
 
 class Feature_discriminator(nn.Module):
-    def __init__(self, input_dim=10):
+    def __init__(self, input_dim=50):
         super(Feature_discriminator, self).__init__()
         self.fc1 = nn.Linear(input_dim, 10)
         self.fc2 = nn.Linear(10, 2)
     def forward(self, x):
+        # print('a')
+        # print(x.shape)
         x = F.leaky_relu(self.fc1(x), 0.2)
+        # print('b')
+        # print(x.shape)
         x = F.leaky_relu(self.fc2(x), 0.2)
+        # print('c')
+        # print(x.shape)
         return x
 
 class Feature_disentangle(nn.Module):
     def __init__(self):
         super(Feature_disentangle, self).__init__()
-        self.fc1 = nn.Linear(320, 50)
-        self.bn1_fc = nn.BatchNorm1d(50)
-        self.fc2 = nn.Linear(50, 10)
-        self.bn2_fc = nn.BatchNorm1d(10)        
+        self.fc1 = nn.Linear(3920, 200)
+        self.bn1_fc = nn.BatchNorm1d(200)
+        self.fc2 = nn.Linear(200, 50)
+        self.bn2_fc = nn.BatchNorm1d(50)
+        
+        # self.fc1 = nn.Linear(320, 50)
+        # self.bn1_fc = nn.BatchNorm1d(50)
+        # self.fc2 = nn.Linear(50, 10)
+        # self.bn2_fc = nn.BatchNorm1d(10)
         
     def forward(self, x):
         x = F.relu(self.bn1_fc(self.fc1(x)))
@@ -84,7 +107,7 @@ class Feature_disentangle(nn.Module):
 class Reconstructor(nn.Module):
     def __init__(self):
         super(Reconstructor, self).__init__()
-        self.fc = nn.Linear(50, 320)
+        self.fc = nn.Linear(100, 3920)
     def forward(self,x):
         x = self.fc(x)
         return x
