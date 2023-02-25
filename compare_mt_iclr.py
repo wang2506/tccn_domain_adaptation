@@ -504,8 +504,10 @@ if __name__ == '__main__':
     test = iclr_method(args)
 
     results = test.train(100)
-
-
-
+    
+    cwd = os.getcwd()
+    import pickle as pk
+    with open(cwd+'/base_results/init_test_complexnets','wb') as f:
+        pk.dump(results,f)
 
 
