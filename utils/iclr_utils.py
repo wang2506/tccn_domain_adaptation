@@ -31,7 +31,7 @@ class Feature(nn.Module):
         self.conv3 = nn.Conv2d(64, 128, kernel_size=5, stride=1, padding=2)
         self.bn3 = nn.BatchNorm2d(128)
         # self.fc1 = nn.Linear(8192, 3072)
-        self.fc1 = nn.Linear(62720,3072)
+        self.fc1 = nn.Linear(627200,3072)
         self.bn1_fc = nn.BatchNorm1d(3072)
         self.fc2 = nn.Linear(3072, 2048)
         self.bn2_fc = nn.BatchNorm1d(2048)
@@ -41,7 +41,7 @@ class Feature(nn.Module):
         x = F.max_pool2d(F.relu(self.bn2(self.conv2(x))), stride=2, kernel_size=3, padding=1)
         x = F.relu(self.bn3(self.conv3(x)))
         # f_conv3 = x.view(x.size(0), 8192)
-        f_conv3 = x.view(x.size(0),62720)
+        f_conv3 = x.view(x.size(0),627200)
         f_fc1 = F.relu(self.bn1_fc(self.fc1(f_conv3)))
         x = F.dropout(f_fc1, training=self.training)
         # if reverse:
