@@ -52,9 +52,9 @@ class iclr_method(object):
         self.src_domain_code = np.repeat(np.array([[*([1]), *([0])]]), args.div_bs, axis=0)
         self.tgt_domain_code = np.repeat(np.array([[*([0]), *([1])]]), args.div_bs, axis=0)
         self.src_domain_code = Variable(\
-            torch.FloatTensor(self.src_domain_code).to(device), requires_grad=False)
+            torch.FloatTensor(self.src_domain_code).to(self.device), requires_grad=False)
         self.tgt_domain_code = Variable(\
-            torch.FloatTensor(self.tgt_domain_code).to(device), requires_grad=False)
+            torch.FloatTensor(self.tgt_domain_code).to(self.device), requires_grad=False)
         self.softmax = lambda z:np.exp(z)/np.sum(np.exp(z))
         print('pulling datasets and quantities')   
         self.dataset_s = []
@@ -287,17 +287,17 @@ class iclr_method(object):
         
         for G_s, C_s, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, \
                             self.D, self.DC, self.R, self.M):
-            G_s.to(device)
-            C_s.to(device)
-            FD.to(device)
-            D.to(device)
-            DC.to(device)
-            R.to(device)
-            M.to(device)
+            G_s.to(self.device)
+            C_s.to(self.device)
+            FD.to(self.device)
+            D.to(self.device)
+            DC.to(self.device)
+            R.to(self.device)
+            M.to(self.device)
         
         for G_t, C_t in zip(self.G_t,self.C_t):
-            G_t.to(device)
-            C_t.to(device)
+            G_t.to(self.device)
+            C_t.to(self.device)
         
         # setting optimizer
         self.opt_g_s = []
@@ -370,8 +370,8 @@ class iclr_method(object):
             opt_g_t.zero_grad()
 
     def train(self,epoch):
-        criterion=nn.CrossEntropyLoss().to(device)
-        adv_loss = nn.BCEWithLogitsLoss().to(device)
+        criterion=nn.CrossEntropyLoss().to(self.device)
+        adv_loss = nn.BCEWithLogitsLoss().to(self.device)
 
         for G, C, FD, D, DC, R, M in \
             zip(self.G_s, self.C_s, self.FD, self.D, self.DC, self.R, self.M):
@@ -404,8 +404,8 @@ class iclr_method(object):
             
             for c_batch in range(t_batches):
                 for i in range(args.l_devices):
-                    data_s,label_s = zip_struct[i][c_batch][0].to(device),zip_struct[i][c_batch][-1].to(device)
-                    data_t,label_t = zip_struct[-1][c_batch][0].to(device),zip_struct[-1][c_batch][-1].to(device)
+                    data_s,label_s = zip_struct[i][c_batch][0].to(self.device),zip_struct[i][c_batch][-1].to(self.device)
+                    data_t,label_t = zip_struct[-1][c_batch][0].to(self.device),zip_struct[-1][c_batch][-1].to(self.device)
                     self.reset_grad()
                     feat = self.G_s[i](data_s)
                     feat_fc2 = feat['f_fc2']
@@ -443,7 +443,7 @@ class iclr_method(object):
                     features_list = self.G_s[i](data_s)
                     dis_features = self.D[i](features_list['f_conv3'])
                     dis_features_shuffle = torch.index_select(dis_features,0,\
-                        Variable(torch.randperm(dis_features.shape[0]).to(device)))
+                        Variable(torch.randperm(dis_features.shape[0]).to(self.device)))
                     features_fc2 = features_list['f_fc2']
                     MI = self.mutual_information_estimator(i, features_fc2, \
                         dis_features, dis_features_shuffle) / args.div_bs
@@ -458,8 +458,8 @@ class iclr_method(object):
                                      self.opt_m[i], self.opt_g_s[i]])
 
                     test_batch = zip_struct[-1][np.random.randint(0,len(zip_struct[-1])-1)]
-                    test_img = test_batch[0].to(device)
-                    # img = Variable(img.to(device))
+                    test_img = test_batch[0].to(self.device)
+                    # img = Variable(img.to(self.device))
                     feat_torch = self.G_t[t_d](test_img)['f_fc2']
                     feat = feat_torch.data.cpu().numpy()
 
