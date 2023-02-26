@@ -76,6 +76,18 @@ class iclr_method(object):
         else:
             prefl = ''
         
+        if args.dset_split == 0:
+            if args.dset_type in ['M','U']:
+                self.nchannels = 1
+            else:
+                self.nchannels = 3
+        else:
+            # TODO
+            if args.div_nn == 'CNN':
+                self.nchannels = 3
+                # duplicate the grayscale images so that they have "3" channels
+        
+        
         
         if args.dset_split == 0:
             if args.dset_type == 'MM':
@@ -270,7 +282,7 @@ class iclr_method(object):
         self.M = []
 
         for i, j in enumerate(range(args.l_devices)):
-            self.G_s.append(Generator(nchannels=1)) ## source generators, (feature extractors) G_i
+            self.G_s.append(Generator(nchannels=self.nchannels)) ## source generators, (feature extractors) G_i
             self.C_s.append(Classifier()) ## source classifiers, C_i 
             self.FD.append(Feature_Discriminator()) ## domain identifiers, DI_i
             self.D.append(Disentangler()) ## source disentanglers, (separates the domain invariant and domain specific features), D_i
@@ -281,7 +293,7 @@ class iclr_method(object):
         self.G_t = []
         self.C_t = []
         for i in range(args.u_devices):
-            self.G_t.append( Generator(nchannels=1)) ## target generator
+            self.G_t.append( Generator(nchannels=self.nchannels)) ## target generator
             self.C_t.append( Classifier()) ## target classifier
         print('building models finished')
         

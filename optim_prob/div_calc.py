@@ -97,7 +97,7 @@ if args.dset_split == 0:
                          transform=tx_dat)
     else:
         raise TypeError('Dataset exceeds sims')
-else: 
+else:
     tx_m = torchvision.transforms.Compose([transforms.ToTensor()])
     tx_mm = torchvision.transforms.Compose([transforms.ToTensor(),\
                 transforms.Grayscale()])
@@ -106,7 +106,7 @@ else:
     d_m = torchvision.datasets.MNIST(pwd+'/data/',train=True,download=True,\
                     transform=tx_m)
     d_mm = MNISTM(pwd+'/data/',train=True,download=True,\
-                     transform=tx_mm)        
+                     transform=tx_mm)
     try: 
         d_u = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
                         transform=tx_u)
@@ -279,7 +279,7 @@ elif args.dset_split == 2:
         +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','wb') as f:
         pk.dump(d_dsets,f)
 
-# input('a')
+input('a')
 
 # %% source target label re-assignment func
 def st_relab(s_dset,t_dset,d_train,d_t2=None):
