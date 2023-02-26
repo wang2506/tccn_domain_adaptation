@@ -358,7 +358,7 @@ class iclr_method(object):
         return torch.sum((src-tgt)**2) / (src.shape[0] * src.shape[1])
 
     def discrepancy(self, out1, out2):
-        return torch.mean(torch.abs(F.softmax(out1) - F.softmax(out2)))    
+        return torch.mean(torch.abs(F.softmax(out1,dim=1) - F.softmax(out2,dim=1)))    
     
     def group_step(self, step_list):
         for i in range(len(step_list)):
