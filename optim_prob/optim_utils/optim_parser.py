@@ -58,7 +58,7 @@ def optim_parser():
     parser.add_argument('--div_lr',type=float,default=1e-2)    
     parser.add_argument('--div_bs',type=int,default=10)
     
-    # div est data + label vars 
+    # div est data + label vars
     parser.add_argument('--dset_split',type=int,default=0,\
                         help='whether there are multiple datasets'+\
                         '0:single dataset, 1: mixed dataset on device, 2: mixed '+\

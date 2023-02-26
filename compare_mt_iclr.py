@@ -61,6 +61,11 @@ class iclr_method(object):
         self.dataset_test_s = []
         cwd = os.getcwd()
         
+        if args.dset_type == 'M':
+            self.nchannels = 1
+        else:
+            self.nchannels = 3
+        
         if args.grad_rev == True:
             end2 = 'gr'
         else:
@@ -509,7 +514,43 @@ if __name__ == '__main__':
     
     cwd = os.getcwd()
     import pickle as pk
-    with open(cwd+'/base_results/init_test_complexnets','wb') as f:
-        pk.dump(results,f)
+    if args.grad_rev == True:
+        end2 = 'gr'
+    else:
+        end2 = ''    
+    
+    if args.nrg_mt == 0:
+        if args.dset_split == 0: # only one dataset
+        
+            with open(cwd+'/baselines/{}_{}_{}'.format(args.seed,args.dset_type,\
+                args.labels_type)\
+                ,'wb') as f:
+                pk.dump(results,f)
+        else:
+            with open(cwd+'/baselines/{}_{}_{}'.format(args.seed,args.split_type,\
+                args.labels_type,args)\
+                ,'wb') as f:
+                pk.dump(results,f)
+    else: ## adjust file name with nrg
+        if args.dset_split == 0: # only one dataset
+            if args.dset_type == 'MM':
+                end = '_base_6'
+            else:
+                end = ''
+            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(args.seed,args.dset_type,\
+                args.labels_type,args.phi_e,end,end2)\
+                ,'wb') as f:
+                pk.dump(results,f)                            
+        else:
+            if 'MM' in args.split_type:
+                end = '_base_6'
+            else:
+                end = ''
+            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(args.seed,args.split_type,\
+                args.labels_type,args.phi_e,end,end2)\
+                ,'wb') as f:
+                pk.dump(results,f)
+
+
 
 
