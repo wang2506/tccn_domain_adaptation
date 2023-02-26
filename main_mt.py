@@ -277,6 +277,7 @@ else:
         start_net = MLP(d_in,d_h,d_out).to(device)
         os_append = 'MLP_start_w'
     elif oargs.div_nn == 'CNN':
+        # TODO - change CNN compatibility for multiple datasets
         if oargs.dset_type in ['M','U']:
             nchannels = 1
             nclasses = 10
