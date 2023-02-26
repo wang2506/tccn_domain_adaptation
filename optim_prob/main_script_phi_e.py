@@ -245,17 +245,19 @@ if args.init_test != 1:
             d_out = 10
             start_net = MLP(d_in,d_h,d_out).to(device)
             os_append = 'MLP_start_w'
-        elif args.div_nn == 'CNN':
-            if args.dset_type in ['M','U']:
-                nchannels = 1
+        elif args.div_nn == 'CNN':        
+            if args.dset_type in ['M','U'] or args.dset_split > 0:
+                nchannels = 1 #grayscaled
                 nclasses = 10
                 start_net = CNN(nchannels,nclasses).to(device)
                 os_append = 'CNN_start_w_1c'
-            else:
+            elif args.dset_type in ['MM'] and args.dset_split == 0:
                 nchannels = 3
                 nclasses = 10
                 start_net = CNN(nchannels,nclasses).to(device)
                 os_append = 'CNN_start_w_3c'
+            else:
+                raise TypeError('check here')
         elif args.div_nn == 'GCNN':
             nchannels = 1
             nclasses = 10

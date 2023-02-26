@@ -279,7 +279,7 @@ elif args.dset_split == 2:
         +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','wb') as f:
         pk.dump(d_dsets,f)
 
-input('a')
+# input('a')
 
 # %% source target label re-assignment func
 def st_relab(s_dset,t_dset,d_train,d_t2=None):
