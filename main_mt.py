@@ -143,7 +143,7 @@ else:
               +'_seed'+str(oargs.seed)\
             +'_'+oargs.div_nn\
             +'_'+oargs.split_type+'_'+oargs.labels_type+'_dindexsets','rb') as f:
-        d_dsets = pk.load(f)        
+        d_dsets = pk.load(f)
 
 # %% load in datasets
 if oargs.dset_split == 0:

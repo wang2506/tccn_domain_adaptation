@@ -61,11 +61,6 @@ class iclr_method(object):
         self.dataset_test_s = []
         cwd = os.getcwd()
         
-        if args.dset_type == 'M':
-            self.nchannels = 1
-        else:
-            self.nchannels = 3
-        
         if args.grad_rev == True:
             end2 = 'gr'
         else:
@@ -82,11 +77,7 @@ class iclr_method(object):
             else:
                 self.nchannels = 3
         else:
-            # TODO
-            if args.div_nn == 'CNN':
-                self.nchannels = 3
-                # duplicate the grayscale images so that they have "3" channels
-        
+            self.nchannels = 1
         
         
         if args.dset_split == 0:
@@ -103,32 +94,25 @@ class iclr_method(object):
                 +'_seed'+str(args.seed)+'_'+args.div_nn\
                 +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
                 d_dsets = pk.load(f) 
-        
-        elif args.dset_split == 1:
-            pre = ''
+        else:
+            if 'MM' in args.split_type:
+                end = '_base_6'
+            else:
+                end = ''
             
-            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+            if args.dset_split == 1:
+                pre = ''
+            elif args.dset_split == 2:
+                pre = 'total_'
+            
+            with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)\
                 +'_seed'+str(args.seed)+'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_lpd','rb') as f:
+                +'_'+args.split_type+'_'+args.labels_type+'_lpd','rb') as f:
                 lpd = pk.load(f)
-            with open(cwd+'/optim_prob/data_div/devices'+str(args.t_devices)\
+            with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)\
                 +'_seed'+str(args.seed)+'_'+args.div_nn\
-                +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
-                d_dsets = pk.load(f)             
-            
-            raise TypeError('tbd')
-        elif args.dset_split == 2:
-            pre = 'total_'
-            raise TypeError('tbd')
-            # with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            #     +'_'+args.div_nn\
-            #     +'_'+args.split_type+'_'+args.labels_type+'_lpd','rb') as f:
-            #     lpd = pk.load(f)
-            # with open(cwd+'/optim_prob/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
-            #     +'_'+args.div_nn\
-            #     +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
-            #     d_dsets = pk.load(f)
-        
+                +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
+                d_dsets = pk.load(f)
         self.d_dsets = d_dsets #image indexes
         
         
@@ -174,7 +158,7 @@ class iclr_method(object):
                             transform=tx_m)
             d_mm = MNISTM(cwd+'/data/',train=True,download=True,\
                              transform=tx_mm)        
-            try: 
+            try:
                 d_u = torchvision.datasets.USPS(cwd+'/data/',train=True,download=True,\
                                 transform=tx_u)
             except:
@@ -203,6 +187,7 @@ class iclr_method(object):
                     d_train.targets = torch.concat([d_m.targets,d_mm.targets,d_u.targets])
                 else:
                     raise TypeError('Datasets exceed sims')
+                    
             elif args.dset_split == 2: 
                 with open(cwd+'/optim_prob/data_div/d2dset_devices'+str(args.t_devices)+\
                           '_seed'+str(args.seed),'rb') as f:
@@ -223,7 +208,6 @@ class iclr_method(object):
                 for ind,dc in enumerate(np.where(d2dset==1)[0]):
                     d_train_dict[dc] = d1
                 d_train_dict = dict(sorted(d_train_dict.items()))
-        
                 print('faulty stuff within this loop')
         
         data_qty_alld,split_lqtys,split_uqtys = 0,0,0
@@ -251,22 +235,22 @@ class iclr_method(object):
         ## TODO 
         device_datasets_batched = {}
         for i in range(args.l_devices):
-            if args.dset_split > 1: 
-                device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
-                    batch_size=args.div_bs,shuffle=True)
-            else:
+            if args.dset_split == 0 or args.dset_split == 1: 
                 device_datasets_batched[i] = DataLoader(segmentdataset(d_train,ld_sets[i]),\
+                    batch_size=args.div_bs,shuffle=True)
+            elif args.dset_split == 2:
+                device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
                     batch_size=args.div_bs,shuffle=True)
         self.dd_batched = device_datasets_batched
         
         ud_batched = {}
         for i in range(args.u_devices):
-            if args.dset_split > 1:
-                ud_batched[i] = DataLoader(segmentdataset(d_train_dict[args.l_devices+i],\
+            if args.dset_split == 0 or args.deset_split == 1:
+                ud_batched[i] = DataLoader(segmentdataset(d_train,\
                     d_dsets[args.l_devices+i]),\
                     batch_size=args.div_bs,shuffle=True)
             else:
-                ud_batched[i] = DataLoader(segmentdataset(d_train,\
+                ud_batched[i] = DataLoader(segmentdataset(d_train_dict[args.l_devices+i],\
                     d_dsets[args.l_devices+i]),\
                     batch_size=args.div_bs,shuffle=True)
         self.ud_batched = ud_batched
