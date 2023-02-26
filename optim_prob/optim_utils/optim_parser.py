@@ -68,7 +68,7 @@ def optim_parser():
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
-    parser.add_argument('--dset_type',type=str,default='M',\
+    parser.add_argument('--dset_type',type=str,default='U',\
                         choices=['M','S','U','MM'],\
                         help='{M:mnist,S:svhn,U:usps,MM:mnist-m}')
     

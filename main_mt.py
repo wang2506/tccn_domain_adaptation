@@ -277,17 +277,18 @@ else:
         start_net = MLP(d_in,d_h,d_out).to(device)
         os_append = 'MLP_start_w'
     elif oargs.div_nn == 'CNN':
-        # TODO - change CNN compatibility for multiple datasets
-        if oargs.dset_type in ['M','U']:
-            nchannels = 1
+        if oargs.dset_type in ['M','U'] or oargs.dset_split > 0:
+            nchannels = 1 #grayscaled
             nclasses = 10
             start_net = CNN(nchannels,nclasses).to(device)
             os_append = 'CNN_start_w_1c'
-        else:
+        elif oargs.dset_type in ['MM'] and oargs.dset_split == 0:
             nchannels = 3
             nclasses = 10
             start_net = CNN(nchannels,nclasses).to(device)
             os_append = 'CNN_start_w_3c'
+        else:
+            raise TypeError('check here')
     elif oargs.div_nn == 'GCNN':
         nchannels = 1
         nclasses = 10
@@ -308,7 +309,7 @@ with open(cwd+'/optim_prob/nrg_constants/devices'+str(oargs.t_devices)\
     d2d_tx_rates = pk.load(f)
 with open(cwd+'/optim_prob/nrg_constants/devices'+str(oargs.t_devices)\
     +'_txpowers','rb') as f:
-    tx_powers = pk.load(f)   
+    tx_powers = pk.load(f)
 
 def mt_nrg_calc(tc_alpha,c2d_rates,tx_pow=tx_powers,M=oargs.p2bits):
     param_2_bits = M
