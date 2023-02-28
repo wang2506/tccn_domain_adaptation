@@ -348,7 +348,39 @@ def calc_sm_alphas(deg,ovr_alpha=ovr_alpha,psi_vals=psi_vals,oargs=oargs):
             tsm_alphas[:,j] /= sum(tsm_alphas[:,j])
             tsm_alphas[:,j] = np.round(tsm_alphas[i,:],2)
     return tsm_alphas
-    
+
+# %% load in gan baseline results
+if oargs.nrg_mt == 0:
+    if oargs.dset_split == 0: # only one dataset
+        with open(cwd+'/baselines/{}_{}_{}'.format(oargs.seed,oargs.dset_type,\
+            oargs.labels_type)\
+            ,'rb') as f:
+            gan_ratios = pk.load(f)
+    else:
+        with open(cwd+'/baselines/{}_{}_{}'.format(oargs.seed,oargs.split_type,\
+            oargs.labels_type)\
+            ,'rb') as f:
+            gan_ratios = pk.load(f)
+else: ## adjust file name with nrg
+    if oargs.dset_split == 0: # only one dataset
+        if oargs.dset_type == 'MM':
+            end = '_base_6'
+        else:
+            end = ''
+        with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.dset_type,\
+            oargs.labels_type,oargs.phi_e,end,end2)\
+            ,'rb') as f:
+            gan_ratios = pk.load(f)                            
+    else:
+        if 'MM' in oargs.split_type:
+            end = '_base_6'
+        else:
+            end = ''
+        with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.split_type,\
+            oargs.labels_type,oargs.phi_e,end,end2)\
+            ,'wb') as f:
+            gan_ratios = pk.load(f)
+
 # %% build model + transfer to targets + record results
 wap_dict = {}
 target_models = {}
@@ -356,6 +388,7 @@ rt_models = {}
 h1_models = {} #heuristic ratio/scale by data qty 
 h2_models = {} #heuristic - uniform
 fl_models = {}
+gan_models = {}
 
 target_accs = {}
 rt_accs = {}
@@ -364,6 +397,7 @@ h2_accs = {}
 oo_accs = {} #single source to single target
 sm_accs = {} #single source to multi-target
 fl_accs = {} #comparison to FL
+gan_accs = {}
 
 source_models = {}
 source_accs = {}
@@ -372,6 +406,7 @@ our_nrg = 0
 r_nrg = 0
 h1_nrg = 0
 h2_nrg = 0
+gan_nrg = 0 #just combination energy
 
 if oargs.grad_rev == True:
     lmp1, lmp2 = {}, {}
@@ -414,6 +449,14 @@ for i,j in enumerate(psi_vals):
             h2_models[i][0].load_state_dict(h2wp1)
             h2_models[i][1].load_state_dict(h2wp2)
             
+            # gan result
+            gan_alpha = gan_ratios[i-oargs.u_devices]
+            gan_wp1 = alpha_avg(lmp1,gan_alpha)
+            gan_wp2 = alpha_avg(lmp2,gan_alpha)  
+            gan_models[i] = [deepcopy(feature_net_base),deepcopy(features_2_class_base)]
+            gan_models[i][0].load_state_dict(gan_wp1)
+            gan_models[i][1].load_state_dict(gan_wp2)
+            
             if oargs.dset_split < 2:
                 target_accs[i],_ = test_img_gr(target_models[i][0],target_models[i][1],\
                             oargs.div_bs,d_train,indx=d_dsets[i],device=device)   
@@ -422,7 +465,9 @@ for i,j in enumerate(psi_vals):
                 h1_accs[i],_ = test_img_gr(h1_models[i][0],h1_models[i][1],\
                             oargs.div_bs,d_train,indx=d_dsets[i],device=device)    
                 h2_accs[i],_ = test_img_gr(h2_models[i][0],h2_models[i][1],\
-                            oargs.div_bs,d_train,indx=d_dsets[i],device=device) 
+                            oargs.div_bs,d_train,indx=d_dsets[i],device=device)
+                gan_accs[i],_ = test_img_gr(gan_models[i][0],gan_models[i][1],\
+                            oargs.div_bs,d_train,indx=d_dsets[i],device=device)
             elif oargs.dset_split == 2:
                 target_accs[i],_ = test_img_gr(target_models[i][0],target_models[i][1],\
                             oargs.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)   
@@ -431,6 +476,8 @@ for i,j in enumerate(psi_vals):
                 h1_accs[i],_ = test_img_gr(h1_models[i][0],h1_models[i][1],\
                             oargs.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)      
                 h2_accs[i],_ = test_img_gr(h2_models[i][0],h2_models[i][1],\
+                            oargs.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)
+                gan_accs[i],_ = test_img_gr(gan_models[i][0],gan_models[i][1],\
                             oargs.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)
         else:
             wap = alpha_avg(lmp,ovr_alpha[:,i])
@@ -459,6 +506,12 @@ for i,j in enumerate(psi_vals):
             h2_models[i] = deepcopy(start_net)
             h2_models[i].load_state_dict(h2wp)
             
+            # gan baseline
+            gan_alpha = gan_ratios[i-oargs.u_devices]
+            gan_wp = alpha_avg(lmp,gan_alpha)
+            gan_models[i] = deepcopy(start_net)
+            gan_models[i].load_state_dict(gan_wp)
+            
             if oargs.dset_split < 2:
                 target_accs[i],_ = test_img_ttest(target_models[i],\
                             oargs.div_bs,d_train,d_dsets[i],device=device)
@@ -467,7 +520,9 @@ for i,j in enumerate(psi_vals):
                 h1_accs[i],_ = test_img_ttest(h1_models[i],\
                             oargs.div_bs,d_train,d_dsets[i],device=device)        
                 h2_accs[i],_ = test_img_ttest(h2_models[i],\
-                            oargs.div_bs,d_train,d_dsets[i],device=device)          
+                            oargs.div_bs,d_train,d_dsets[i],device=device)
+                gan_accs[i],_ = test_img_ttest(gan_models[i],\
+                            oargs.div_bs,d_train,d_dsets[i],device=device)
             elif oargs.dset_split == 2:
                 target_accs[i],_ = test_img_ttest(target_models[i],\
                             oargs.div_bs,d_train_dict[i],d_dsets[i],device=device)
@@ -476,13 +531,17 @@ for i,j in enumerate(psi_vals):
                 h1_accs[i],_ = test_img_ttest(h1_models[i],\
                             oargs.div_bs,d_train_dict[i],d_dsets[i],device=device)        
                 h2_accs[i],_ = test_img_ttest(h2_models[i],\
-                            oargs.div_bs,d_train_dict[i],d_dsets[i],device=device)         
+                            oargs.div_bs,d_train_dict[i],d_dsets[i],device=device)
+                gan_accs[i],_ = test_img_ttest(gan_models[i],\
+                            oargs.div_bs,d_train_dict[i],d_dsets[i],device=device)
+        
         ## compute energies
         tmp_c2d_rates = d2d_tx_rates[:,i]
         our_nrg += mt_nrg_calc(ovr_alpha[:,i],tmp_c2d_rates)
         r_nrg += mt_nrg_calc(r_alpha,tmp_c2d_rates)
         h1_nrg += mt_nrg_calc(h1_alpha,tmp_c2d_rates)
         h2_nrg += mt_nrg_calc(h2_alpha,tmp_c2d_rates)
+        gan_nrg += mt_nrg_calc(gan_alpha,tmp_c2d_rates)
     else:
         if oargs.grad_rev == True :
             source_models[i] = [deepcopy(feature_net_base),deepcopy(features_2_class_base)]
@@ -586,6 +645,7 @@ acc_df['unif_ratio'] = list(h2_accs.values())
 acc_df['o2o'] = list(oo_accs.values()) 
 acc_df['o2m'] = list(sm_accs.values())
 # acc_df['source'] = list(source_accs.values())
+acc_df['gan'] = list(gan_accs.values())
 
 nrg_df = pd.DataFrame()
 nrg_df['ours'] = [our_nrg]
@@ -594,6 +654,7 @@ nrg_df['max_qty'] = [h1_nrg]
 nrg_df['unif_ratio'] = [h2_nrg]
 nrg_df['o2o'] = [oo_nrg]
 nrg_df['o2m'] = [sm_nrg]
+nrg_df['gan'] = [gan_nrg]
 
 print(acc_df)
 print(nrg_df)

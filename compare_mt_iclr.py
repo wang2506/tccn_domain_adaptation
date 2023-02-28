@@ -513,18 +513,17 @@ if __name__ == '__main__':
     if args.grad_rev == True:
         end2 = 'gr'
     else:
-        end2 = ''    
+        end2 = ''
     
     if args.nrg_mt == 0:
         if args.dset_split == 0: # only one dataset
-        
             with open(cwd+'/baselines/{}_{}_{}'.format(args.seed,args.dset_type,\
                 args.labels_type)\
                 ,'wb') as f:
                 pk.dump(results,f)
         else:
             with open(cwd+'/baselines/{}_{}_{}'.format(args.seed,args.split_type,\
-                args.labels_type,args)\
+                args.labels_type)\
                 ,'wb') as f:
                 pk.dump(results,f)
     else: ## adjust file name with nrg

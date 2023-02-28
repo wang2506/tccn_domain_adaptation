@@ -32,13 +32,14 @@ def extract_mma(dlist,max_list,min_list,avg_list):
     return max_list,min_list,avg_list
 
 # %% extract data
-taccs,raccs,h1accs,h2accs,saccs,om_accs = {},{},{},{},{},{}
+taccs,raccs,h1accs,h2accs,saccs,om_accs,gan_accs = {},{},{},{},{},{},{}
 ta_max,ta_min,ta_avg = {},{},{} #[],[],[]
 ra_max,ra_min,ra_avg = {},{},{}
 h1_max,h1_min,h1_avg = {},{},{}
 h2_max,h2_min,h2_avg = {},{},{}
 s_max,s_min,s_avg = {},{},{}
 om_max,om_min,om_avg = {},{},{}
+gan_max,gan_min,gan_avg = {},{},{}
 
 if grad_rv == True:
     end2 = 'gr'
@@ -71,6 +72,7 @@ for ids,seed in enumerate(seeds):
                 h2accs[dset_type] = acc_df['unif_ratio'].tolist()
                 # saccs[dset_type] = acc_df['source'].tolist()
                 om_accs[dset_type] = acc_df['o2m'].tolist()
+                gan_accs[dset_type] = acc_df['gan'].tolist()
                 
                 ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type] = [],[],[]
                 ra_max[dset_type],ra_min[dset_type],ra_avg[dset_type] = [],[],[]
@@ -78,6 +80,7 @@ for ids,seed in enumerate(seeds):
                 h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type] = [],[],[]
                 s_max[dset_type],s_min[dset_type],s_avg[dset_type] = [],[],[]
                 om_max[dset_type],om_min[dset_type],om_avg[dset_type] = [],[],[]
+                gan_max[dset_type],gan_min[dset_type],gan_avg[dset_type] = [],[],[]
             else:
                 taccs[dset_type] += acc_df['ours'].tolist()
                 raccs[dset_type] += acc_df['rng'].tolist()
@@ -85,6 +88,7 @@ for ids,seed in enumerate(seeds):
                 h2accs[dset_type] += acc_df['unif_ratio'].tolist()
                 # saccs[dset_type] += acc_df['source'].tolist()
                 om_accs[dset_type] += acc_df['o2m'].tolist()
+                gan_accs[dset_type] += acc_df['gan'].tolist()
             
             ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type] \
                 = extract_mma(acc_df['ours'].tolist(),ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type])
@@ -97,7 +101,9 @@ for ids,seed in enumerate(seeds):
             # s_max[dset_type],s_min[dset_type],s_avg[dset_type] \
             #     = extract_mma(acc_df['source'].tolist(),s_max[dset_type],s_min[dset_type],s_avg[dset_type])
             om_max[dset_type],om_min[dset_type],om_avg[dset_type] \
-                = extract_mma(acc_df['o2m'].tolist(),om_max[dset_type],om_min[dset_type],om_avg[dset_type])              
+                = extract_mma(acc_df['o2m'].tolist(),om_max[dset_type],om_min[dset_type],om_avg[dset_type])
+            gan_max[dset_type],gan_min[dset_type],gan_avg[dset_type] \
+                = extract_mma(acc_df['gan'].tolist(),gan_max[dset_type],gan_min[dset_type],gan_avg[dset_type])
             
     else: #if dset_split == 1 :
         for split_type in ['M+MM','M+U','MM+U']:    
@@ -126,6 +132,7 @@ for ids,seed in enumerate(seeds):
                 h2accs[split_type] = acc_df['unif_ratio'].tolist()
                 # saccs[split_type] = acc_df['source'].tolist()
                 om_accs[split_type] = acc_df['o2m'].tolist()
+                gan_accs[split_type] = acc_df['gan'].tolist()
                 
                 ta_max[split_type],ta_min[split_type],ta_avg[split_type] = [],[],[]
                 ra_max[split_type],ra_min[split_type],ra_avg[split_type] = [],[],[]
@@ -133,6 +140,7 @@ for ids,seed in enumerate(seeds):
                 h2_max[split_type],h2_min[split_type],h2_avg[split_type] = [],[],[]
                 # s_max[split_type],s_min[split_type],s_avg[split_type] = [],[],[]
                 om_max[split_type],om_min[split_type],om_avg[split_type] = [],[],[]
+                gan_max[split_type],gan_min[split_type],gan_avg[split_type] = [],[],[]
             else:
                 taccs[split_type] += acc_df['ours'].tolist()
                 raccs[split_type] += acc_df['rng'].tolist()
@@ -140,6 +148,7 @@ for ids,seed in enumerate(seeds):
                 h2accs[split_type] += acc_df['unif_ratio'].tolist()
                 # saccs[split_type] += acc_df['source'].tolist()
                 om_accs[split_type] += acc_df['o2m'].tolist()
+                gan_accs[split_type] += acc_df['gan'].tolist()            
             
             ta_max[split_type],ta_min[split_type],ta_avg[split_type] \
                 = extract_mma(acc_df['ours'].tolist(),ta_max[split_type],ta_min[split_type],ta_avg[split_type])
@@ -153,6 +162,8 @@ for ids,seed in enumerate(seeds):
             #     = extract_mma(acc_df['source'].tolist(),s_max[split_type],s_min[split_type],s_avg[split_type])
             om_max[split_type],om_min[split_type],om_avg[split_type] \
                 = extract_mma(acc_df['o2m'].tolist(),om_max[split_type],om_min[split_type],om_avg[split_type])
+            gan_max[split_type],gan_min[split_type],gan_avg[split_type] \
+                = extract_mma(acc_df['gan'].tolist(),gan_max[split_type],gan_min[split_type],gan_avg[split_type])
 
 # %% plot bars for max-min
 fig,ax = plt.subplots(1,3,figsize=(5,2),dpi=250,sharey=True)
@@ -181,6 +192,8 @@ if dset_split == 0:
                 color='tab:green',edgecolor='black',label=r'FedAvg')    
         # ax[i].bar([3],np.mean(h2accs[j]),\
         #         color='tab:brown',edgecolor='black',label=r'Uniform')  
+        ax[i].bar([3],np.mean(gan_accs[j]),\
+                color='tab:brown',edgecolor='black',label=r'GAN')
         ax[i].bar([4],np.mean(om_accs[j]),\
                 color='tab:purple',edgecolor='black',label=r'Avg-Degree')
         if i == 0: 
@@ -198,9 +211,12 @@ else:
             ax[i].bar([2],np.mean(h1accs[j]+saccs[j]),yerr=np.std(h1accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
-            ax[i].bar([3],np.mean(h2accs[j]+saccs[j]),yerr=np.std(h2accs[j]+saccs[j]),ecolor='black',\
+            # ax[i].bar([3],np.mean(h2accs[j]+saccs[j]),yerr=np.std(h2accs[j]+saccs[j]),ecolor='black',\
+            #           capsize=5,width=width,\
+            #         color='tab:brown',edgecolor='black',label=r'Uniform')  
+            ax[i].bar([3],np.mean(gan_accs[j]+saccs[j]),yerr=np.std(gan_accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'Uniform')  
+                    color='tab:brown',edgecolor='black',label=r'Uniform')
             ax[i].bar([4],np.mean(om_accs[j]+saccs[j]),yerr=np.std(om_accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:purple',edgecolor='black',label=r'Avg-Degree')
@@ -214,9 +230,12 @@ else:
             ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
-            ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
+            # ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
+            #           capsize=5,width=width,\
+            #         color='tab:brown',edgecolor='black',label=r'Uniform')
+            ax[i].bar([3],np.mean(gan_accs[j]),yerr=np.std(gan_accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'Uniform')  
+                    color='tab:brown',edgecolor='black',label=r'Uniform')
             ax[i].bar([4],np.mean(om_accs[j]),yerr=np.std(om_accs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:purple',edgecolor='black',label=r'Avg-Degree')
