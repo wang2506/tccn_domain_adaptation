@@ -3,7 +3,7 @@ import os
 ##### https://stackoverflow.com/questions/51232600/
 
 # args = [1,2,3,4,5]
-args = [3]
+args = [1]
 for arg in args:
     os.system("python main_mt.py --seed {}".format(arg))
 
