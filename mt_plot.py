@@ -166,7 +166,7 @@ for ids,seed in enumerate(seeds):
                 = extract_mma(acc_df['gan'].tolist(),gan_max[split_type],gan_min[split_type],gan_avg[split_type])
 
 # %% plot bars for max-min
-fig,ax = plt.subplots(1,3,figsize=(5,2),dpi=250,sharey=True)
+fig,ax = plt.subplots(1,3,figsize=(5,2),dpi=250)#,sharey=True)
 cats = 5
 width = 0.8
 spacing = np.round(width/cats,2)
@@ -243,8 +243,10 @@ else:
             ax[i].set_ylabel('Average Accuracy (%)')
 
 dset_vec2 = ['M//MM','M//U','MM//U']
-for i in range(3):
-    ax[i].set_ylim([0,85])
+ax[0].set_ylim([0,85])
+ax[1].set_ylim([0,65])
+ax[2].set_ylim([0,45])
+for i in range(3):        
     if dset_split < 2 : 
         ax[i].set_xlabel(dset_vec[i])
     elif dset_split == 2:
@@ -267,6 +269,7 @@ leg1 = ax[0].legend(h[:3],l[:3],bbox_to_anchor=(-0.5,1.12,4,0.2),\
 leg2 = ax[0].legend(h[3:],l[3:],bbox_to_anchor=(-0.5,0.98,4,0.2),\
                         mode='expand',fontsize=10,**kw)
 ax[0].add_artist(leg1)
+plt.subplots_adjust(wspace=0.3)
 
 # %% save figures
 if grad_rv == True:
