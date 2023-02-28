@@ -245,7 +245,7 @@ class iclr_method(object):
         
         ud_batched = {}
         for i in range(args.u_devices):
-            if args.dset_split == 0 or args.deset_split == 1:
+            if args.dset_split == 0 or args.dset_split == 1:
                 ud_batched[i] = DataLoader(segmentdataset(d_train,\
                     d_dsets[args.l_devices+i]),\
                     batch_size=args.div_bs,shuffle=True)
