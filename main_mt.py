@@ -378,7 +378,7 @@ else: ## adjust file name with nrg
             end = ''
         with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.split_type,\
             oargs.labels_type,oargs.phi_e,end,end2)\
-            ,'wb') as f:
+            ,'rb') as f:
             gan_ratios = pk.load(f)
 
 # %% build model + transfer to targets + record results
