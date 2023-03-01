@@ -219,7 +219,9 @@ else:
 
 for i in range(args.t_devices): 
     d_dsets[i] = []
+    print(lpd)
     c_labels = lpd[i]
+    # input('a')
     # d2dset[i]
     for ti,tj in enumerate(d_dset_sqtys[i]):
         if args.dset_split != 2:
