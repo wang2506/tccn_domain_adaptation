@@ -57,6 +57,8 @@ alld_qty = data_qty_alld
 td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
            '_split_uqtys':split_uqtys}        
 for ie,entry in enumerate(td_dict.keys()):
+    # print(td_dict)
+    # input('a')
     with open(cwd+'/data_div/devices'+str(args.t_devices)+\
               '_seed'+str(args.seed)+entry\
             +'_'+args.avg_size,'wb') as f:
