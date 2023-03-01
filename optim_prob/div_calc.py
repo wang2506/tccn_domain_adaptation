@@ -182,6 +182,9 @@ if args.label_split == 1:
             # lpd = [random.sample(range(labels),6) for i in range(args.t_devices)]
             llabs = 10
             lpd = [random.sample(range(labels),llabs) for i in range(args.l_devices)]
+            lpd_u = [lpd[random.sample(range(args.l_devices),1)[0]] for i in range(args.u_devices)]
+            lpd += lpd_u
+            print(lpd)
             td_qty = np.round(np.random.dirichlet(5*np.ones(llabs),args.t_devices),2)
         elif args.dset_split == 2: #'MM' in args.split_type and 
             print('check 186 - might need change')
@@ -219,7 +222,7 @@ else:
 
 for i in range(args.t_devices): 
     d_dsets[i] = []
-    print(lpd)
+    # print(lpd)
     c_labels = lpd[i]
     # input('a')
     # d2dset[i]
