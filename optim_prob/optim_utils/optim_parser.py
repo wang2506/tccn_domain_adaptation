@@ -5,7 +5,7 @@ import argparse
 def optim_parser():
     parser = argparse.ArgumentParser()
     ## code system settings
-    parser.add_argument('--seed',type=int,default=1) #[1,2,3,4,5]
+    parser.add_argument('--seed',type=int,default=5) #[1,2,3,4,5]
     parser.add_argument('--optim_save',type=bool,default=False,\
                         help='save the run data or not')
     
@@ -64,7 +64,7 @@ def optim_parser():
                         '0:single dataset, 1: mixed dataset on device, 2: mixed '+\
                         'datasets across network',\
                         choices=[0,1,2])
-    parser.add_argument('--split_type',type=str,default='M+MM',\
+    parser.add_argument('--split_type',type=str,default='MM+U',\
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
