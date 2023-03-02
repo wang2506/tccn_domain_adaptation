@@ -10,7 +10,7 @@ cwd = os.getcwd()
 # labels_type = 'iid'
 labels_type = 'mild'
 dset_split = 0
-# dset_split = 1
+dset_split = 1
 # dset_split = 2
 split_type = None
 nn_style = 'MLP'
@@ -116,6 +116,11 @@ for ids,seed in enumerate(seeds):
             else:
                 end = ''
             
+            if fl == True:
+                prefl = 'fl'
+            else:
+                prefl = ''            
+            
             if nrg_mt == 0:
                 acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/'+pre+'seed_'+str(seed)+'_'\
                         +labels_type \
@@ -123,7 +128,7 @@ for ids,seed in enumerate(seeds):
             else:
                 acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/NRG'+str(phi_e)+'_'\
                         +pre+'seed_'+str(seed)+'_'+labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')    
+                          +'_'+nn_style+prefl+end+end2+'_acc.csv')    
   
             if ids == 0:
                 taccs[split_type] = acc_df['ours'].tolist()
@@ -216,36 +221,41 @@ else:
             #         color='tab:brown',edgecolor='black',label=r'Uniform')  
             ax[i].bar([3],np.mean(gan_accs[j]+saccs[j]),yerr=np.std(gan_accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'Uniform')
+                    color='tab:brown',edgecolor='black',label=r'GAN')
             ax[i].bar([4],np.mean(om_accs[j]+saccs[j]),yerr=np.std(om_accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:purple',edgecolor='black',label=r'Avg-Degree')
         else:
-            ax[i].bar([0],np.mean(taccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
+            ax[i].bar([0],np.mean(taccs[j]),ecolor='black',\
                      capsize=5,width=width,\
-                    color='tab:blue',edgecolor='black',label=r'Our Method')
-            ax[i].bar([1],np.mean(raccs[j]),yerr=np.std(raccs[j]),ecolor='black',\
+                    color='tab:blue',edgecolor='black',label=r'Our Method') #,yerr=np.std(taccs[j])
+            ax[i].bar([1],np.mean(raccs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
-            ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
+                    color='tab:orange',edgecolor='black',label=r'Random-$\alpha$') #,yerr=np.std(raccs[j])
+            ax[i].bar([2],np.mean(h1accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
+                    color='tab:green',edgecolor='black',label=r'Qty-Scaled')    #,yerr=np.std(h1accs[j]) 
             # ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
             #           capsize=5,width=width,\
             #         color='tab:brown',edgecolor='black',label=r'Uniform')
-            ax[i].bar([3],np.mean(gan_accs[j]),yerr=np.std(gan_accs[j]),ecolor='black',\
+            ax[i].bar([3],np.mean(gan_accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'Uniform')
-            ax[i].bar([4],np.mean(om_accs[j]),yerr=np.std(om_accs[j]),ecolor='black',\
+                    color='tab:brown',edgecolor='black',label=r'GAN') #,yerr=np.std(gan_accs[j])
+            ax[i].bar([4],np.mean(om_accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:purple',edgecolor='black',label=r'Avg-Degree')
+                    color='tab:purple',edgecolor='black',label=r'Avg-Degree') #,yerr=np.std(om_accs[j])
         if i == 0: 
             ax[i].set_ylabel('Average Accuracy (%)')
 
 dset_vec2 = ['M//MM','M//U','MM//U']
-ax[0].set_ylim([0,85])
-ax[1].set_ylim([0,65])
-ax[2].set_ylim([0,45])
+if dset_split == 0:
+    ax[0].set_ylim([0,85])
+    ax[1].set_ylim([0,65])
+    ax[2].set_ylim([0,45])
+else:
+    ax[0].set_ylim([0,70])
+    ax[1].set_ylim([0,75])
+    ax[2].set_ylim([0,35])
 for i in range(3):        
     if dset_split < 2 : 
         ax[i].set_xlabel(dset_vec[i])
