@@ -39,7 +39,7 @@ def optim_parser():
     parser.add_argument('--l_delta',type=float,default=1e-3,\
                         help='probabiliy 1-\delta term, accuracy metric') #1e-2
     
-    ## ablation variables 
+    ## ablation variables
     parser.add_argument('--init_test',type=int,default=0,\
                         help='initial convergence tests')
     parser.add_argument('--div_flag',type=int,default=1,\
@@ -64,7 +64,7 @@ def optim_parser():
                         '0:single dataset, 1: mixed dataset on device, 2: mixed '+\
                         'datasets across network',\
                         choices=[0,1,2])
-    parser.add_argument('--split_type',type=str,default='MM+U',\
+    parser.add_argument('--split_type',type=str,default='M+MM',\
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
