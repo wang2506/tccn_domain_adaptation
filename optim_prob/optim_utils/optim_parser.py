@@ -5,7 +5,7 @@ import argparse
 def optim_parser():
     parser = argparse.ArgumentParser()
     ## code system settings
-    parser.add_argument('--seed',type=int,default=5) #[1,2,3,4,5]
+    parser.add_argument('--seed',type=int,default=1) #[1,2,3,4,5]
     parser.add_argument('--optim_save',type=bool,default=False,\
                         help='save the run data or not')
     
