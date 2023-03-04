@@ -541,11 +541,18 @@ if __name__ == '__main__':
                 end = '_base_6'
             else:
                 end = ''
-            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(args.seed,args.split_type,\
-                args.labels_type,args.phi_e,end,end2)\
-                ,'wb') as f:
-                pk.dump(results,f)
-
+            
+            if args.dset_split == 1:
+                with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(args.seed,args.split_type,\
+                    args.labels_type,args.phi_e,end,end2)\
+                    ,'wb') as f:
+                    pk.dump(results,f)
+            elif args.dset_split == 2:
+                pre = 'total'
+                with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}_{}'.format(args.seed,args.split_type,\
+                    args.labels_type,args.phi_e,end,end2,pre)\
+                    ,'wb') as f:
+                    pk.dump(results,f)
 
 
 

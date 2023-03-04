@@ -824,7 +824,7 @@ for c_iter in range(args.approx_iters):
     nrg_vals.append(e_err.value)
 
 print('alpha:')
-print(alpha.value)    
+print(alpha.value)
 
 # print(c_iter)
 # %% saving some results 
