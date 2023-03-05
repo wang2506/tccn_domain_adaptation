@@ -411,7 +411,7 @@ def fl_ind_train(ld_set,args,d_train,nnet,device,agg_period):
     return c_w,loss
 
 
-def fl_subprocess(ld_sets,args,d_train,nnet,device):
+def fl_subprocess(ld_sets,args,d_train,nnet,device,ddict=False):
     agg_period = 10 #10
     num_aggs = 2
     # num_aggs = 10
@@ -430,8 +430,12 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
         ## train
         all_w = []
         for i in range(args.l_devices):
-            params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
-                    d_train=d_train,nnet=nnet[i],device=device,agg_period=agg_period)
+            if ddict == False:
+                params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+                        d_train=d_train,nnet=nnet[i],device=device,agg_period=agg_period)
+            elif ddict == True:
+                params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+                        d_train=d_train[i],nnet=nnet[i],device=device,agg_period=agg_period)
             all_w.append(params_w)
         
         tt2 = deepcopy(all_w)
@@ -445,9 +449,14 @@ def fl_subprocess(ld_sets,args,d_train,nnet,device):
     
     all_w = []
     for i in range(args.l_devices):
-        params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
-                d_train=d_train,nnet=nnet[i],device=device,\
-                agg_period=more_lt)
+        if ddict == False:
+            params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+                    d_train=d_train,nnet=nnet[i],device=device,\
+                    agg_period=more_lt)
+        elif ddict == True:
+            params_w,ce_loss_t = fl_ind_train(ld_sets[i],args=args,\
+                    d_train=d_train[i],nnet=nnet[i],device=device,\
+                    agg_period=more_lt)            
         all_w.append(params_w)
     
         # all_w.append(w_avg)
