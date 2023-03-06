@@ -48,7 +48,7 @@ def optim_parser():
     # div est infrastructure vars
     parser.add_argument('--div_comp',type=str,default='gpu',\
                         choices=['cpu','gpu'])
-    parser.add_argument('--div_gpu_num',type=int,default=2,\
+    parser.add_argument('--div_gpu_num',type=int,default=0,\
                         help='based on your devices') #0
     parser.add_argument('--div_ttime',type=int,default=50,\
                         help='divergence estimation total iteration loops') #10, 20
