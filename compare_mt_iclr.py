@@ -208,7 +208,6 @@ class iclr_method(object):
                 for ind,dc in enumerate(np.where(d2dset==1)[0]):
                     d_train_dict[dc] = d1
                 d_train_dict = dict(sorted(d_train_dict.items()))
-                print('faulty stuff within this loop')
         
         data_qty_alld,split_lqtys,split_uqtys = 0,0,0
         td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
