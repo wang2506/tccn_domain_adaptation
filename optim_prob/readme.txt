@@ -6,3 +6,4 @@ Folder names and contents
 - optim_utils: utility functions for the optimization problem 
 + some common utility functions to optimization + divergence est + FL process
 
+main_script_phi_e is the one to use

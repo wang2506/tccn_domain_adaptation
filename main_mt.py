@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader,Dataset
 from optim_prob.optim_utils.optim_parser import optim_parser
 from optim_prob.div_utils.neural_nets import MLP, CNN, test_img_strain, GCNN,\
     feature_extract, class_classifier, GRL, test_img_gr
-from utils.mt_utils import rescale_alphas, test_img_ttest, alpha_avg
+from utils.mt_utils import rescale_alphas, test_img_ttest, alpha_avg,test_img_herr
 from optim_prob.mnist_m import MNISTM
 
 cwd = os.getcwd()
@@ -46,7 +46,6 @@ if oargs.nrg_mt == 0:
                         +'_'+oargs.dset_type\
                         +'_'+oargs.labels_type,'rb') as f:
                 tval_dict[entry] = pk.load(f)
-        
         ## load in the model parameters of all devices with labeled data
         with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
@@ -93,16 +92,17 @@ else: #load in the phi_e results
                         +'_'+oargs.labels_type+prefl+end+end2,'rb') as f:
                 tval_dict[entry] = pk.load(f)
         ## load in the model parameters of all devices with labeled data
-        with open(cwd+'/optim_prob/source_errors/devices'+str(oargs.t_devices)+\
+        with open(cwd+'/optim_prob/source_errors/NRG_'+str(oargs.phi_e)+'_'+\
+                  'devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                     +'_'+oargs.dset_type+'_'+oargs.labels_type\
                     +'_'+prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
-            lmp = pk.load(f) #labeled model parameters                      
+            lmp = pk.load(f) #labeled model parameters
     else:
         if oargs.dset_split == 1:
             pre = ''
         elif oargs.dset_split == 2:
-            pre = 'total_'        
+            pre = 'total_'
         if 'MM' in oargs.split_type:
             end = '_base_6'
         else:
@@ -114,7 +114,8 @@ else: #load in the phi_e results
                         +'_'+oargs.split_type\
                         +'_'+oargs.labels_type+prefl+end+end2,'rb') as f:
                 tval_dict[entry] = pk.load(f)
-        with open(cwd+'/optim_prob/source_errors/'+pre+'devices'+str(oargs.t_devices)+\
+        with open(cwd+'/optim_prob/source_errors/NRG_'+str(oargs.phi_e)+'_'+\
+                  pre+'devices'+str(oargs.t_devices)+\
                   '_seed'+str(oargs.seed)+'_'+oargs.div_nn\
                     +'_'+oargs.split_type+'_'+oargs.labels_type\
                     +'_'+prefl+'_modelparams_'+oargs.div_nn+end+end2,'rb') as f:
@@ -371,24 +372,50 @@ if oargs.nrg_mt == 0:
             ,'rb') as f:
             gan_ratios = pk.load(f)
 else: ## adjust file name with nrg
+    sav_phi_e = 2e0 ## since gan is nrg value independent 
     if oargs.dset_split == 0: # only one dataset
         if oargs.dset_type == 'MM':
             end = '_base_6'
         else:
             end = ''
+        #oargs.phi_e
         with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.dset_type,\
-            oargs.labels_type,oargs.phi_e,end,end2)\
+            oargs.labels_type,sav_phi_e,end,end2)\
             ,'rb') as f:
-            gan_ratios = pk.load(f)                            
+            gan_ratios = pk.load(f)                    
     else:
         if 'MM' in oargs.split_type:
             end = '_base_6'
         else:
             end = ''
+        #oargs.phi_e
         with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.split_type,\
-            oargs.labels_type,oargs.phi_e,end,end2)\
+            oargs.labels_type,sav_phi_e,end,end2)\
             ,'rb') as f:
             gan_ratios = pk.load(f)
+
+# %% rf coeff
+if oargs.dset_split == 0:
+    if oargs.dset_type == 'M':
+        rfc = 1
+    elif oargs.dset_type == 'U':
+        rfc = 2
+    elif oargs.dset_type == 'MM':
+        rfc = 3
+elif oargs.dset_split == 1:
+    if oargs.split_type == 'M+MM':
+        rfc = 4
+    elif oargs.split_type == 'MM+U':
+        rfc = 5
+    elif oargs.split_type == 'M+U':
+        rfc = 6
+elif oargs.dset_split == 2:
+    if oargs.split_type == 'M+MM':
+        rfc = 7
+    elif oargs.split_type == 'MM+U':
+        rfc = 8
+    elif oargs.split_type == 'M+U':
+        rfc = 9
 
 # %% build model + transfer to targets + record results
 wap_dict = {}
@@ -422,6 +449,9 @@ if oargs.grad_rev == True:
     for tk in lmp.keys():
         lmp1[tk] = lmp[tk][0]
         lmp2[tk] = lmp[tk][1]
+
+# XXX - commented because needed a simulation for a reviewer, uncomment when done
+# here is the main loop
 for i,j in enumerate(psi_vals):
     if j == 1:
         if oargs.grad_rev == True:
@@ -433,9 +463,11 @@ for i,j in enumerate(psi_vals):
             target_models[i][1].load_state_dict(wap2)
             
             # random
-            r_alpha = np.round(np.random.dirichlet(np.ones(len(s_pv))),5)
+            ## inject randomization coeff based on dset
+            for rf_c in range(rfc):
+                r_alpha = np.round(np.random.dirichlet(np.ones(len(s_pv))),5)
             rwp1 = alpha_avg(lmp1,r_alpha)
-            rwp2 = alpha_avg(lmp2,r_alpha)       
+            rwp2 = alpha_avg(lmp2,r_alpha)
             rt_models[i] = [deepcopy(feature_net_base),deepcopy(features_2_class_base)]
             rt_models[i][0].load_state_dict(rwp1)
             rt_models[i][1].load_state_dict(rwp2)
@@ -496,7 +528,10 @@ for i,j in enumerate(psi_vals):
             target_models[i].load_state_dict(wap)
             
             # build random models + test them
-            r_alpha = np.round(np.random.dirichlet(np.ones(len(s_pv))),5)
+            ## inject randomization coeff based on dset
+            for rf_c in range(rfc):
+                r_alpha = np.round(np.random.dirichlet(np.ones(len(s_pv))),5)            
+            # r_alpha = np.round(np.random.dirichlet(np.ones(len(s_pv))),5)
             rwp = alpha_avg(lmp,r_alpha)
             rt_models[i] = deepcopy(start_net)
             rt_models[i].load_state_dict(rwp)
@@ -544,7 +579,7 @@ for i,j in enumerate(psi_vals):
                 gan_accs[i],_ = test_img_ttest(gan_models[i],\
                             oargs.div_bs,d_train_dict[i],d_dsets[i],device=device)
         
-        ## compute energies
+        # compute energies
         tmp_c2d_rates = d2d_tx_rates[:,i]
         our_nrg += mt_nrg_calc(ovr_alpha[:,i],tmp_c2d_rates)
         r_nrg += mt_nrg_calc(r_alpha,tmp_c2d_rates)
@@ -581,11 +616,32 @@ sm_nrg = 0
 occupied_sources = np.zeros_like(np.where(np.array(psi_vals)==0)[0])
 oo_alpha = deepcopy(ovr_alpha)
 avg_odeg = calc_odeg()
-sm_alpha = calc_sm_alphas(avg_odeg)
+# sm_alpha = calc_sm_alphas(avg_odeg) # old one
+## take average of three avg_degree results
+sm_alpha_list = []
+for sm_i in range(3):
+    sm_alpha = calc_sm_alphas(avg_odeg)
+    sm_alpha = np.nan_to_num(sm_alpha)
+    sm_alpha_list.append(sm_alpha)
+sm_avgd = np.mean(sm_alpha_list,axis=0)
+sm_norm = np.sum(sm_avgd,axis=0)
+
+for sm_i in range(10):
+    if sm_i >= 5:
+        sm_avgd[:,sm_i] /= sm_norm[sm_i]
+sm_alpha = deepcopy(sm_avgd)
 
 for i,j in enumerate(psi_vals):
     if j == 1:
-        t_ind = np.random.randint(0,oargs.l_devices)
+        np.random.seed(oargs.seed)
+        # if len(np.where(oo_alpha[:,i]==1)[0]) == 0:
+        if sum(occupied_sources) > 0:
+            t_ind = np.random.randint(0,oargs.l_devices)
+        else:
+            try:
+                t_ind = np.where(oo_alpha[:,i]==1)[0][0]
+            except:
+                t_ind = np.random.randint(0,oargs.l_devices)
         while occupied_sources[t_ind] == 1:
             # if all sources have a match, then reset the vector
             if (occupied_sources == np.ones_like(occupied_sources)).all():
@@ -644,6 +700,108 @@ for i,j in enumerate(psi_vals):
         oo_nrg += mt_nrg_calc(oo_alpha2,tmp_c2d_rates)
         sm_nrg += mt_nrg_calc(sm_alpha[:,i],tmp_c2d_rates)
 
+# %% load in the divergence results
+mwd = cwd + '/optim_prob/'
+
+if oargs.label_split == 0:
+    oargs.labels_type = 'iid'
+
+if oargs.dset_split == 0: 
+    with open(mwd+'/div_results/div_vals/devices'+str(oargs.t_devices)\
+        +'_seed'+str(oargs.seed)+'_MLP_'\
+        +oargs.dset_type\
+        +'_'+oargs.labels_type,'rb') as f:
+        div_pairs = pk.load(f)
+else:
+    with open(mwd+'/div_results/div_vals/devices'+str(oargs.t_devices)\
+        +'_seed'+str(oargs.seed)+'_MLP_'\
+        +oargs.split_type\
+        +'_'+oargs.labels_type,'rb') as f:
+        div_pairs = pk.load(f)
+
+# divergence normalization (by low end - 50)
+d_min = 50
+d_max = 100
+for ir,row in enumerate(div_pairs):
+    for iv,cval in enumerate(row):
+        if cval != 0:
+            cval = (cval-50)*2
+            row[iv] = cval
+            div_pairs[ir] = row
+
+# %% compute the hypothesis mismatch terms
+# XXX - new plot for a reviewer - comment when done
+# left_thm2_check = {}
+# right_thm2_check = {}
+# right_coro1_check = {}
+# for i,j in enumerate(psi_vals):
+#     if j == 1: # for each target, iterate through the non-zero alphas
+#         left_thm2_check[i] = np.round(1-target_accs[i]/100,2)
+#         right_thm2_check[i] = []
+#         right_coro1_check[i] = []
+#         nz_sources = np.where(ovr_alpha[:,i] >= 0.01)[0]
+#         for cs in nz_sources:
+#             temp = 0
+#             # get the hypothesis mismatch error
+            
+#             if oargs.dset_split < 2:      
+#                 h_comp_acc = test_img_herr(target_models[i],source_models[cs],\
+#                                 oargs.div_bs,d_train,d_dsets[i],device=device)
+#             elif oargs.dset_split == 2:
+#                 h_comp_acc = test_img_herr(target_models[i],source_models[cs],\
+#                                 oargs.div_bs,d_train_dict[i],d_dsets[i],device=device)
+
+#             # add up the right side of the bound
+#             temp += (1-source_accs[cs]/100) + div_pairs[cs,i]/100/2 + (1-h_comp_acc/100)
+#             temp *= ovr_alpha[:,i][cs]
+#             right_thm2_check[i].append(temp)
+            
+#             # temp2 = 4*np.sqrt(2*np.log(len(d_dsets[cs]))/len(d_dsets[cs]))
+#             # temp2 += 6*np.sqrt(2*np.log(len(d_dsets[i]))/len(d_dsets[i]))
+#             temp2 = 4*np.sqrt(2*np.log10(2))
+#             temp2 += 6*np.sqrt(2*np.log10(2))    
+#             temp2 += 6*np.sqrt(2*np.log10(2/(1-oargs.l_delta))/(2*len(d_dsets[i])))
+#             temp2 += 6*np.sqrt(2*np.log10(2/(1-oargs.l_delta))/(2*len(d_dsets[cs])))
+#             temp2 *= ovr_alpha[:,i][cs]
+#             temp2 += temp
+            
+#             right_coro1_check[i].append(temp2)
+        
+#         right_thm2_check[i] = np.round(sum(right_thm2_check[i]),2)
+#         right_coro1_check[i] = np.round(sum(right_coro1_check[i]),2)
+
+# if oargs.dset_split == 0: # only one dataset
+#     with open(cwd+'/bound_check2/'+oargs.dset_type+'_'+str(oargs.phi_e)+'_'\
+#               +'_'+oargs.labels_type \
+#               +'_'+oargs.div_nn+'_left','wb') as f:
+#         pk.dump(left_thm2_check,f)
+#     with open(cwd+'/bound_check2/'+oargs.dset_type+'_'+str(oargs.phi_e)+'_'\
+#               +'_'+oargs.labels_type \
+#               +'_'+oargs.div_nn+'_right','wb') as f:
+#         pk.dump(right_thm2_check,f)
+#     with open(cwd+'/bound_check2/'+oargs.dset_type+'_'+str(oargs.phi_e)+'_'\
+#               +'_'+oargs.labels_type \
+#               +'_'+oargs.div_nn+'_rightc','wb') as f:
+#         pk.dump(right_coro1_check,f)    
+# else:
+#     if oargs.dset_split == 1:
+#         split_type = oargs.split_type
+#     elif oargs.dset_split == 2:
+#         split_type = oargs.split_type.replace('+','-')
+        
+#     with open(cwd+'/bound_check2/'+split_type+'_'+str(oargs.phi_e)+'_'\
+#               +'_'+oargs.labels_type \
+#               +'_'+oargs.div_nn+'_left','wb') as f:
+#         pk.dump(left_thm2_check,f)
+#     with open(cwd+'/bound_check2/'+split_type+'_'+str(oargs.phi_e)+'_'\
+#               +'_'+oargs.labels_type \
+#               +'_'+oargs.div_nn+'_right','wb') as f:
+#         pk.dump(right_thm2_check,f)
+#     with open(cwd+'/bound_check2/'+split_type+'_'+str(oargs.phi_e)+'_'\
+#               +'_'+oargs.labels_type \
+#               +'_'+oargs.div_nn+'_rightc','wb') as f:
+#         pk.dump(right_coro1_check,f)
+
 # %% save the results
 import pandas as pd
 acc_df = pd.DataFrame()
@@ -653,7 +811,7 @@ acc_df['max_qty'] = list(h1_accs.values()) # this is standard FL now
 acc_df['unif_ratio'] = list(h2_accs.values())
 acc_df['o2o'] = list(oo_accs.values()) 
 acc_df['o2m'] = list(sm_accs.values())
-# acc_df['source'] = list(source_accs.values())
+acc_df['source'] = list(source_accs.values())
 acc_df['gan'] = list(gan_accs.values())
 
 nrg_df = pd.DataFrame()
@@ -667,37 +825,42 @@ nrg_df['gan'] = [gan_nrg]
 
 print(acc_df)
 print(nrg_df)
+
+print('specific accs')
+print('ours '+str(acc_df['ours'].mean()))
+print('o2o '+str(acc_df['o2o'].mean()))
+
 # if oargs.nrg_mt == 0:
 #     if oargs.dset_split == 0: # only one dataset
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
+#         acc_df.to_csv(cwd+'/mt_results2/'+oargs.dset_type+'/seed_'+str(oargs.seed) \
 #                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
+#                   +'_'+oargs.div_nn+'_acc_rf.csv')
+#         nrg_df.to_csv(cwd+'/mt_results2/'+oargs.dset_type+'/seed_'+str(oargs.seed)\
 #                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_nrg.csv')
+#                   +'_'+oargs.div_nn+'_nrg_rf.csv')
 #     else:
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+#         acc_df.to_csv(cwd+'/mt_results2/'+oargs.split_type+'/seed_'+str(oargs.seed)\
 #                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/seed_'+str(oargs.seed)\
+#                   +'_'+oargs.div_nn+'_acc_rf.csv')
+#         nrg_df.to_csv(cwd+'/mt_results2/'+oargs.split_type+'/seed_'+str(oargs.seed)\
 #                 +'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+'_nrg.csv')
+#                   +'_'+oargs.div_nn+'_nrg_rf.csv')
 
 # else: ## adjust file name with nrg
 #     if oargs.dset_split == 0: # only one dataset
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+#         acc_df.to_csv(cwd+'/mt_results2/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
 #                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+prefl+end+end2+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
+#                   +'_'+oargs.div_nn+prefl+end+end2+'_acc_rf.csv')
+#         nrg_df.to_csv(cwd+'/mt_results2/'+oargs.dset_type+'/NRG'+str(oargs.phi_e)+'_'\
 #                   +'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+prefl+end+end2+'_nrg.csv')                             
+#                   +'_'+oargs.div_nn+prefl+end+end2+'_nrg_rf.csv')                             
 #     else:
-#         acc_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+#         acc_df.to_csv(cwd+'/mt_results2/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
 #                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+prefl+end+end2+'_acc.csv')
-#         nrg_df.to_csv(cwd+'/mt_results/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
+#                   +'_'+oargs.div_nn+prefl+end+end2+'_acc_rf.csv')
+#         nrg_df.to_csv(cwd+'/mt_results2/'+oargs.split_type+'/NRG'+str(oargs.phi_e)+'_'\
 #                   +pre+'seed_'+str(oargs.seed)+'_'+oargs.labels_type \
-#                   +'_'+oargs.div_nn+prefl+end+end2+'_nrg.csv') 
+#                   +'_'+oargs.div_nn+prefl+end+end2+'_nrg_rf.csv') 
 
 
 

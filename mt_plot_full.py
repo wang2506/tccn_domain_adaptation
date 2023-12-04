@@ -12,12 +12,19 @@ labels_type = 'mild'
 dset_split = 0
 dset_split = 1
 dset_split = 2
-nrg_mt = 1
 split_type = None
-nn_style = 'MLP'
-phi_e = 1e1
+# nn_style = 'MLP'
+nn_style = 'CNN'
+nrg_mt = 1
+# phi_e = 1e1
+phi_e = 1e0
+# phi_e = 2.5e0
+# phi_e = 2e0
+# phi_e = 2.25e0
+# phi_e = 1.25e0
 grad_rv = False
 # grad_rv = True
+fl = True
 
 seeds = [1,2,3,4,5]
 
@@ -42,35 +49,41 @@ else:
     end2 = ''
 for ids,seed in enumerate(seeds):
     if dset_split == 0:
-        for idt,dset_type in enumerate(['M','U','MM']):
+        for idt,dset_type in enumerate(['M','U','MM']): #
             if dset_type == 'MM':
                 end = '_base_6'
             else:
                 end = ''
+            if fl == True:
+                prefl = 'fl'
+            else:
+                prefl = ''            
             
             if nrg_mt == 0:
-                acc_df1 = pd.read_csv(cwd+'/mt_results/'+dset_type+'/seed_'+str(seed)+'_'\
+                acc_df1 = pd.read_csv(cwd+'/mt_results2/'+dset_type+'/seed_'+str(seed)+'_'\
                         +labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')
-                acc_df2 = pd.read_csv(cwd+'/mt_results/'+dset_type+'/st_det_seed'+str(seed)+'_'\
+                          +'_'+nn_style+end+end2+'_acc_rf.csv')
+                acc_df2 = pd.read_csv(cwd+'/mt_results2/'+dset_type+'/st_det_seed'+str(seed)+'_'\
                         +labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')     
+                          +'_'+nn_style+end+end2+'_acc_rf.csv')     
             else:
-                acc_df1 = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
+                acc_df1 = pd.read_csv(cwd+'/mt_results2/'+dset_type+'/NRG'+str(phi_e)+'_'\
                         +'seed_'+str(seed)+'_'+labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')
-                acc_df2 = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)\
+                          +'_'+nn_style+prefl+end+end2+'_acc_rf.csv')
+                acc_df2 = pd.read_csv(cwd+'/mt_results2/'+dset_type+'/NRG'+str(phi_e)\
                         +'_seed_'+str(seed)+'_st_det_'+labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')
+                          +'_'+nn_style+prefl+end+end2+'_acc_rf.csv')
 
             if ids == 0:
                 taccs[dset_type] = acc_df1['ours'].tolist()
                 raccs[dset_type] = acc_df2['rng'].dropna().tolist()
-                h1accs[dset_type] = acc_df2['geq_avg_acc'].dropna().tolist()
-                h2accs[dset_type] = acc_df2['max_acc'].tolist()
+                # h1accs[dset_type] = acc_df2['geq_avg_acc'].dropna().tolist()
+                # h2accs[dset_type] = acc_df2['max_acc'].tolist()
+                h1accs[dset_type] = acc_df2['psi-fl'].dropna().tolist()
+                h2accs[dset_type] = acc_df2['psi-gan'].dropna().tolist()                
                 saccs[dset_type] = acc_df1['source'].tolist()                
-                oo_accs[dset_type] = acc_df1['o2o'].tolist()            
-            
+                oo_accs[dset_type] = acc_df1['o2o'].dropna().tolist()                
+                
                 ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type] = [],[],[]
                 ra_max[dset_type],ra_min[dset_type],ra_avg[dset_type] = [],[],[]
                 h1_max[dset_type],h1_min[dset_type],h1_avg[dset_type] = [],[],[]
@@ -79,19 +92,25 @@ for ids,seed in enumerate(seeds):
             else:
                 taccs[dset_type] += acc_df1['ours'].tolist()
                 raccs[dset_type] += acc_df2['rng'].dropna().tolist()
-                h1accs[dset_type] += acc_df2['geq_avg_acc'].dropna().tolist()
-                h2accs[dset_type] += acc_df2['max_acc'].tolist()
+                # h1accs[dset_type] += acc_df2['geq_avg_acc'].dropna().tolist()
+                # h2accs[dset_type] += acc_df2['max_acc'].tolist()
+                h1accs[dset_type] += acc_df2['psi-fl'].dropna().tolist()
+                h2accs[dset_type] += acc_df2['psi-gan'].dropna().tolist()                   
                 saccs[dset_type] += acc_df1['source'].tolist()
-                oo_accs[dset_type] += acc_df1['o2o'].tolist()                      
+                oo_accs[dset_type] += acc_df1['o2o'].dropna().tolist()                       
             
             ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type] \
                 = extract_mma(acc_df1['ours'].tolist(),ta_max[dset_type],ta_min[dset_type],ta_avg[dset_type])
             ra_max[dset_type],ra_min[dset_type],ra_avg[dset_type] \
                 = extract_mma(acc_df2['rng'].tolist(),ra_max[dset_type],ra_min[dset_type],ra_avg[dset_type])
+            # h1_max[dset_type],h1_min[dset_type],h1_avg[dset_type] \
+            #     = extract_mma(acc_df2['geq_avg_acc'].tolist(),h1_max[dset_type],h1_min[dset_type],h1_avg[dset_type])
+            # h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type] \
+            #     = extract_mma(acc_df2['max_acc'].tolist(),h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type])
             h1_max[dset_type],h1_min[dset_type],h1_avg[dset_type] \
-                = extract_mma(acc_df2['geq_avg_acc'].tolist(),h1_max[dset_type],h1_min[dset_type],h1_avg[dset_type])
+                = extract_mma(acc_df2['psi-fl'].tolist(),h1_max[dset_type],h1_min[dset_type],h1_avg[dset_type])
             h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type] \
-                = extract_mma(acc_df2['max_acc'].tolist(),h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type])
+                = extract_mma(acc_df2['psi-gan'].tolist(),h2_max[dset_type],h2_min[dset_type],h2_avg[dset_type])
             oo_max[dset_type],oo_min[dset_type],oo_avg[dset_type] \
                 = extract_mma(acc_df1['o2o'].tolist(),oo_max[dset_type],oo_min[dset_type],oo_avg[dset_type])
     else: # dset_split == 1:
@@ -104,29 +123,36 @@ for ids,seed in enumerate(seeds):
                 end = '_base_6'
             else:
                 end = ''
+            
+            if fl == True:
+                prefl = 'fl'
+            else:
+                prefl = ''
                 
             if nrg_mt == 0:
-                acc_df1 = pd.read_csv(cwd+'/mt_results/'+split_type+'/'+pre+'seed_'+str(seed)+'_'\
+                acc_df1 = pd.read_csv(cwd+'/mt_results2/'+split_type+'/'+pre+'seed_'+str(seed)+'_'\
                         +labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')
-                acc_df2 = pd.read_csv(cwd+'/mt_results/'+split_type+'/'+pre+'st_det_seed_'+str(seed)+'_'\
+                          +'_'+nn_style+end+end2+'_acc_rf.csv')
+                acc_df2 = pd.read_csv(cwd+'/mt_results2/'+split_type+'/'+pre+'st_det_seed_'+str(seed)+'_'\
                         +labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')                       
+                          +'_'+nn_style+end+end2+'_acc_rf.csv')                       
             else:
-                acc_df1 = pd.read_csv(cwd+'/mt_results/'+split_type+'/NRG'+str(phi_e)+'_'\
+                acc_df1 = pd.read_csv(cwd+'/mt_results2/'+split_type+'/NRG'+str(phi_e)+'_'\
                         +pre+'seed_'+str(seed)+'_'+labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')    
-                acc_df2 = pd.read_csv(cwd+'/mt_results/'+split_type+'/NRG'+str(phi_e)+'_'\
+                          +'_'+nn_style+prefl+end+end2+'_acc_rf.csv')    
+                acc_df2 = pd.read_csv(cwd+'/mt_results2/'+split_type+'/NRG'+str(phi_e)+'_'\
                         +pre+'seed_'+str(seed)+'_st_det_'+labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')          
+                          +'_'+nn_style+prefl+end+end2+'_acc_rf.csv')          
         
             if ids == 0:
                 taccs[split_type] = acc_df1['ours'].tolist()
                 raccs[split_type] = acc_df2['rng'].dropna().tolist()
-                h1accs[split_type] = acc_df2['geq_avg_acc'].dropna().tolist()
-                h2accs[split_type] = acc_df2['max_acc'].tolist()
+                # h1accs[split_type] = acc_df2['geq_avg_acc'].dropna().tolist()
+                # h2accs[split_type] = acc_df2['max_acc'].tolist()
+                h1accs[split_type] = acc_df2['psi-fl'].dropna().tolist()
+                h2accs[split_type] = acc_df2['psi-gan'].dropna().tolist()  
                 # saccs[split_type] = acc_df1['source'].tolist()                
-                oo_accs[split_type] = acc_df1['o2o'].tolist()
+                oo_accs[split_type] = acc_df1['o2o'].dropna().tolist()    
             
                 ta_max[split_type],ta_min[split_type],ta_avg[split_type] = [],[],[]
                 ra_max[split_type],ra_min[split_type],ra_avg[split_type] = [],[],[]
@@ -136,24 +162,30 @@ for ids,seed in enumerate(seeds):
             else:
                 taccs[split_type] += acc_df1['ours'].tolist()
                 raccs[split_type] += acc_df2['rng'].dropna().tolist()
-                h1accs[split_type] += acc_df2['geq_avg_acc'].dropna().tolist()
-                h2accs[split_type] += acc_df2['max_acc'].tolist()
+                # h1accs[split_type] += acc_df2['geq_avg_acc'].dropna().tolist()
+                # h2accs[split_type] += acc_df2['max_acc'].tolist()
+                h1accs[split_type] += acc_df2['psi-fl'].dropna().tolist()
+                h2accs[split_type] += acc_df2['psi-gan'].dropna().tolist()                    
                 # saccs[split_type] += acc_df1['source'].tolist()                
-                oo_accs[split_type] += acc_df1['o2o'].tolist()                      
+                oo_accs[split_type] += acc_df1['o2o'].dropna().tolist()                       
             
             ta_max[split_type],ta_min[split_type],ta_avg[split_type] \
                 = extract_mma(acc_df1['ours'].tolist(),ta_max[split_type],ta_min[split_type],ta_avg[split_type])
             ra_max[split_type],ra_min[split_type],ra_avg[split_type] \
                 = extract_mma(acc_df2['rng'].tolist(),ra_max[split_type],ra_min[split_type],ra_avg[split_type])
+            # h1_max[split_type],h1_min[split_type],h1_avg[split_type] \
+            #     = extract_mma(acc_df2['geq_avg_acc'].tolist(),h1_max[split_type],h1_min[split_type],h1_avg[split_type])
+            # h2_max[split_type],h2_min[split_type],h2_avg[split_type] \
+            #     = extract_mma(acc_df2['max_acc'].tolist(),h2_max[split_type],h2_min[split_type],h2_avg[split_type])
             h1_max[split_type],h1_min[split_type],h1_avg[split_type] \
-                = extract_mma(acc_df2['geq_avg_acc'].tolist(),h1_max[split_type],h1_min[split_type],h1_avg[split_type])
+                = extract_mma(acc_df2['psi-fl'].tolist(),h1_max[split_type],h1_min[split_type],h1_avg[split_type])
             h2_max[split_type],h2_min[split_type],h2_avg[split_type] \
-                = extract_mma(acc_df2['max_acc'].tolist(),h2_max[split_type],h2_min[split_type],h2_avg[split_type])
+                = extract_mma(acc_df2['psi-gan'].tolist(),h2_max[split_type],h2_min[split_type],h2_avg[split_type])            
             oo_max[split_type],oo_min[split_type],oo_avg[split_type] \
                 = extract_mma(acc_df1['o2o'].tolist(),oo_max[split_type],oo_min[split_type],oo_avg[split_type])
 
 # %% plot bars for max-min
-fig,ax = plt.subplots(1,3,figsize=(5,2),dpi=250,sharey=True)
+fig,ax = plt.subplots(1,3,figsize=(5,2),dpi=250)#,sharey=True)
 # cats = 4
 cats = 5
 width = 0.8
@@ -166,30 +198,43 @@ rv = []
 h1v = []
 h2v = []
 oov = []
-
+ 
 if dset_split == 0:
     dset_vec = ['MNIST','USPS','MNIST-M']
-    for i,j in enumerate(['M','U','MM']):
-        ax[i].bar([0],np.mean(taccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
-                 capsize=5,width=width,\
+    for i,j in enumerate(['M','U','MM']):#
+        ax[i].bar([0],np.mean(taccs[j]),\
                 color='tab:blue',edgecolor='black',label=r'Our Method')
-        ax[i].bar([1],np.mean(raccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
-                  capsize=5,width=width,\
+        ax[i].bar([1],np.mean(raccs[j]),\
                 color='tab:orange',edgecolor='black',label=r'Random-$\psi$')
-        ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
-                  capsize=5,width=width,\
-                color='tab:green',edgecolor='black',label=r'Geq-Max-Acc')    
-        ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
-                  capsize=5,width=width,\
-                color='tab:brown',edgecolor='black',label=r'Only-Max-Acc')  
-        ax[i].bar([4],np.mean(oo_accs[j]),yerr=np.std(oo_accs[j]),ecolor='black',\
-                  capsize=5,width=width,\
+        # ax[i].bar([2],np.mean(h1accs[j]),\
+        #         color='tab:green',edgecolor='black',label=r'Geq-Max-Acc')    
+        ax[i].bar([2],np.mean(h1accs[j]),\
+                color='tab:green',edgecolor='black',label=r'$\psi$-FedAvg')
+        ax[i].bar([3],np.mean(h2accs[j]),\
+                color='tab:brown',edgecolor='black',label=r'$\psi$-FADA')
+        # ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
+        #           capsize=5,width=width,\
+        #         color='tab:brown',edgecolor='black',label=r'Only-Max-Acc')  
+        ax[i].bar([4],np.mean(oo_accs[j]),\
                 color='tab:purple',edgecolor='black',label=r'Single Matching')
         if i == 0: 
             ax[i].set_ylabel('Average Accuracy (%)')
+        print(j)
+        print(np.mean(taccs[j]))
+        print(np.mean(raccs[j]))
+        print(np.mean(h1accs[j]))
+        print(np.mean(h2accs[j]))
+        print(np.mean(oo_accs[j]))
 else:
     dset_vec = ['M+MM','M+U','MM+U']
     for i,j in enumerate(dset_vec):
+        print(j)
+        print(np.mean(taccs[j]))
+        print(np.mean(raccs[j]))
+        print(np.mean(h1accs[j]))
+        print(np.mean(h2accs[j]))
+        print(np.mean(oo_accs[j]))        
+        
         if grad_rv == True:  #source accs already in the other baselines
             ax[i].bar([0],np.mean(taccs[j]+saccs[j]),yerr=np.std(taccs[j]+saccs[j]),ecolor='black',\
                      capsize=5,width=width,\
@@ -199,33 +244,42 @@ else:
                     color='tab:orange',edgecolor='black',label=r'Random-$\psi$')
             ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:green',edgecolor='black',label=r'Geq-Max-Acc')
+                    color='tab:green',edgecolor='black',label=r'$\psi$-FedAvg') #Geq-Max-Acc
             ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'Only-Max-Acc')
+                    color='tab:brown',edgecolor='black',label=r'$\psi$-FADA') #Only-Max-Acc
             ax[i].bar([4],np.mean(oo_accs[j]+saccs[j]),yerr=np.std(oo_accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:purple',edgecolor='black',label=r'Single Matching')
         else:        
-            ax[i].bar([0],np.mean(taccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
-                     capsize=5,width=width,\
+            ax[i].bar([0],np.mean(taccs[j]),\
                     color='tab:blue',edgecolor='black',label=r'Our Method')
-            ax[i].bar([1],np.mean(raccs[j]),yerr=np.std(taccs[j]),ecolor='black',\
-                      capsize=5,width=width,\
+            ax[i].bar([1],np.mean(raccs[j]),\
                     color='tab:orange',edgecolor='black',label=r'Random-$\psi$')
-            ax[i].bar([2],np.mean(h1accs[j]),yerr=np.std(h1accs[j]),ecolor='black',\
-                      capsize=5,width=width,\
-                    color='tab:green',edgecolor='black',label=r'Geq-Max-Acc')    
-            ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
-                      capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'Only-Max-Acc')  
-            ax[i].bar([4],np.mean(oo_accs[j]),yerr=np.std(oo_accs[j]),ecolor='black',\
-                      capsize=5,width=width,\
+            ax[i].bar([2],np.mean(h1accs[j]),\
+                    color='tab:green',edgecolor='black',label=r'$\psi$-FedAvg')    
+            ax[i].bar([3],np.mean(h2accs[j]),\
+                    color='tab:brown',edgecolor='black',label=r'$\psi$-FADA')  
+            ax[i].bar([4],np.mean(oo_accs[j]),\
                     color='tab:purple',edgecolor='black',label=r'Single Matching')
         if i == 0: 
             ax[i].set_ylabel('Average Accuracy (%)')
 
 dset_vec2 = ['M//MM','M//U','MM//U']
+if dset_split == 0:
+    ax[0].set_ylim([30,80])
+    ax[1].set_ylim([30,70])
+    ax[2].set_ylim([25,40])
+    # ax[2].set_ylim([26,37])
+    # ax[2].set_yticks([26,29,32,35])
+elif dset_split == 1:
+    ax[0].set_ylim([50,60])
+    ax[1].set_ylim([30,70])#[40,70])
+    ax[2].set_ylim([15,30])
+elif dset_split == 2:
+    ax[0].set_ylim([50,60])
+    ax[1].set_ylim([70,90])
+    ax[2].set_ylim([35,60])
 for i in range(3):
     if dset_split < 2 : 
         ax[i].set_xlabel(dset_vec[i])
@@ -251,18 +305,20 @@ leg1 = ax[0].legend(h[:3],l[:3],bbox_to_anchor=(-0.5,1.12,4,0.2),\
 leg2 = ax[0].legend(h[3:],l[3:],bbox_to_anchor=(-0.5,0.98,4,0.2),\
                         mode='expand',fontsize=10,**kw)
 ax[0].add_artist(leg1)
+plt.subplots_adjust(wspace=0.3)
 
 # %% save figures
 if grad_rv == True:
     pend = 'gr'
 else:
     pend = ''
+
 # if dset_split == 0:
-#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg.pdf',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg_gan.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_avg_gan.pdf',dpi=1000,bbox_inches='tight')
 # elif dset_split == 1:
-#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed_gan.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_mixed_gan.pdf',dpi=1000,bbox_inches='tight')    
 # elif dset_split == 2:
-#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split.pdf',dpi=1000,bbox_inches='tight')        
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split_gan.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/st_det_'+labels_type+pend+'_split_gan.pdf',dpi=1000,bbox_inches='tight')        

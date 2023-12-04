@@ -41,14 +41,22 @@ class segmentdataset(Dataset):
 
 # %%
 class iclr_method(object):
-    def __init__(self,args):
+    def __init__(self,args,st_split):
         self.args = args
         device = torch.device('cuda:'+str(args.div_gpu_num))
         self.device = device
-        self.coefficient_matrix=[[np.round(1/args.l_devices,2)]*args.l_devices \
-            for i in range(args.u_devices)]
+        if st_split == None:
+            self.coefficient_matrix=[[np.round(1/args.l_devices,2)]*args.l_devices \
+                for i in range(args.u_devices)]
+            self.inertia = [0]*args.l_devices
+        else:
+            u_count = sum(st_split)
+            l_count = len(st_split)-u_count
+            self.coefficient_matrix=[[np.round(1/l_count,2)]*l_count \
+                for i in range(u_count)]
+            self.inertia = [0]*l_count
+        
         self.pre_inertia = -1
-        self.inertia = [0]*args.l_devices
         self.src_domain_code = np.repeat(np.array([[*([1]), *([0])]]), args.div_bs, axis=0)
         self.tgt_domain_code = np.repeat(np.array([[*([0]), *([1])]]), args.div_bs, axis=0)
         self.src_domain_code = Variable(\
@@ -59,6 +67,8 @@ class iclr_method(object):
         print('pulling datasets and quantities')   
         self.dataset_s = []
         self.dataset_test_s = []
+        self.st_split = st_split
+        print(self.st_split)
         cwd = os.getcwd()
         
         if args.grad_rev == True:
@@ -226,109 +236,218 @@ class iclr_method(object):
             if i >= args.l_devices:
                 break
             else:
-                ld_sets[i] = random.sample(self.d_dsets[i],split_lqtys[i])
+                if len(d_dsets[i]) <= split_lqtys[i]: #enlarge d_dsets
+                    ttt_temp = []
+                    for tl in lpd[i]:
+                        if type(d_train.targets) == list:
+                            d_train.targets = np.array(d_train.targets)
+                        ttt_temp += np.where(d_train.targets == tl)[0].tolist()
+                    ld_sets[i] = random.sample(d_dsets[i] + ttt_temp,split_lqtys[i])
+                else:
+                    ld_sets[i] = random.sample(self.d_dsets[i],split_lqtys[i])
         self.ld_sets = ld_sets
         
         ## this assumes that you have already determined the source/target split
-        ## HARD CODED!!!
-        ## TODO 
-        device_datasets_batched = {}
-        for i in range(args.l_devices):
-            if args.dset_split == 0 or args.dset_split == 1: 
-                device_datasets_batched[i] = DataLoader(segmentdataset(d_train,ld_sets[i]),\
-                    batch_size=args.div_bs,shuffle=True)
-            elif args.dset_split == 2:
-                device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
-                    batch_size=args.div_bs,shuffle=True)
-        self.dd_batched = device_datasets_batched
-        
-        ud_batched = {}
-        for i in range(args.u_devices):
-            if args.dset_split == 0 or args.dset_split == 1:
-                ud_batched[i] = DataLoader(segmentdataset(d_train,\
-                    d_dsets[args.l_devices+i]),\
-                    batch_size=args.div_bs,shuffle=True)
-            else:
-                ud_batched[i] = DataLoader(segmentdataset(d_train_dict[args.l_devices+i],\
-                    d_dsets[args.l_devices+i]),\
-                    batch_size=args.div_bs,shuffle=True)
-        self.ud_batched = ud_batched
-        print('dataset + batch formatting finished')
-        
-        print('building models')
-        self.G_s = []
-        self.C_s = []
-        self.FD = []
-        self.D = []
-        self.DC = []
-        self.R = []
-        self.M = []
-
-        for i, j in enumerate(range(args.l_devices)):
-            self.G_s.append(Generator(nchannels=self.nchannels)) ## source generators, (feature extractors) G_i
-            self.C_s.append(Classifier()) ## source classifiers, C_i 
-            self.FD.append(Feature_Discriminator()) ## domain identifiers, DI_i
-            self.D.append(Disentangler()) ## source disentanglers, (separates the domain invariant and domain specific features), D_i
-            self.DC.append(Classifier()) ## K-way (class) classifier CI_i
-            self.R.append(Reconstructor()) ## recombine output of the disentangler - unused for targets
-            self.M.append(Mine()) ## MINE estimator, M_i
-        
-        self.G_t = []
-        self.C_t = []
-        for i in range(args.u_devices):
-            self.G_t.append( Generator(nchannels=self.nchannels)) ## target generator
-            self.C_t.append( Classifier()) ## target classifier
-        print('building models finished')
-        
-        for G_s, C_s, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, \
-                            self.D, self.DC, self.R, self.M):
-            G_s.to(self.device)
-            C_s.to(self.device)
-            FD.to(self.device)
-            D.to(self.device)
-            DC.to(self.device)
-            R.to(self.device)
-            M.to(self.device)
-        
-        for G_t, C_t in zip(self.G_t,self.C_t):
-            G_t.to(self.device)
-            C_t.to(self.device)
-        
-        # setting optimizer
-        self.opt_g_s = []
-        self.opt_c_s = []
-        self.opt_fd = []
-        self.opt_d = []
-        self.opt_dc = []
-        self.opt_r = []
-        self.opt_m = []
-        
-        for G_s, C_s, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, self.D, \
-                self.DC, self.R, self.M):
-            self.opt_g_s.append(optim.SGD(G_s.parameters(), lr=args.div_lr))
-            self.opt_c_s.append(optim.SGD(C_s.parameters(), lr=args.div_lr))
-            self.opt_fd.append(optim.SGD(FD.parameters(), lr=args.div_lr))
-            self.opt_d.append(optim.SGD(D.parameters(), lr=args.div_lr))
-            self.opt_dc.append(optim.SGD(DC.parameters(), lr=args.div_lr))
-            self.opt_r.append(optim.SGD(R.parameters(), lr=args.div_lr))
-            self.opt_m.append(optim.SGD(M.parameters(), lr=args.div_lr))
-        
-        self.opt_g_t = []
-        self.opt_c_t = []
-        for G_t,C_t in zip(self.G_t,self.C_t):
-            self.opt_g_t.append(optim.SGD(G_t.parameters(), lr=args.div_lr))
-            self.opt_c_t.append(optim.SGD(C_t.parameters(), lr=args.div_lr))
-        
-        print('check')
-        # initilize parameters
-        for G in self.G_s:
-            for G_t in self.G_t:
-                for net, net_cardinal in zip(G.named_parameters(), G_t.named_parameters()):
-                    net[1].data = net_cardinal[1].data.clone()
-        for C in self.C_s:
-            for C_t in self.C_t:
-                for net, net_cardinal in zip(C.named_parameters(), C_t.named_parameters()):
-                    net[1].data = net_cardinal[1].data.clone()
+        if self.st_split != None:
+            # print('change everything')
+            device_datasets_batched = {}
+            ud_batched = {}
+            for i,j in enumerate(self.st_split):
+                if j == 0: #source
+                    if args.dset_split == 0 or args.dset_split == 1:
+                        device_datasets_batched[i] = DataLoader(segmentdataset(d_train,ld_sets[i]),\
+                            batch_size=args.div_bs,shuffle=True)
+                    elif args.dset_split == 2:
+                        device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
+                            batch_size=args.div_bs,shuffle=True)
+                elif j == 1: #target
+                    if args.dset_split == 0 or args.dset_split == 1:
+                        ud_batched[i] = DataLoader(segmentdataset(d_train,\
+                            d_dsets[i]),\
+                            batch_size=args.div_bs,shuffle=True)
+                    else:
+                        ud_batched[i] = DataLoader(segmentdataset(d_train_dict[i],\
+                            d_dsets[i]),\
+                            batch_size=args.div_bs,shuffle=True)
+                            
+            self.dd_batched = device_datasets_batched
+            self.ud_batched = ud_batched
+            print('dataset + batch formatting finished')
+            
+            print('building models')
+            self.G_s = []
+            self.C_s = []
+            self.FD = []
+            self.D = []
+            self.DC = []
+            self.R = []
+            self.M = []
+    
+            self.G_t = []
+            self.C_t = []    
+    
+            for i,j in enumerate(self.st_split):
+                if j == 0: #source
+                    self.G_s.append(Generator(nchannels=self.nchannels)) ## source generators, (feature extractors) G_i
+                    self.C_s.append(Classifier()) ## source classifiers, C_i 
+                    self.FD.append(Feature_Discriminator()) ## domain identifiers, DI_i
+                    self.D.append(Disentangler()) ## source disentanglers, (separates the domain invariant and domain specific features), D_i
+                    self.DC.append(Classifier()) ## K-way (class) classifier CI_i
+                    self.R.append(Reconstructor()) ## recombine output of the disentangler - unused for targets
+                    self.M.append(Mine()) ## MINE estimator, M_i
+                elif j == 1: #target
+                    self.G_t.append( Generator(nchannels=self.nchannels)) ## target generator
+                    self.C_t.append( Classifier()) ## target classifier
+            print('building models finished')
+            
+            for G_s, C_s, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, \
+                                self.D, self.DC, self.R, self.M):
+                G_s.to(self.device)
+                C_s.to(self.device)
+                FD.to(self.device)
+                D.to(self.device)
+                DC.to(self.device)
+                R.to(self.device)
+                M.to(self.device)
+            
+            for G_t, C_t in zip(self.G_t,self.C_t):
+                G_t.to(self.device)
+                C_t.to(self.device)
+            
+            # setting optimizer
+            self.opt_g_s = []
+            self.opt_c_s = []
+            self.opt_fd = []
+            self.opt_d = []
+            self.opt_dc = []
+            self.opt_r = []
+            self.opt_m = []
+            
+            for G_s, C_s, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, self.D, \
+                    self.DC, self.R, self.M):
+                self.opt_g_s.append(optim.SGD(G_s.parameters(), lr=args.div_lr))
+                self.opt_c_s.append(optim.SGD(C_s.parameters(), lr=args.div_lr))
+                self.opt_fd.append(optim.SGD(FD.parameters(), lr=args.div_lr))
+                self.opt_d.append(optim.SGD(D.parameters(), lr=args.div_lr))
+                self.opt_dc.append(optim.SGD(DC.parameters(), lr=args.div_lr))
+                self.opt_r.append(optim.SGD(R.parameters(), lr=args.div_lr))
+                self.opt_m.append(optim.SGD(M.parameters(), lr=args.div_lr))
+            
+            self.opt_g_t = []
+            self.opt_c_t = []
+            for G_t,C_t in zip(self.G_t,self.C_t):
+                self.opt_g_t.append(optim.SGD(G_t.parameters(), lr=args.div_lr))
+                self.opt_c_t.append(optim.SGD(C_t.parameters(), lr=args.div_lr))
+            
+            print('check')
+            # initilize parameters
+            for G in self.G_s:
+                for G_t in self.G_t:
+                    for net, net_cardinal in zip(G.named_parameters(), G_t.named_parameters()):
+                        net[1].data = net_cardinal[1].data.clone()
+            for C in self.C_s:
+                for C_t in self.C_t:
+                    for net, net_cardinal in zip(C.named_parameters(), C_t.named_parameters()):
+                        net[1].data = net_cardinal[1].data.clone()                
+                
+        else: #use default - hard coded approach
+            device_datasets_batched = {}
+            for i in range(args.l_devices):
+                if args.dset_split == 0 or args.dset_split == 1: 
+                    device_datasets_batched[i] = DataLoader(segmentdataset(d_train,ld_sets[i]),\
+                        batch_size=args.div_bs,shuffle=True)
+                elif args.dset_split == 2:
+                    device_datasets_batched[i] = DataLoader(segmentdataset(d_train_dict[i],ld_sets[i]),\
+                        batch_size=args.div_bs,shuffle=True)
+            self.dd_batched = device_datasets_batched
+            
+            ud_batched = {}
+            for i in range(args.u_devices):
+                if args.dset_split == 0 or args.dset_split == 1:
+                    ud_batched[i] = DataLoader(segmentdataset(d_train,\
+                        d_dsets[args.l_devices+i]),\
+                        batch_size=args.div_bs,shuffle=True)
+                else:
+                    ud_batched[i] = DataLoader(segmentdataset(d_train_dict[args.l_devices+i],\
+                        d_dsets[args.l_devices+i]),\
+                        batch_size=args.div_bs,shuffle=True)
+            self.ud_batched = ud_batched
+            print('dataset + batch formatting finished')
+            
+            print('building models')
+            self.G_s = []
+            self.C_s = []
+            self.FD = []
+            self.D = []
+            self.DC = []
+            self.R = []
+            self.M = []
+    
+            for i, j in enumerate(range(args.l_devices)):
+                self.G_s.append(Generator(nchannels=self.nchannels)) ## source generators, (feature extractors) G_i
+                self.C_s.append(Classifier()) ## source classifiers, C_i 
+                self.FD.append(Feature_Discriminator()) ## domain identifiers, DI_i
+                self.D.append(Disentangler()) ## source disentanglers, (separates the domain invariant and domain specific features), D_i
+                self.DC.append(Classifier()) ## K-way (class) classifier CI_i
+                self.R.append(Reconstructor()) ## recombine output of the disentangler - unused for targets
+                self.M.append(Mine()) ## MINE estimator, M_i
+            
+            self.G_t = []
+            self.C_t = []
+            for i in range(args.u_devices):
+                self.G_t.append( Generator(nchannels=self.nchannels)) ## target generator
+                self.C_t.append( Classifier()) ## target classifier
+            print('building models finished')
+            
+            for G_s, C_s, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, \
+                                self.D, self.DC, self.R, self.M):
+                G_s.to(self.device)
+                C_s.to(self.device)
+                FD.to(self.device)
+                D.to(self.device)
+                DC.to(self.device)
+                R.to(self.device)
+                M.to(self.device)
+            
+            for G_t, C_t in zip(self.G_t,self.C_t):
+                G_t.to(self.device)
+                C_t.to(self.device)
+            
+            # setting optimizer
+            self.opt_g_s = []
+            self.opt_c_s = []
+            self.opt_fd = []
+            self.opt_d = []
+            self.opt_dc = []
+            self.opt_r = []
+            self.opt_m = []
+            
+            for G_s, C_s, FD, D, DC, R, M in zip(self.G_s, self.C_s, self.FD, self.D, \
+                    self.DC, self.R, self.M):
+                self.opt_g_s.append(optim.SGD(G_s.parameters(), lr=args.div_lr))
+                self.opt_c_s.append(optim.SGD(C_s.parameters(), lr=args.div_lr))
+                self.opt_fd.append(optim.SGD(FD.parameters(), lr=args.div_lr))
+                self.opt_d.append(optim.SGD(D.parameters(), lr=args.div_lr))
+                self.opt_dc.append(optim.SGD(DC.parameters(), lr=args.div_lr))
+                self.opt_r.append(optim.SGD(R.parameters(), lr=args.div_lr))
+                self.opt_m.append(optim.SGD(M.parameters(), lr=args.div_lr))
+            
+            self.opt_g_t = []
+            self.opt_c_t = []
+            for G_t,C_t in zip(self.G_t,self.C_t):
+                self.opt_g_t.append(optim.SGD(G_t.parameters(), lr=args.div_lr))
+                self.opt_c_t.append(optim.SGD(C_t.parameters(), lr=args.div_lr))
+            
+            print('check')
+            # initilize parameters
+            for G in self.G_s:
+                for G_t in self.G_t:
+                    for net, net_cardinal in zip(G.named_parameters(), G_t.named_parameters()):
+                        net[1].data = net_cardinal[1].data.clone()
+            for C in self.C_s:
+                for C_t in self.C_t:
+                    for net, net_cardinal in zip(C.named_parameters(), C_t.named_parameters()):
+                        net[1].data = net_cardinal[1].data.clone()
     
     def ent(self, output):
         return - torch.mean(output * torch.log(output + 1e-6))
@@ -383,117 +502,236 @@ class iclr_method(object):
             Gt.train()
             Ct.train()
         
-        for t_d in range(args.u_devices):
-            zip_struct = []
-            for i in range(args.l_devices):
-                zip_struct.append(list(self.dd_batched[i]))
-            zip_struct.append(list(self.ud_batched[t_d]))
-            
-            mb_sizes = []
-            for i in zip_struct:
-                mb_sizes.append(len(i))
-            t_batches = min(mb_sizes)-1
-            
-            loss_record = []
-            loss_t_record = []
-            
-            for c_batch in range(t_batches):
-                for i in range(args.l_devices):
-                    data_s,label_s = zip_struct[i][c_batch][0].to(self.device),zip_struct[i][c_batch][-1].to(self.device)
-                    data_t,label_t = zip_struct[-1][c_batch][0].to(self.device),zip_struct[-1][c_batch][-1].to(self.device)
-                    self.reset_grad()
-                    feat = self.G_s[i](data_s)
-                    feat_fc2 = feat['f_fc2']
-                    output = self.C_s[i](feat_fc2)
-
-                    feat_t = self.G_t[t_d](data_t)
-                    feat_fc2_t = feat_t['f_fc2']
-                    output_t = self.C_t[t_d](feat_fc2_t)
-
-                    loss_s = criterion(output, label_s)
-                    loss_t = criterion(output_t, label_t)
-                    loss_record.append(loss_s.item())
-                    loss_t_record.append(loss_t.item())
-    
-                    loss_s.backward(retain_graph=True)
-
-                    feat_conv3 = feat['f_conv3']
-                    output_d=self.DC[i](self.D[i](feat_conv3))
-                    loss_s = criterion(output, label_s)
-                    loss_dis = self.discrepancy(output,output_d)
-                    loss_s -= loss_dis
-                    loss_s.backward(retain_graph=True)
+        if self.st_split != None:
+            # print('change everything')
+            for t_d,val_t_d in enumerate(self.st_split):
+                ud_count = 0
+                if val_t_d == 1: #targets only outer loop
+                    ud_count += 1
+                    zip_struct = []
+                    for i,i_val in enumerate(self.st_split):
+                        if i_val == 0: #source inner loop
+                            zip_struct.append(list(self.dd_batched[i]))
+                    zip_struct.append(list(self.ud_batched[t_d]))
                     
-                    for net1, net2 in \
-                        zip(self.G_s[i].named_parameters(), self.G_t[t_d].named_parameters()):
-                        if net1[1].grad is not None:
-                            net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[t_d][i] 
-                    for net1, net2 in \
-                        zip(self.C_s[i].named_parameters(), self.C_t[t_d].named_parameters()):
-                        if net1[1].grad is not None:
-                            net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[t_d][i] 
-                    self.group_step([self.opt_d[i], self.opt_dc[i], self.opt_g_t[t_d], \
-                            self.opt_c_t[t_d], self.opt_g_s[i], self.opt_c_s[i]])
+                    mb_sizes = []
+                    for i in zip_struct:
+                        mb_sizes.append(len(i))
+                    t_batches = min(mb_sizes)-1
                     
-                    features_list = self.G_s[i](data_s)
-                    dis_features = self.D[i](features_list['f_conv3'])
-                    dis_features_shuffle = torch.index_select(dis_features,0,\
-                        Variable(torch.randperm(dis_features.shape[0]).to(self.device)))
-                    features_fc2 = features_list['f_fc2']
-                    MI = self.mutual_information_estimator(i, features_fc2, \
-                        dis_features, dis_features_shuffle) / args.div_bs
-                    entropy_s = self.ent(dis_features) / args.div_bs
-                    recon_features = self.R[i](torch.cat((features_fc2, dis_features),1)) \
-                        / args.div_bs
-                    recon_loss =  self.reconstruct_loss(features_list['f_conv3'], \
-                        recon_features) / args.div_bs
-                    total_loss = (MI - entropy_s + recon_loss ) * 0.1
-                    total_loss.backward()
-                    self.group_step([self.opt_d[i], self.opt_r[i], \
-                                     self.opt_m[i], self.opt_g_s[i]])
-
-                    test_batch = zip_struct[-1][np.random.randint(0,len(zip_struct[-1])-1)]
-                    test_img = test_batch[0].to(self.device)
-                    # img = Variable(img.to(self.device))
-                    feat_torch = self.G_t[t_d](test_img)['f_fc2']
-                    feat = feat_torch.data.cpu().numpy()
-
-                    kmeans = KMeans(n_clusters=10, max_iter=1000).fit(feat)
-
-                    cur_inertia = kmeans.inertia_ / 1e3
-                    if self.pre_inertia == -1:
-                        self.pre_inertia = cur_inertia
-                        continue
-                    else:
-                        inertia_gain = (self.pre_inertia - cur_inertia)\
-                            /self.coefficient_matrix[t_d][i]*(np.round(1/args.l_devices,2))
-                        self.inertia[i] = inertia_gain + self.inertia[i]
-                        self.pre_inertia = cur_inertia
-
-                    src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
-                    tgt_domain_pred = self.FD[i](self.G_t[t_d](data_t)['f_fc2'])
-
-                    df_loss_src = adv_loss(src_domain_pred, self.src_domain_code)
-                    df_loss_tgt = adv_loss(tgt_domain_pred, self.tgt_domain_code)
-
-                    loss = (df_loss_src + df_loss_tgt)/args.div_bs
-                    loss.backward()
-                    self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[t_d]])
-
-                    src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
-                    tgt_domain_pred = self.FD[i](self.G_t[t_d](data_t)['f_fc2'])
+                    loss_record = []
+                    loss_t_record = []
+                    
+                    for c_batch in range(t_batches):
+                        for i in range(len(zip_struct)-1):
+                            data_s,label_s = zip_struct[i][c_batch][0].to(self.device),zip_struct[i][c_batch][-1].to(self.device)
+                            data_t,label_t = zip_struct[-1][c_batch][0].to(self.device),zip_struct[-1][c_batch][-1].to(self.device)
+                            self.reset_grad()
+                            feat = self.G_s[i](data_s)
+                            feat_fc2 = feat['f_fc2']
+                            output = self.C_s[i](feat_fc2)
+        
+                            feat_t = self.G_t[ud_count](data_t)
+                            feat_fc2_t = feat_t['f_fc2']
+                            output_t = self.C_t[ud_count](feat_fc2_t)
+        
+                            loss_s = criterion(output, label_s)
+                            loss_t = criterion(output_t, label_t)
+                            loss_record.append(loss_s.item())
+                            loss_t_record.append(loss_t.item())
+            
+                            loss_s.backward(retain_graph=True)
+        
+                            feat_conv3 = feat['f_conv3']
+                            output_d=self.DC[i](self.D[i](feat_conv3))
+                            loss_s = criterion(output, label_s)
+                            loss_dis = self.discrepancy(output,output_d)
+                            loss_s -= loss_dis
+                            loss_s.backward(retain_graph=True)
+                            
+                            for net1, net2 in \
+                                zip(self.G_s[i].named_parameters(), self.G_t[ud_count].named_parameters()):
+                                if net1[1].grad is not None:
+                                    net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[ud_count][i] 
+                            for net1, net2 in \
+                                zip(self.C_s[i].named_parameters(), self.C_t[ud_count].named_parameters()):
+                                if net1[1].grad is not None:
+                                    net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[ud_count][i] 
+                            self.group_step([self.opt_d[i], self.opt_dc[i], self.opt_g_t[ud_count], \
+                                    self.opt_c_t[ud_count], self.opt_g_s[i], self.opt_c_s[i]])
+                            
+                            features_list = self.G_s[i](data_s)
+                            dis_features = self.D[i](features_list['f_conv3'])
+                            dis_features_shuffle = torch.index_select(dis_features,0,\
+                                Variable(torch.randperm(dis_features.shape[0]).to(self.device)))
+                            features_fc2 = features_list['f_fc2']
+                            MI = self.mutual_information_estimator(i, features_fc2, \
+                                dis_features, dis_features_shuffle) / self.args.div_bs
+                            entropy_s = self.ent(dis_features) / self.args.div_bs
+                            recon_features = self.R[i](torch.cat((features_fc2, dis_features),1)) \
+                                / self.args.div_bs
+                            recon_loss =  self.reconstruct_loss(features_list['f_conv3'], \
+                                recon_features) / self.args.div_bs
+                            total_loss = (MI - entropy_s + recon_loss ) * 0.1
+                            total_loss.backward()
+                            self.group_step([self.opt_d[i], self.opt_r[i], \
+                                             self.opt_m[i], self.opt_g_s[i]])
+        
+                            test_batch = zip_struct[-1][np.random.randint(0,len(zip_struct[-1])-1)]
+                            test_img = test_batch[0].to(self.device)
+                            # img = Variable(img.to(self.device))
+                            feat_torch = self.G_t[ud_count](test_img)['f_fc2']
+                            feat = feat_torch.data.cpu().numpy()
+        
+                            kmeans = KMeans(n_clusters=10, max_iter=1000).fit(feat)
+        
+                            cur_inertia = kmeans.inertia_ / 1e3
+                            if self.pre_inertia == -1:
+                                self.pre_inertia = cur_inertia
+                                continue
+                            else:
+                                inertia_gain = (self.pre_inertia - cur_inertia)\
+                                    /self.coefficient_matrix[ud_count][i]*(np.round(1/self.args.l_devices,2))
+                                self.inertia[i] = inertia_gain + self.inertia[i]
+                                self.pre_inertia = cur_inertia
+        
+                            src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
+                            tgt_domain_pred = self.FD[i](self.G_t[ud_count](data_t)['f_fc2'])
+        
+                            df_loss_src = adv_loss(src_domain_pred, self.src_domain_code)
+                            df_loss_tgt = adv_loss(tgt_domain_pred, self.tgt_domain_code)
+        
+                            loss = (df_loss_src + df_loss_tgt)/self.args.div_bs
+                            loss.backward()
+                            self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[ud_count]])
+        
+                            src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
+                            tgt_domain_pred = self.FD[i](self.G_t[ud_count](data_t)['f_fc2'])
+            
+                            df_loss_src = adv_loss(src_domain_pred, 1-self.src_domain_code)
+                            df_loss_tgt = adv_loss(tgt_domain_pred, 1-self.tgt_domain_code)
+                            loss = (df_loss_src + df_loss_tgt)/self.args.div_bs
+                            loss.backward()
+                            self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[ud_count]])
+                            
+                    coefficient_matrix_diff = self.softmax(self.inertia)
+                    tc_mat_diff = [0.20 + 0.2 * tmp for tmp in coefficient_matrix_diff]
+                    self.coefficient_matrix[ud_count] = [tcmd/sum(tc_mat_diff) \
+                        for tcmd in tc_mat_diff]
+                # print(self.coefficient_matrix)
+        else:
+            # hard coded approach
+            for t_d in range(self.args.u_devices):
+                zip_struct = []
+                for i in range(self.args.l_devices):
+                    zip_struct.append(list(self.dd_batched[i]))
+                zip_struct.append(list(self.ud_batched[t_d]))
+                
+                mb_sizes = []
+                for i in zip_struct:
+                    mb_sizes.append(len(i))
+                t_batches = min(mb_sizes)-1
+                
+                loss_record = []
+                loss_t_record = []
+                
+                for c_batch in range(t_batches):
+                    for i in range(args.l_devices):
+                        data_s,label_s = zip_struct[i][c_batch][0].to(self.device),zip_struct[i][c_batch][-1].to(self.device)
+                        data_t,label_t = zip_struct[-1][c_batch][0].to(self.device),zip_struct[-1][c_batch][-1].to(self.device)
+                        self.reset_grad()
+                        feat = self.G_s[i](data_s)
+                        feat_fc2 = feat['f_fc2']
+                        output = self.C_s[i](feat_fc2)
     
-                    df_loss_src = adv_loss(src_domain_pred, 1-self.src_domain_code)
-                    df_loss_tgt = adv_loss(tgt_domain_pred, 1-self.tgt_domain_code)
-                    loss = (df_loss_src + df_loss_tgt)/args.div_bs
-                    loss.backward()
-                    self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[t_d]])
+                        feat_t = self.G_t[t_d](data_t)
+                        feat_fc2_t = feat_t['f_fc2']
+                        output_t = self.C_t[t_d](feat_fc2_t)
+    
+                        loss_s = criterion(output, label_s)
+                        loss_t = criterion(output_t, label_t)
+                        loss_record.append(loss_s.item())
+                        loss_t_record.append(loss_t.item())
+        
+                        loss_s.backward(retain_graph=True)
+    
+                        feat_conv3 = feat['f_conv3']
+                        output_d=self.DC[i](self.D[i](feat_conv3))
+                        loss_s = criterion(output, label_s)
+                        loss_dis = self.discrepancy(output,output_d)
+                        loss_s -= loss_dis
+                        loss_s.backward(retain_graph=True)
+                        
+                        for net1, net2 in \
+                            zip(self.G_s[i].named_parameters(), self.G_t[t_d].named_parameters()):
+                            if net1[1].grad is not None:
+                                net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[t_d][i] 
+                        for net1, net2 in \
+                            zip(self.C_s[i].named_parameters(), self.C_t[t_d].named_parameters()):
+                            if net1[1].grad is not None:
+                                net2[1].grad = net1[1].grad.clone() * self.coefficient_matrix[t_d][i] 
+                        self.group_step([self.opt_d[i], self.opt_dc[i], self.opt_g_t[t_d], \
+                                self.opt_c_t[t_d], self.opt_g_s[i], self.opt_c_s[i]])
+                        
+                        features_list = self.G_s[i](data_s)
+                        dis_features = self.D[i](features_list['f_conv3'])
+                        dis_features_shuffle = torch.index_select(dis_features,0,\
+                            Variable(torch.randperm(dis_features.shape[0]).to(self.device)))
+                        features_fc2 = features_list['f_fc2']
+                        MI = self.mutual_information_estimator(i, features_fc2, \
+                            dis_features, dis_features_shuffle) / self.args.div_bs
+                        entropy_s = self.ent(dis_features) / self.args.div_bs
+                        recon_features = self.R[i](torch.cat((features_fc2, dis_features),1)) \
+                            / self.args.div_bs
+                        recon_loss =  self.reconstruct_loss(features_list['f_conv3'], \
+                            recon_features) / self.args.div_bs
+                        total_loss = (MI - entropy_s + recon_loss ) * 0.1
+                        total_loss.backward()
+                        self.group_step([self.opt_d[i], self.opt_r[i], \
+                                         self.opt_m[i], self.opt_g_s[i]])
+    
+                        test_batch = zip_struct[-1][np.random.randint(0,len(zip_struct[-1])-1)]
+                        test_img = test_batch[0].to(self.device)
+                        # img = Variable(img.to(self.device))
+                        feat_torch = self.G_t[t_d](test_img)['f_fc2']
+                        feat = feat_torch.data.cpu().numpy()
+    
+                        kmeans = KMeans(n_clusters=10, max_iter=1000).fit(feat)
+    
+                        cur_inertia = kmeans.inertia_ / 1e3
+                        if self.pre_inertia == -1:
+                            self.pre_inertia = cur_inertia
+                            continue
+                        else:
+                            inertia_gain = (self.pre_inertia - cur_inertia)\
+                                /self.coefficient_matrix[t_d][i]*(np.round(1/self.args.l_devices,2))
+                            self.inertia[i] = inertia_gain + self.inertia[i]
+                            self.pre_inertia = cur_inertia
+    
+                        src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
+                        tgt_domain_pred = self.FD[i](self.G_t[t_d](data_t)['f_fc2'])
+    
+                        df_loss_src = adv_loss(src_domain_pred, self.src_domain_code)
+                        df_loss_tgt = adv_loss(tgt_domain_pred, self.tgt_domain_code)
+    
+                        loss = (df_loss_src + df_loss_tgt)/self.args.div_bs
+                        loss.backward()
+                        self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[t_d]])
+    
+                        src_domain_pred = self.FD[i](self.G_s[i](data_s)['f_fc2'])
+                        tgt_domain_pred = self.FD[i](self.G_t[t_d](data_t)['f_fc2'])
+        
+                        df_loss_src = adv_loss(src_domain_pred, 1-self.src_domain_code)
+                        df_loss_tgt = adv_loss(tgt_domain_pred, 1-self.tgt_domain_code)
+                        loss = (df_loss_src + df_loss_tgt)/self.args.div_bs
+                        loss.backward()
+                        self.group_step([self.opt_fd[i], self.opt_g_s[i], self.opt_g_t[t_d]])
 
-            coefficient_matrix_diff = self.softmax(self.inertia)
-            tc_mat_diff = [0.20 + 0.2 * tmp for tmp in coefficient_matrix_diff]
-            self.coefficient_matrix[t_d] = [tcmd/sum(tc_mat_diff) \
-                for tcmd in tc_mat_diff]
-        print(self.coefficient_matrix)
+                coefficient_matrix_diff = self.softmax(self.inertia)
+                tc_mat_diff = [0.20 + 0.2 * tmp for tmp in coefficient_matrix_diff]
+                self.coefficient_matrix[t_d] = [tcmd/sum(tc_mat_diff) \
+                    for tcmd in tc_mat_diff]
+        # print(self.coefficient_matrix)
         
         return self.coefficient_matrix
 
@@ -503,7 +741,8 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     random.seed(args.seed)
     
-    test = iclr_method(args)
+    # test = iclr_method(args,st_split=[0,0,1,0,0,1,1,1,1,1])
+    test = iclr_method(args,st_split=None)
 
     results = test.train(100)
     
@@ -525,16 +764,16 @@ if __name__ == '__main__':
                 args.labels_type)\
                 ,'wb') as f:
                 pk.dump(results,f)
-    else: ## adjust file name with nrg
+    else: ## adjust file name with nrg - this doesn't actually do anything
         if args.dset_split == 0: # only one dataset
             if args.dset_type == 'MM':
                 end = '_base_6'
             else:
                 end = ''
-            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(args.seed,args.dset_type,\
-                args.labels_type,args.phi_e,end,end2)\
+            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}_{}'.format(args.seed,args.dset_type,\
+                args.labels_type,args.phi_e,end,end2,args.l_devices)\
                 ,'wb') as f:
-                pk.dump(results,f)                            
+                pk.dump(results,f)
         else:
             if 'MM' in args.split_type:
                 end = '_base_6'
@@ -542,14 +781,14 @@ if __name__ == '__main__':
                 end = ''
             
             if args.dset_split == 1:
-                with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(args.seed,args.split_type,\
-                    args.labels_type,args.phi_e,end,end2)\
+                with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}_{}'.format(args.seed,args.split_type,\
+                    args.labels_type,args.phi_e,end,end2,args.l_devices)\
                     ,'wb') as f:
                     pk.dump(results,f)
             elif args.dset_split == 2:
                 pre = 'total'
-                with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}_{}'.format(args.seed,args.split_type,\
-                    args.labels_type,args.phi_e,end,end2,pre)\
+                with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}_{}_{}'.format(args.seed,args.split_type,\
+                    args.labels_type,args.phi_e,end,end2,pre,args.l_devices)\
                     ,'wb') as f:
                     pk.dump(results,f)
 

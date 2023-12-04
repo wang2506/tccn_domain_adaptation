@@ -50,7 +50,7 @@ try:
     data_qty_alld = td_dict['_data_qty']
     split_lqtys = td_dict['_split_lqtys']
     split_uqtys = td_dict['_split_uqtys']
-    
+
     net_l_qtys = split_lqtys + split_uqtys
     all_u_qtys = data_qty_alld[args.l_devices:]
 except:
@@ -108,7 +108,7 @@ if args.dset_split == 0:
         print('Using MNIST-M \n')
         tx_dat =  torchvision.transforms.Compose([transforms.ToTensor()])
         d_train = MNISTM(pwd+'/data/',train=True,download=True,\
-                         transform=tx_dat)        
+                          transform=tx_dat)        
     else:
         raise TypeError('Dataset exceeds sims')
 else: 
@@ -120,7 +120,7 @@ else:
     d_m = torchvision.datasets.MNIST(pwd+'/data/',train=True,download=True,\
                     transform=tx_m)
     d_mm = MNISTM(pwd+'/data/',train=True,download=True,\
-                     transform=tx_mm)        
+                      transform=tx_mm)        
     try: 
         d_u = torchvision.datasets.USPS(pwd+'/data/',train=True,download=True,\
                         transform=tx_u)
@@ -173,11 +173,15 @@ else:
 
 # data processing
 if args.dset_split == 0:
-    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+    if args.eval_err == 1:
+        pre2 = 'R3'
+    elif args.eval_err == 0:
+        pre2 = ''        
+    with open(cwd+'/data_div/'+pre2+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_lpd','rb') as f:
         lpd = pk.load(f)
-    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+    with open(cwd+'/data_div/'+pre2+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','rb') as f:
         d_dsets = pk.load(f)
@@ -195,13 +199,23 @@ else:
         +'_'+args.split_type+'_'+args.labels_type+'_dindexsets','rb') as f:
         d_dsets = pk.load(f)
 
+for i in range(10):
+    print(len(d_dsets[i]))
+# input('x')
+
 # random sampling to determine the labelled datasets
 ld_sets = {}
 for i in d_dsets.keys():
     if i >= args.l_devices:
         break
     else:
-        ld_sets[i] = random.sample(d_dsets[i],split_lqtys[i])
+        if len(d_dsets[i]) <= split_lqtys[i]: #enlarge d_dsets
+            ttt_temp = []
+            for tl in lpd[i]:
+                ttt_temp += np.where(d_train.targets == tl)[0].tolist()
+            ld_sets[i] = random.sample(d_dsets[i] + ttt_temp,split_lqtys[i])
+        else:
+            ld_sets[i] = random.sample(d_dsets[i],split_lqtys[i])
 
 if args.init_test != 1:
     ## call source training here
@@ -299,7 +313,12 @@ if args.init_test != 1:
                 acc_i,ce_loss = test_img_gr(t_net1,t_net2,\
                             args.div_bs,d_train,indx=d_dsets[i],device=device)
             
-            hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+            if args.eval_err == 0:
+                adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i]
+            elif args.eval_err == 1:
+                adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 0.5*split_uqtys[i])/net_l_qtys[i]
+
+            hat_ep.append(adj_acc_i)
             hat_w[i] = [fn_w,f2c_w]
     else:
         ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
@@ -324,8 +343,14 @@ if args.init_test != 1:
                     acc_i,ce_loss = test_img_strain(t_net,\
                                 args.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)            
                 
-                # adjust hat_ep to make sure it only accounts for the labeled data        
-                hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+                # adjust hat_ep to make sure it only accounts for the labeled data       
+                if args.eval_err == 0:
+                    adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i]
+                elif args.eval_err == 1:
+                    adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 0.5*split_uqtys[i])/net_l_qtys[i]
+    
+                hat_ep.append(adj_acc_i)                
+                # hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
                 # print(acc_i)
                 hat_w[i] = params_w
         else:
@@ -338,7 +363,14 @@ if args.init_test != 1:
                     acc_i,ce_loss = test_img_strain(t_net,\
                                 args.div_bs,d_train,indx=d_dsets[i],device=device)
                     
-                    hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+                    # adjust hat_ep to make sure it only accounts for the labeled data       
+                    if args.eval_err == 0:
+                        adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i]
+                    elif args.eval_err == 1:
+                        adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 0.5*split_uqtys[i])/net_l_qtys[i]
+        
+                    hat_ep.append(adj_acc_i)  
+                    # hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
                     hat_w[i] = post_fl_params[i]
             elif args.dset_split == 2:
                 post_fl_params,fl_params = fl_subprocess(ld_sets,args=args,\
@@ -349,7 +381,14 @@ if args.init_test != 1:
                     acc_i,ce_loss = test_img_strain(t_net,\
                                 args.div_bs,d_train_dict[i],indx=d_dsets[i],device=device)
                     
-                    hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
+                    # adjust hat_ep to make sure it only accounts for the labeled data       
+                    if args.eval_err == 0:
+                        adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i]
+                    elif args.eval_err == 1:
+                        adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 0.5*split_uqtys[i])/net_l_qtys[i]
+        
+                    hat_ep.append(adj_acc_i)
+                    # hat_ep.append( ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i])
                     hat_w[i] = post_fl_params[i]
             else:
                 raise TypeError('Not coded yet')
@@ -383,7 +422,8 @@ if args.init_test != 1:
             end = '_base_6'
         else:
             end = ''
-        with open(cwd+'/source_errors/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        with open(cwd+'/source_errors/NRG_'+str(args.phi_e)+'_'+\
+            'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
             +'_'+prefl+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
@@ -393,12 +433,13 @@ if args.init_test != 1:
             end = '_base_6'
         else:
             end = ''
-        with open(cwd+'/source_errors/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+        with open(cwd+'/source_errors/NRG_'+str(args.phi_e)+'_'+\
+            pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
             +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
             +'_'+prefl+'_modelparams_'+args.div_nn+end+end2,\
             'wb') as f:
             pk.dump(hat_w,f)
-else:
+else: 
     hat_ep = []
     min_ep_vect = 1e-3
     max_ep_vect = 5e-1
@@ -408,6 +449,79 @@ else:
         t_hat_ep = random.sample(temp_ep_vect,1)
         hat_ep.extend(t_hat_ep)
 
+# %% uncomment if don't need to recompute errors
+## don't retrain - just obtain errors/accs 
+if args.test_pe == 1:
+    if args.fl == True:
+        prefl = 'fl'
+    if args.grad_rev == True:
+        end2 = 'gr'
+    else:
+        end2 = ''        
+    if args.dset_split == 0:
+        if args.dset_type == 'MM':
+            end = '_base_6'
+        else:
+            end = ''
+        with open(cwd+'/source_errors/NRG_'+str(args.phi_e)+'_'+\
+            'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
+            +'_'+prefl+'_modelparams_'+args.div_nn+end+end2,\
+            'rb') as f:
+            hat_w = pk.load(f)
+    else:
+        if 'MM' in args.split_type:
+            end = '_base_6'
+        else:
+            end = ''
+        with open(cwd+'/source_errors/NRG_'+str(args.phi_e)+'_'+\
+            pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+            +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
+            +'_'+prefl+'_modelparams_'+args.div_nn+end+end2,\
+            'wb') as f:
+            hat_w = pk.load(f)
+
+    device = 'cuda'
+    if args.div_nn == 'MLP':
+        if args.dset_split < 2:
+            d_in = np.prod(d_train[0][0].shape)
+        elif args.dset_split == 2:
+            d_in = np.prod(d0[0][0].shape)
+        d_h = 64
+        d_out = 10
+        start_net = MLP(d_in,d_h,d_out).to(device)
+        os_append = 'MLP_start_w'
+    elif args.div_nn == 'CNN':
+        if args.dset_type in ['M','U'] or args.dset_split > 0:
+            nchannels = 1 #grayscaled
+            nclasses = 10
+            start_net = CNN(nchannels,nclasses).to(device)
+            os_append = 'CNN_start_w_1c'
+        elif args.dset_type in ['MM'] and args.dset_split == 0:
+            nchannels = 3
+            nclasses = 10
+            start_net = CNN(nchannels,nclasses).to(device)
+            os_append = 'CNN_start_w_3c'
+        else:
+            raise TypeError('check here')
+
+    ld_nets = [deepcopy(start_net) for i in range(args.l_devices)]
+    hat_ep = []
+    for i in range(args.l_devices):
+        t_net = ld_nets[i]
+        t_net.load_state_dict(hat_w[i])
+        acc_i,ce_loss = test_img_strain(t_net,\
+                    args.div_bs,d_train,indx=d_dsets[i],device=device)
+        
+        # adjust hat_ep to make sure it only accounts for the labeled data       
+        if args.eval_err == 0:
+            adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 1*split_uqtys[i])/net_l_qtys[i]
+        elif args.eval_err == 1:
+            adj_acc_i = ((100-acc_i)/100*split_lqtys[i] + 0.5*split_uqtys[i])/net_l_qtys[i]
+
+        hat_ep.append(adj_acc_i)  
+
+# %% 
 ## ordering devices (labelled and unlabelled combined)
 # for now, just sequentially, all labelled, then unlabelled
 device_order = list(np.arange(0,args.l_devices+args.u_devices,1))
@@ -434,31 +548,53 @@ if args.div_flag == 1: #div flag is online
             +'_'+args.labels_type+end,'rb') as f:
             div_pairs = pk.load(f)
 else:
-    div_pairs = np.ones((args.t_devices,args.t_devices))
+    if args.div_style == 'off':
+        div_pairs = np.ones((args.t_devices,args.t_devices))
+        if args.suffix == 1: #this is for the convergence experiment
+            hat_ep_alld = [0.04,0.27,0.45,0.09,0.45] + (np.ones(5)*1e3).tolist()
+        elif args.suffix == 2:
+            hat_ep_alld = [0.04,0.27,80,0.09,0.45] + (np.ones(5)*1e3).tolist()
+    ## the other two div_flag == 0 cases involve uniform errors
+    elif args.div_style == 'unif': 
+        hat_ep_alld = np.ones(args.l_devices).tolist() + (np.ones(5)*1e3).tolist()
+        # hat_ep_alld = np.ones(args.t_devices).tolist()
+        with open(cwd+'/div_results/ablation_study2/unif_maxdiv_pairs','rb') as f:
+            div_pairs = pk.load(f)
+        ## change the normalization scale for easier convergence
+        div_pairs = np.ones((args.t_devices,args.t_devices))*10
+        np.fill_diagonal(div_pairs,1)
+    else:  #args.div_style == 'extreme':
+        hat_ep_alld = np.ones(args.l_devices).tolist() + (np.ones(5)*1e2).tolist()    
+        with open(cwd+'/div_results/ablation_study2/div_pairs_'+args.div_style,'rb') as f:
+            div_pairs = pk.load(f)
+        np.fill_diagonal(div_pairs,1)
 
 print(div_pairs)
-# input('init div pairs')
 
-# divergence normalization
-d_min = np.min(div_pairs[np.nonzero(div_pairs)])
-d_max = np.max(div_pairs)
-for ir,row in enumerate(div_pairs):
-    for iv,cval in enumerate(row):
-        if cval != 0:
-            cval = np.abs(cval-50)*2
-            row[iv] = cval
-            div_pairs[ir] = row
+if args.div_flag == 1: 
+    # divergence normalization
+    d_min = np.min(div_pairs[np.nonzero(div_pairs)])
+    d_max = np.max(div_pairs)
+    for ir,row in enumerate(div_pairs):
+        for iv,cval in enumerate(row):
+            if cval != 0:
+                cval = np.abs(cval-50)*2
+                row[iv] = cval
+                div_pairs[ir] = row
 
-# test scale
-div_pairs = div_pairs*1e1
-# div_pairs = div_pairs*5e1
-# div_pairs = div_pairs*1e2
+# ## renormalize div_pairs 
+# if args.test_pe == 1: 
+#     div_pairs = div_pairs/np.max(div_pairs)*100
 print(div_pairs)
 # input('stop')
 
-## rademacher estimates
-rad_s = [np.sqrt(2*np.log(net_l_qtys[i])/net_l_qtys[i]) for i in range(args.l_devices)]
-rad_t = [np.sqrt(2*np.log(all_u_qtys[i])/all_u_qtys[i]) for i in range(args.u_devices)]
+# ## old rademacher estimates - wrong theory
+# rad_s = [np.sqrt(2*np.log(net_l_qtys[i])/net_l_qtys[i]) for i in range(args.l_devices)]
+# rad_t = [np.sqrt(2*np.log(all_u_qtys[i])/all_u_qtys[i]) for i in range(args.u_devices)]
+
+## new rademacher estimates - correct theory
+rad_s = [np.sqrt(2*(np.log10(2))) for i in range(args.l_devices)]
+rad_t = [np.sqrt(2*(np.log10(2))) for i in range(args.u_devices)]
 
 rad_alld = rad_s+rad_t
 
@@ -472,7 +608,7 @@ sqrt_alld = sqrt_s+sqrt_t
 ## fxn name --> posy_err_calc
 def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
                rads=rad_alld,sqrts=sqrt_alld,hat_ep=hat_ep_alld,\
-                div_vals=None,args=args,s_params=hat_w):
+                div_vals=None,args=args):#,s_params=hat_w):
     err_denoms = []
     if err_type == 's':
         chi_scale = np.array(hat_ep) + 2*np.array(rads) + np.array(sqrts)
@@ -499,16 +635,24 @@ def err_calc(psi,chi,chi_init,psi_init,err_type,alpha_init=None,div_flag=False,\
             chi_scale_init[j] = []        
             
             for i in range(args.t_devices):                
-                if div_flag == False:
+                if div_flag == False: ##used initially for debugging
                     cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
                                 +4*rad_alld[j]+sqrts[j]
                 else:
-                    cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
-                                +4*rad_alld[j]+sqrts[j]+\
-                                0.5*2*div_vals[i,j]/100+\
-                                2*(rad_alld[i]+rad_alld[j]) + \
-                                sqrts[i]+sqrts[j]
-                
+                    # cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
+                    #             +4*rad_alld[j]+sqrts[j]+\
+                    #             0.5*2*div_vals[i,j]/100+\
+                    #             2*(rad_alld[i]+rad_alld[j]) + \
+                    #             sqrts[i]+sqrts[j]
+                    if args.div_flag == 0 and args.div_style != 'off':
+                        cs_factor = 0.5*2*div_vals[i,j]
+                    else:  ## resume testing from here tomorrow
+                        cs_factor = hat_ep[i]+2*rad_alld[i]+sqrts[i]\
+                                    +4*rad_alld[j]+sqrts[j]+\
+                                    0.5*2*div_vals[i,j]+\
+                                    2*(rad_alld[i]+rad_alld[j]) + \
+                                    sqrts[i]+sqrts[j]     
+                                    
                 t_chi_scale = alpha[i,j] * cs_factor
                 t_chi_scale_init = alpha_init[i,j] * cs_factor
                 
@@ -773,7 +917,8 @@ for c_iter in range(args.approx_iters):
     # target error term
     if args.div_flag == 0: 
         t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,\
-                            psi_init,err_type='t',alpha_init=alpha_init)
+                            psi_init,err_type='t',alpha_init=alpha_init,\
+                            div_flag=True,div_vals=div_pairs)
     else:
         t_denoms,chi_t_scale,chi_t_scale_init = err_calc(psi,chi_t,chi_t_init,\
                             psi_init,err_type='t',alpha_init=alpha_init,\
@@ -800,7 +945,7 @@ for c_iter in range(args.approx_iters):
                             alpha=alpha,psi=psi)
     
     posy_con = s_posy_con + t_posy_cons
-    net_con = constraints + posy_con 
+    net_con = constraints + posy_con
     net_con += pos_prev_con1 + neg_prev_con1
     
     e_err = c_nrg_calc(t_dict,args,a_init=alpha_init)
@@ -810,64 +955,76 @@ for c_iter in range(args.approx_iters):
     prob = cp.Problem(cp.Minimize(obj_fxn),constraints=net_con)
     prob.solve(solver=cp.MOSEK,gp=True)#,verbose=True)
     
-    # # print checking
-    # print('\n current iteration: '+str(c_iter))
-    # print('prob value:')
-    # print(prob.value)
-    # print('psi:')
-    # print(psi.value)
-    # # print('chi_s:')
-    # # print(chi_s.value)
-    # # print('chi_t:')
-    # # print(chi_t.value)
-    # print('alpha:')
-    # print(alpha.value)      
-    # print([cp.sum(alpha[:,j]).value for j in range(args.t_devices)])  
-    # print('chi_c1:')
-    # print(chi_c1.value)
-    # # print('chi_c2:')
-    # # print(chi_c2.value) #[0,:].value)
-    # # print('chi_c3:')
-    # # print(chi_c3.value)
+    # if c_iter <= 20: 
+    print('need adjust ratio post change')
+    print('sum of chi_s :'+str(cp.sum(chi_s).value))
+    print('sum of chi_t :'+str((t_err/phi_t).value))
+    # else:
+    #     input('x')
     
     obj_vals.append(prob.value)
     psi_track[c_iter] = psi.value
     nrg_vals.append(e_err.value)
-
-print('alpha:')
+    
+    if c_iter % 10 == 0:
+        print('alpha:')
+        print(alpha.value)
+       
+print('final alpha:')
 print(alpha.value)
 
-# print(c_iter)
 # %% saving some results 
+if args.eval_err == 1:
+    pre_str = 'R3'
+else:
+    pre_str = ''
+
 sav_dict = {'obj_val':obj_vals,'psi_val':psi_track,\
             'hat_ep_val':hat_ep_alld,'alpha_val':alpha.value}
-if args.div_flag == 1: 
+if args.div_flag == 1: # only updated ablation study uses optim_results2!
     if args.dset_split == 0:
         for ie,entry in enumerate(sav_dict.keys()):
-            with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
+            with open(cwd+'/optim_results2/'+entry+'/'+pre_str+'NRG_'+str(args.phi_e)+'_'\
                 +'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
                 +'_'+args.div_nn+'_'+args.dset_type+'_'+args.labels_type\
                 +prefl+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
     else:
         for ie,entry in enumerate(sav_dict.keys()):
-            with open(cwd+'/optim_results/'+entry+'/NRG_'+str(args.phi_e)+'_'\
+            with open(cwd+'/optim_results2/'+entry+'/'+pre_str+'NRG_'+str(args.phi_e)+'_'\
                 +pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
                 +'_'+args.div_nn+'_'+args.split_type+'_'+args.labels_type\
                 +prefl+end+end2,'wb') as f:
                 pk.dump(sav_dict[entry],f)
 
 else: #ablation cases for div_flag == 0
-    with open(cwd+'/optim_results/obj_val/bgap_st1','wb') as f:
-        pk.dump(obj_vals,f)
+    if args.div_style == 'off':
+    ## 1 suffix means standard source losses
+        ## 2 suffix means non-standard source losses to sanity-check functionality
+        with open(cwd+'/optim_results/obj_val/bgap_st'+str(args.suffix),'wb') as f:
+            pk.dump(obj_vals,f)
+        
+        with open(cwd+'/optim_results/psi_val/bgap_st'+str(args.suffix),'wb') as f:
+            pk.dump(psi_track,f)
+        
+        with open(cwd+'/optim_results/hat_ep_val/hat_ep'+str(args.suffix),'wb') as f:
+            pk.dump(hat_ep_alld,f)
     
-    with open(cwd+'/optim_results/psi_val/bgap_st1','wb') as f:
-        pk.dump(psi_track,f)
-    
-    with open(cwd+'/optim_results/hat_ep_val/hat_ep1','wb') as f:
-        pk.dump(hat_ep_alld,f)
-    
-#     with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
-#         pk.dump(alpha.value,f)
+    #     with open(cwd+'/optim_results/alpha_val/alpha1','wb') as f:
+    #         pk.dump(alpha.value,f)
+    elif args.div_style == 'unif':         
+        # save alpha and psi
+        with open(cwd+'/div_results/ablation_study2/psi_vals_'+args.div_style+\
+                  '_maxdiv','wb') as f:
+            pk.dump(psi_track,f)
+        with open(cwd+'/div_results/ablation_study2/alpha_vals_'+args.div_style+\
+                  '_maxdiv','wb') as f:
+            pk.dump(alpha.value,f)            
+    else:
+        with open(cwd+'/div_results/ablation_study2/psi_vals_'+args.div_style,'wb') as f:
+            pk.dump(psi_track,f)
+        with open(cwd+'/div_results/ablation_study2/alpha_vals_'+args.div_style,'wb') as f:
+            pk.dump(alpha.value,f)       
 
+        
 

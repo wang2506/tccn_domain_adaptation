@@ -12,7 +12,7 @@ def rescale_alphas(c_psi,c_alpha):
     # sources received models (alpha) adjust
     s_pv = np.where(np.array(c_psi) == 0)[0]
     s_alpha = c_alpha[:,s_pv]
-    s_alpha[np.where(s_alpha <= 5e-2)] = 0 #2.5
+    s_alpha[np.where(s_alpha <= 6e-2)] = 0 #old was 5e-2
     
     s_alpha_sums = np.sum(s_alpha,axis=0)
     for div_factor in s_alpha_sums:
@@ -22,7 +22,7 @@ def rescale_alphas(c_psi,c_alpha):
     # targets received models (alpha) adjust
     t_pv = np.where(np.array(c_psi) == 1)[0]
     t_alpha = c_alpha[:,t_pv]
-    t_alpha[np.where(t_alpha <= 1e-2)] = 0 
+    t_alpha[np.where(t_alpha <= 2.5e-2)] = 0 #old was 1e-2
     
     t_alpha_sums = np.sum(t_alpha,axis=0)
     for ind_f,div_factor in enumerate(t_alpha_sums):
@@ -79,6 +79,35 @@ def test_img_ttest(net_g,bs,dset,indx,device):
     accuracy = 100*correct.item() / len(indx) #data_loader.dataset)
     
     return accuracy, test_loss
+
+
+def test_img_herr(net_t,net_s,bs,dset,indx,device):
+    net_t.eval()
+    net_s.eval()
+    # testing values
+    diff_loss = 0
+    correct = 0
+    
+    dl = DataLoader(segmentdataset(dset,indx),batch_size=bs,shuffle=True)
+    batch_loss = []
+    for idx, (data, targets) in enumerate(dl):
+        data = data.to(device)
+        targets = targets.to(device)
+        t_log_probs = net_t(data)
+        s_log_probs = net_s(data)
+        
+        
+        # get the index of the max log-probability
+        t_y_pred = t_log_probs.data.max(1, keepdim=True)[1]
+        s_y_pred = s_log_probs.data.max(1, keepdim=True)[1]
+        
+        correct += t_y_pred.eq(s_y_pred.data.view_as(t_y_pred)).long().cpu().sum()
+
+    # test_loss /= len(data_loader.dataset)
+    # tloss = sum(batch_loss)/len(batch_loss)
+    accuracy = 100*correct.item() / len(indx) #data_loader.dataset)
+
+    return accuracy
 
 def alpha_avg(w,alphas):
     #w = {w_at_d1,w_at_d2,etc...}

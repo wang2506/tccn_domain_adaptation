@@ -55,7 +55,7 @@ data_qty_alld = list(net_l_qtys)+list(all_u_qtys)
 alld_qty = data_qty_alld
 
 td_dict = {'_data_qty':data_qty_alld,'_split_lqtys':split_lqtys,\
-           '_split_uqtys':split_uqtys}        
+            '_split_uqtys':split_uqtys}        
 for ie,entry in enumerate(td_dict.keys()):
     # print(td_dict)
     # input('a')
@@ -218,7 +218,12 @@ if args.label_split == 1:
         d_dset_sqtys = [np.random.multinomial(alld_qty[i],[1]) \
                          for i in range(args.t_devices)]
     else:
-        raise TypeError('labels type invalid')
+        print('iid experiment - reality a very light non-iid case')
+        lpd = [list(range(10)) for i in range(args.t_devices)]
+        d_dset_sqtys = [np.random.multinomial(alld_qty[i],[np.round(1/10,3)]*10) \
+                         for i in range(args.t_devices)]    
+        # raise TypeError('labels type invalid')
+        
 elif args.label_split == 0: #i.e., iid
     lpd = [list(range(10)) for i in range(args.t_devices)]
     d_dset_sqtys = [np.random.multinomial(alld_qty[i],[np.round(1/10,3)]*10) \
@@ -265,12 +270,17 @@ for i in range(args.t_devices):
                 td_dset = random.sample(c_dtrain_ls[c_labels[ti]].tolist(),tj)
             d_dsets[i].extend(td_dset)
 
+if args.eval_err == 1:
+    pre = 'R3'
+else:
+    pre = ''
+
 if args.dset_split == 0:
-    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+    with open(cwd+'/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_lpd','wb') as f:
         pk.dump(lpd,f)
-    with open(cwd+'/data_div/devices'+str(args.t_devices)+'_seed'+str(args.seed)\
+    with open(cwd+'/data_div/'+pre+'devices'+str(args.t_devices)+'_seed'+str(args.seed)\
         +'_'+args.div_nn\
         +'_'+args.dset_type+'_'+args.labels_type+'_dindexsets','wb') as f:
         pk.dump(d_dsets,f)
@@ -325,9 +335,14 @@ if args.div_nn == 'MLP':
     start_net = MLP(d_in,d_h,d_out).to(device)
     os_append = 'MLP_start_w'
 elif args.div_nn == 'CNN':
-    nchannels = 1
-    nclasses = 2
-    start_net = CNN(nchannels,nclasses).to(device)
+    if args.dset_type == 'MM' and args.dset_split == 0: #didn't grayscale this one
+        nchannels = 3
+        nclasses = 2
+        start_net = CNN(nchannels,nclasses).to(device)
+    else: 
+        nchannels = 1
+        nclasses = 2
+        start_net = CNN(nchannels,nclasses).to(device)
     os_append = 'CNN_start_w'
 elif args.div_nn == 'GCNN':
     nchannels = 1
@@ -369,7 +384,7 @@ for i in range(args.t_devices):
                 t_temp_set = random.sample(d_dsets[j],\
                         nearest_batch(d_dsets[j]))
 
-                if args.dset_split < 2:                    
+                if args.dset_split < 2:
                     s_w,s_loss = div_roi(deepcopy(st_net),st='source',\
                             bs=args.div_bs,lr=args.div_lr,\
                             l_dset=s_temp_set,dt=d_train)

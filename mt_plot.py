@@ -11,13 +11,16 @@ cwd = os.getcwd()
 labels_type = 'mild'
 dset_split = 0
 dset_split = 1
-# dset_split = 2
+dset_split = 2
 split_type = None
 nn_style = 'MLP'
 nn_style = 'CNN'
 nrg_mt = 1
 # phi_e = 1e1
 phi_e = 1e0
+# phi_e = 2.5e0
+# phi_e = 2e0
+# phi_e = 4e0
 grad_rv = False
 # grad_rv = True
 fl = True
@@ -58,13 +61,13 @@ for ids,seed in enumerate(seeds):
                 prefl = ''
             
             if nrg_mt == 0:
-                acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/seed_'+str(seed)+'_'\
+                acc_df = pd.read_csv(cwd+'/mt_results2/'+dset_type+'/seed_'+str(seed)+'_'\
                         +labels_type \
-                          +'_'+nn_style+end+end2+'_acc.csv')                
+                          +'_'+nn_style+end+end2+'_acc_rf.csv')                
             else:
-                acc_df = pd.read_csv(cwd+'/mt_results/'+dset_type+'/NRG'+str(phi_e)+'_'\
+                acc_df = pd.read_csv(cwd+'/mt_results2/'+dset_type+'/NRG'+str(phi_e)+'_'\
                         +'seed_'+str(seed)+'_'+labels_type \
-                          +'_'+nn_style+prefl+end+end2+'_acc.csv')
+                          +'_'+nn_style+prefl+end+end2+'_acc_rf.csv')
             if ids == 0:
                 taccs[dset_type] = acc_df['ours'].tolist()
                 raccs[dset_type] = acc_df['rng'].tolist()
@@ -122,13 +125,13 @@ for ids,seed in enumerate(seeds):
                 prefl = ''            
             
             if nrg_mt == 0:
-                acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/'+pre+'seed_'+str(seed)+'_'\
+                acc_df = pd.read_csv(cwd+'/mt_results2/'+split_type+'/'+pre+'seed_'+str(seed)+'_'\
                         +labels_type \
                           +'_'+nn_style+end+end2+'_acc.csv')
             else:
-                acc_df = pd.read_csv(cwd+'/mt_results/'+split_type+'/NRG'+str(phi_e)+'_'\
+                acc_df = pd.read_csv(cwd+'/mt_results2/'+split_type+'/NRG'+str(phi_e)+'_'\
                         +pre+'seed_'+str(seed)+'_'+labels_type \
-                          +'_'+nn_style+prefl+end+end2+'_acc.csv')    
+                          +'_'+nn_style+prefl+end+end2+'_acc_rf.csv')    
   
             if ids == 0:
                 taccs[split_type] = acc_df['ours'].tolist()
@@ -198,14 +201,27 @@ if dset_split == 0:
         # ax[i].bar([3],np.mean(h2accs[j]),\
         #         color='tab:brown',edgecolor='black',label=r'Uniform')  
         ax[i].bar([3],np.mean(gan_accs[j]),\
-                color='tab:brown',edgecolor='black',label=r'GAN')
+                color='tab:brown',edgecolor='black',label=r'FADA') #GAN
         ax[i].bar([4],np.mean(om_accs[j]),\
                 color='tab:purple',edgecolor='black',label=r'Avg-Degree')
         if i == 0: 
             ax[i].set_ylabel('Average Accuracy (%)')
+        print(j)
+        print(np.mean(taccs[j]))
+        print(np.mean(raccs[j]))
+        print(np.mean(h1accs[j]))
+        print(np.mean(gan_accs[j]))
+        print(np.mean(om_accs[j]))
 else:
     dset_vec = ['M+MM','M+U','MM+U']
     for i,j in enumerate(dset_vec):
+        print(j)
+        print(np.mean(taccs[j]))
+        print(np.mean(raccs[j]))
+        print(np.mean(h1accs[j]))
+        print(np.mean(gan_accs[j]))
+        print(np.mean(om_accs[j]))
+        
         if grad_rv == True: 
             ax[i].bar([0],np.mean(taccs[j]+saccs[j]),yerr=np.std(taccs[j]+saccs[j]),ecolor='black',\
                      capsize=5,width=width,\
@@ -215,13 +231,13 @@ else:
                     color='tab:orange',edgecolor='black',label=r'Random-$\alpha$')
             ax[i].bar([2],np.mean(h1accs[j]+saccs[j]),yerr=np.std(h1accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:green',edgecolor='black',label=r'Qty-Scaled')    
+                    color='tab:green',edgecolor='black',label=r'FedAvg')    
             # ax[i].bar([3],np.mean(h2accs[j]+saccs[j]),yerr=np.std(h2accs[j]+saccs[j]),ecolor='black',\
             #           capsize=5,width=width,\
             #         color='tab:brown',edgecolor='black',label=r'Uniform')  
             ax[i].bar([3],np.mean(gan_accs[j]+saccs[j]),yerr=np.std(gan_accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'GAN')
+                    color='tab:brown',edgecolor='black',label=r'FADA') #FADA
             ax[i].bar([4],np.mean(om_accs[j]+saccs[j]),yerr=np.std(om_accs[j]+saccs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:purple',edgecolor='black',label=r'Avg-Degree')
@@ -234,13 +250,13 @@ else:
                     color='tab:orange',edgecolor='black',label=r'Random-$\alpha$') #,yerr=np.std(raccs[j])
             ax[i].bar([2],np.mean(h1accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:green',edgecolor='black',label=r'Qty-Scaled')    #,yerr=np.std(h1accs[j]) 
+                    color='tab:green',edgecolor='black',label=r'FedAvg')    #,yerr=np.std(h1accs[j]) 
             # ax[i].bar([3],np.mean(h2accs[j]),yerr=np.std(h2accs[j]),ecolor='black',\
             #           capsize=5,width=width,\
             #         color='tab:brown',edgecolor='black',label=r'Uniform')
             ax[i].bar([3],np.mean(gan_accs[j]),ecolor='black',\
                       capsize=5,width=width,\
-                    color='tab:brown',edgecolor='black',label=r'GAN') #,yerr=np.std(gan_accs[j])
+                    color='tab:brown',edgecolor='black',label=r'FADA') #GAN #,yerr=np.std(gan_accs[j])
             ax[i].bar([4],np.mean(om_accs[j]),ecolor='black',\
                       capsize=5,width=width,\
                     color='tab:purple',edgecolor='black',label=r'Avg-Degree') #,yerr=np.std(om_accs[j])
@@ -249,13 +265,19 @@ else:
 
 dset_vec2 = ['M//MM','M//U','MM//U']
 if dset_split == 0:
-    ax[0].set_ylim([0,85])
-    ax[1].set_ylim([0,65])
-    ax[2].set_ylim([0,45])
-else:
-    ax[0].set_ylim([0,70])
-    ax[1].set_ylim([0,75])
-    ax[2].set_ylim([0,35])
+    ax[0].set_ylim([30,80])
+    ax[1].set_ylim([30,70])
+    ax[2].set_ylim([25,40])
+    # ax[2].set_ylim([26,37])
+    # ax[2].set_yticks([26,29,32,35])
+elif dset_split == 1:
+    ax[0].set_ylim([45,60])
+    ax[1].set_ylim([30,70])
+    ax[2].set_ylim([15,30])
+elif dset_split == 2:
+    ax[0].set_ylim([45,60])
+    ax[1].set_ylim([60,90])
+    ax[2].set_ylim([30,60])
 for i in range(3):        
     if dset_split < 2 : 
         ax[i].set_xlabel(dset_vec[i])
@@ -286,12 +308,15 @@ if grad_rv == True:
     pend = 'gr'
 else:
     pend = ''
+
 # if dset_split == 0:
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg.pdf',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg_gan.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_avg_gan.pdf',dpi=1000,bbox_inches='tight')
 # elif dset_split == 1:
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed.pdf',dpi=1000,bbox_inches='tight')    
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed_gan.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_mixed_gan.pdf',dpi=1000,bbox_inches='tight')    
 # elif dset_split == 2:
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split.png',dpi=1000,bbox_inches='tight')
-#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split.pdf',dpi=1000,bbox_inches='tight')      
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split_gan.png',dpi=1000,bbox_inches='tight')
+#     fig.savefig(cwd+'/mt_plots/'+labels_type+pend+'_split_gan.pdf',dpi=1000,bbox_inches='tight')
+
+

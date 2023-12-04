@@ -26,57 +26,57 @@ hat_ep_vals = {}
 alpha_vals = {}
 
 # div imports
-with open(cwd+'/ablation_study/unif_maxdiv_pairs','rb') as f:
+with open(cwd+'/ablation_study2/unif_maxdiv_pairs','rb') as f:
     div_pairs = pk.load(f)/100
 
-with open(cwd+'/ablation_study/div_pairs_extreme','rb') as f:
+with open(cwd+'/ablation_study2/div_pairs_extreme','rb') as f:
     div_pairs_e = pk.load(f)/100
 
-with open(cwd+'/ablation_study/div_pairs_random','rb') as f:
+with open(cwd+'/ablation_study2/div_pairs_random','rb') as f:
     div_pairs_r = pk.load(f)/100
 
-with open(cwd+'/ablation_study/div_pairs_estimated','rb') as f:
-    div_pairs_est = pk.load(f)/100
+# with open(cwd+'/ablation_study/div_pairs_estimated','rb') as f:
+#     div_pairs_est = pk.load(f)/100
 
 # alpha imports
-with open(cwd+'/ablation_study/alpha_vals_unif_maxdiv','rb') as f:
+with open(cwd+'/ablation_study2/alpha_vals_unif_maxdiv','rb') as f:
     tc_alpha = pk.load(f)
 
-with open(cwd+'/ablation_study/alpha_vals_extreme','rb') as f:
+with open(cwd+'/ablation_study2/alpha_vals_extreme','rb') as f:
     tc_alpha_div_e = pk.load(f)
 
-with open(cwd+'/ablation_study/alpha_vals_random','rb') as f:
+with open(cwd+'/ablation_study2/alpha_vals_random','rb') as f:
     tc_alpha_div_r = pk.load(f)
 
-with open(cwd+'/ablation_study/alpha_vals_estimated','rb') as f:
-    tc_alpha_div_est = pk.load(f)
+# with open(cwd+'/ablation_study/alpha_vals_estimated','rb') as f:
+#     tc_alpha_div_est = pk.load(f)
 
 # psi imports
-with open(cwd+'/ablation_study/psi_vals_unif_maxdiv','rb') as f:
+with open(cwd+'/ablation_study2/psi_vals_unif_maxdiv','rb') as f:
     psi_vals = pk.load(f)
 
-with open(cwd+'/ablation_study/psi_vals_extreme','rb') as f:
+with open(cwd+'/ablation_study2/psi_vals_extreme','rb') as f:
     psi_vals_e = pk.load(f)
 
-with open(cwd+'/ablation_study/psi_vals_random','rb') as f:
+with open(cwd+'/ablation_study2/psi_vals_random','rb') as f:
     psi_vals_r = pk.load(f)
 
-with open(cwd+'/ablation_study/psi_vals_estimated','rb') as f:
-    psi_vals_est = pk.load(f)
+# with open(cwd+'/ablation_study/psi_vals_estimated','rb') as f:
+#     psi_vals_est = pk.load(f)
 
 # %% processing the data
 # psi to binary variable
 psi_vals = [int(np.round(j,0)) for j in psi_vals[len(psi_vals.keys())-1]]
 psi_vals_e = [int(np.round(j,0)) for j in psi_vals_e[len(psi_vals_e.keys())-1]]
 psi_vals_r = [int(np.round(j,0)) for j in psi_vals_r[len(psi_vals_r.keys())-1]]
-psi_vals_est = [int(np.round(j,0)) for j in psi_vals_est[len(psi_vals_est.keys())-1]]
+# psi_vals_est = [int(np.round(j,0)) for j in psi_vals_est[len(psi_vals_est.keys())-1]]
 
 # rescale alphas to sum to 1 [maintain static ratios]
 def rescale_alphas(c_psi,c_alpha):
     # sources received models (alpha) adjust
     s_pv = np.where(np.array(c_psi) == 0)[0]
     s_alpha = c_alpha[:,s_pv]
-    s_alpha[np.where(s_alpha <= 1e-2)] = 0
+    s_alpha[np.where(s_alpha <= 2.5e-2)] = 0
     
     s_alpha_sums = np.sum(s_alpha,axis=0)
     for div_factor in s_alpha_sums:
@@ -86,7 +86,7 @@ def rescale_alphas(c_psi,c_alpha):
     # targets received models (alpha) adjust
     t_pv = np.where(np.array(c_psi) == 1)[0]
     t_alpha = c_alpha[:,t_pv]
-    t_alpha[np.where(t_alpha <= 1e-2)] = 0 
+    t_alpha[np.where(t_alpha <= 2.5e-2)] = 0 
     
     t_alpha_sums = np.sum(t_alpha,axis=0)
     for ind_f,div_factor in enumerate(t_alpha_sums):
@@ -114,8 +114,8 @@ rc_se_alpha, rc_te_alpha,joint_alpha_e, s_inds_e, t_inds_e = rescale_alphas(psi_
 
 rc_sr_alpha, rc_tr_alpha, joint_alpha_r, s_inds_r, t_inds_r  = rescale_alphas(psi_vals_r,tc_alpha_div_r)
 
-rc_sest_alpha, tc_test_alpha, joint_alpha_est, s_inds_est, t_inds_est = \
-    rescale_alphas(psi_vals_est,tc_alpha_div_est)
+# rc_sest_alpha, tc_test_alpha, joint_alpha_est, s_inds_est, t_inds_est = \
+#     rescale_alphas(psi_vals_est,tc_alpha_div_est)
 
 # %% ovr plot settings
 gs_kw = dict(width_ratios=[1,1,1], height_ratios=[2,1,2])
@@ -237,5 +237,5 @@ ax[2,2].add_artist(leg1)
 # # fig2.savefig(cwd+'/ablation_plots/model_ratios.png',dpi=1000,bbox_inches='tight')
 # # fig2.savefig(cwd+'/ablation_plots/model_ratios.pdf',dpi=1000,bbox_inches='tight')
 
-fig.savefig(cwd+'/ablation_plots/3x3.png',dpi=1000,bbox_inches='tight')
-fig.savefig(cwd+'/ablation_plots/3x3.pdf',dpi=1000,bbox_inches='tight')
+# fig.savefig(cwd+'/ablation_plots/3x3_new.png',dpi=1000,bbox_inches='tight')
+# fig.savefig(cwd+'/ablation_plots/3x3_new.pdf',dpi=1000,bbox_inches='tight')
