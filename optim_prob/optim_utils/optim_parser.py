@@ -64,7 +64,7 @@ def optim_parser():
     # div est infrastructure vars
     parser.add_argument('--div_comp',type=str,default='gpu',\
                         choices=['cpu','gpu'])
-    parser.add_argument('--div_gpu_num',type=int,default=1,\
+    parser.add_argument('--div_gpu_num',type=int,default=2,\
                         help='based on your devices') #0
     parser.add_argument('--div_ttime',type=int,default=50,\
                         help='divergence estimation total iteration loops') #10, 20
@@ -76,12 +76,12 @@ def optim_parser():
     
     # %% 
     # div est data + label vars
-    parser.add_argument('--dset_split',type=int,default=1,\
+    parser.add_argument('--dset_split',type=int,default=2,\
                         help='whether there are multiple datasets'+\
                         '0:single dataset, 1: mixed dataset on device, 2: mixed '+\
                         'datasets across network',\
                         choices=[0,1,2])
-    parser.add_argument('--split_type',type=str,default='MM+U',\
+    parser.add_argument('--split_type',type=str,default='M+MM',\
                         choices=['M+MM','M+U','M+S','MM+U','MM+S','S+U','A'],
                         help='{M+S:mnist+svhn,'+\
                         'M+U:mnist+usps,S+U:svhn+usps,A:all}')
