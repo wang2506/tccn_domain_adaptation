@@ -586,22 +586,13 @@ else:
 h2_models = {}
 h2_accs = {}
 h2_nrg = 0
-# h2_psi = deepcopy(psi_vals)
-# # h2_s = np.argmax(list(our_saccs.values()))
-# # h2_s = [h2_s]
-# # h2_th = list(np.where(np.round(list(our_saccs.values()),2) < \
-#                 # np.round(our_saccs[h2_s[0]],2))[0])
-# # for i in h2_th:
-# #     h2_psi[i] = 1
-
-# h2_psi = r_psi
-# h2_s = r_s
 h2_lmp = {}
 
-# from compare_mt_iclr import iclr_method
-# temp_obj = iclr_method(oargs,st_split=list(r_psi))
-# h2_alphas_all = temp_obj.train(100) # the iclr original code has no epoch call
-h2_alphas_all = [[np.round(1/len(h2_s),2) for tv in h2_s] for cv in range(sum(h2_psi))]
+### debugging purposes only
+# # from compare_mt_iclr import iclr_method
+# # temp_obj = iclr_method(oargs,st_split=list(r_psi))
+# # h2_alphas_all = temp_obj.train(100) # the iclr original code has no epoch call
+# h2_alphas_all = [[np.round(1/len(h2_s),2) for tv in h2_s] for cv in range(sum(h2_psi))]
 
 # %% load in gan baseline results
 if oargs.nrg_mt == 0:
@@ -616,27 +607,50 @@ if oargs.nrg_mt == 0:
             ,'rb') as f:
             gan_ratios = pk.load(f)
 else: ## adjust file name with nrg
-    sav_phi_e = 2e0 ## since gan is nrg value independent 
-    if oargs.dset_split == 0: # only one dataset
-        if oargs.dset_type == 'MM':
-            end = '_base_6'
+    if sum(h2_psi) == 5: 
+        sav_phi_e = 2e0 ## since gan is nrg value independent 
+        if oargs.dset_split == 0: # only one dataset
+            if oargs.dset_type == 'MM':
+                end = '_base_6'
+            else:
+                end = ''
+            #oargs.phi_e
+            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.dset_type,\
+                oargs.labels_type,sav_phi_e,end,end2)\
+                ,'rb') as f:
+                gan_ratios = pk.load(f)                    
         else:
-            end = ''
-        #oargs.phi_e
-        with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.dset_type,\
-            oargs.labels_type,sav_phi_e,end,end2)\
-            ,'rb') as f:
-            gan_ratios = pk.load(f)                    
+            if 'MM' in oargs.split_type:
+                end = '_base_6'
+            else:
+                end = ''
+            #oargs.phi_e
+            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.split_type,\
+                oargs.labels_type,sav_phi_e,end,end2)\
+                ,'rb') as f:
+                gan_ratios = pk.load(f)
     else:
-        if 'MM' in oargs.split_type:
-            end = '_base_6'
+        sav_phi_e = 1e0 #gan is nrg independent, but happen to save with this
+        if oargs.dset_split == 0: # only one dataset
+            if oargs.dset_type == 'MM':
+                end = '_base_6'
+            else:
+                end = ''
+            #oargs.phi_e
+            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}_{}'.format(oargs.seed,oargs.dset_type,\
+                oargs.labels_type,sav_phi_e,end,end2,len(h2_psi)-sum(h2_psi))\
+                ,'rb') as f:
+                gan_ratios = pk.load(f)                    
         else:
-            end = ''
-        #oargs.phi_e
-        with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}'.format(oargs.seed,oargs.split_type,\
-            oargs.labels_type,sav_phi_e,end,end2)\
-            ,'rb') as f:
-            gan_ratios = pk.load(f)
+            if 'MM' in oargs.split_type:
+                end = '_base_6'
+            else:
+                end = ''
+            #oargs.phi_e
+            with open(cwd+'/baselines/{}_{}_{}_NRG{}_{}_{}_{}'.format(oargs.seed,oargs.split_type,\
+                oargs.labels_type,sav_phi_e,end,end2,len(h2_psi)-sum(h2_psi))\
+                ,'rb') as f:
+                gan_ratios = pk.load(f)
 
 h2_alphas_all = gan_ratios
 
